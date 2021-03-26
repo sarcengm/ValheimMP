@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ValheimMP": {
+      "commandName": "Executable",
+      "executablePath": "../../../../debug.bat"
+    }
+  }
+}
