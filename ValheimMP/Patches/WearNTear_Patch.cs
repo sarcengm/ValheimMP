@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -11,6 +12,26 @@ namespace ValheimMP.Patches
     [HarmonyPatch]
     internal class WearNTear_Patch
     {
+        [HarmonyPatch(typeof(WearNTear), "Damage")]
+        [HarmonyPrefix]
+        private static bool Damage(WearNTear __instance, HitData hit)
+        {
+            if (ValheimMP.IsDedicated)
+            {
+                __instance.RPC_Damage(0, hit);
+            }
+            else
+            {
+                hit.ApplyResistance(__instance.m_damages, out _);
+                if (hit.GetTotalDamage() > 0)
+                {
+                    __instance.m_hitEffect.Create(hit.m_point, Quaternion.identity, __instance.transform);
+                }
+            }
+            return false;
+        }
+
+
         [HarmonyPatch(typeof(WearNTear), "RPC_HealthChanged")]
         [HarmonyPrefix]
         private static bool RPC_HealthChanged(WearNTear __instance, long peer)

@@ -33,6 +33,8 @@ namespace ValheimMP.Patches
             return !SuppressMessages;
         }
 
+
+
         [HarmonyPatch(typeof(Player), "Awake")]
         [HarmonyPostfix]
         private static void Awake(Player __instance)
@@ -80,6 +82,10 @@ namespace ValheimMP.Patches
                 __instance.m_nview.Register("StopEmote", (long sender) =>
                 {
                     RPC_StopEmote(__instance, sender);
+                });
+                __instance.m_nview.Register("HideHandItems", (long sender) =>
+                {
+                    RPC_HideHandItems(__instance, sender);
                 });
                 __instance.m_nview.Register("Jump", (long sender) =>
                 {
@@ -747,8 +753,9 @@ namespace ValheimMP.Patches
         [HarmonyPatch(typeof(Character), "GetSlideAngle")]
         [HarmonyPostfix]
         private static void GetSlideAngle(Character __instance, ref float __result)
-        { 
-            __result = 90f;
+        {
+            if(ValheimMP.IsDedicated)
+                __result = 90f;
         }
 
         internal static void RPC_SyncPlayerMovement(ZRpc rpc, ZPackage pkg)
@@ -1593,6 +1600,21 @@ namespace ValheimMP.Patches
             __instance.SetSeenTutorial(name);
         }
 
+        [HarmonyPatch(typeof(Humanoid), "HideHandItems")]
+        [HarmonyPostfix]
+        private static void HideHandItems(Humanoid __instance)
+        {
+            if (!ZNet.instance.IsServer() && __instance.IsPlayer())
+            {
+                __instance.m_nview.InvokeRPC(ZNet.instance.GetServerPeer().m_uid, "HideHandItems");
+            }
+        }
+
+        private static void RPC_HideHandItems(Player __instance, long sender)
+        {
+            __instance.HideHandItems();
+        }
+
         [HarmonyPatch(typeof(Player), "StartEmote")]
         [HarmonyPrefix]
         private static void StartEmote(Player __instance, string emote, bool oneshot = true)
@@ -1722,6 +1744,8 @@ namespace ValheimMP.Patches
 
             return false;
         }
+
+
     }
 }
 

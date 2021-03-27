@@ -1,7 +1,6 @@
 ﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,11 +9,11 @@ using UnityEngine;
 namespace ValheimMP.Patches
 {
     [HarmonyPatch]
-    internal class MineRock5_Patch
+    internal class MineRock_Patch
     {
-        [HarmonyPatch(typeof(MineRock5), "Damage")]
+        [HarmonyPatch(typeof(MineRock), "Damage")]
         [HarmonyPrefix]
-        private static bool Damage(MineRock5 __instance, HitData hit)
+        private static bool Damage(MineRock __instance, HitData hit)
         {
             if (ValheimMP.IsDedicated)
             {
@@ -34,7 +33,7 @@ namespace ValheimMP.Patches
                     return false;
                 }
 
-                __instance.RPC_Damage(0, hit, areaIndex);
+                __instance.RPC_Hit(0, hit, areaIndex);
             }
             else
             {
@@ -47,16 +46,9 @@ namespace ValheimMP.Patches
             return false;
         }
 
-        [HarmonyPatch(typeof(MineRock5), "RPC_Damage")]
+        [HarmonyPatch(typeof(MineRock), "RPC_Hit")]
         [HarmonyPrefix]
-        private static bool RPC_Damage(ref MineRock5 __instance, long sender, HitData hit, int hitAreaIndex)
-        {
-            return ZNet_Patch.IsRPCAllowed(__instance, sender);
-        }
-
-        [HarmonyPatch(typeof(MineRock5), "RPC_SetAreaHealth")]
-        [HarmonyPrefix]
-        private static bool RPC_SetAreaHealth(ref MineRock5 __instance, long sender, int index, float health)
+        private static bool RPC_Hit(ref MineRock __instance, long sender, HitData hit, int hitAreaIndex)
         {
             return ZNet_Patch.IsRPCAllowed(__instance, sender);
         }

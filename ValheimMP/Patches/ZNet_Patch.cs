@@ -28,17 +28,16 @@ namespace ValheimMP.Patches
         public static bool IsRPCAllowed(object __instance, long sender)
         {
             // RPC ourselves? eh sure why not.
-            if (sender == ZNet.instance.GetUID())
+            if (sender == ZNet.instance.GetUID() || sender == 0L)
                 return true;
 
-            if (ZNet.instance.IsServer() && sender != 0L && sender != ZNet.instance.GetUID())
+            if (ZNet.instance.IsServer() && sender != ZNet.instance.GetUID())
             {
                 DebugMod.LogComponent(__instance, "Received RPC from client " + sender);
                 return false;
             }
 
-
-            if (!ZNet.instance.IsServer() && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected && sender != ZNet.instance.GetServerPeer().m_uid && sender != 0L)
+            if (!ZNet.instance.IsServer() && ZNet.GetConnectionStatus() == ZNet.ConnectionStatus.Connected && sender != ZNet.instance.GetServerPeer().m_uid)
             {
                 DebugMod.LogComponent(__instance, "Received RPC from non server " + sender);
                 return false;

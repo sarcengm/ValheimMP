@@ -261,7 +261,11 @@ namespace ValheimMP
             var seman = new SEMan(null, null);
             seman.m_clientStatus = (object)null; ///new Dictionary<int, NetworkedStatusEffect>();
             seman.m_clientStatusSyncTime = 0f;
+
+            var hitdata = new HitData();
+            hitdata.m_attackerCharacter = new Character();
         }
+
         internal void WriteDebugData()
         {
 #if DEBUG

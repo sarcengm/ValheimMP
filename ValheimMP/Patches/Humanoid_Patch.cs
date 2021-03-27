@@ -93,6 +93,124 @@ namespace ValheimMP.Patches
             }
         }
 
+
+        // This function is basically EquipItem with all checks ripped out of them, it can be done better.
+        // Possibly with transpiler?
+        public static bool ForceEquipItem(Humanoid __instance, ItemDrop.ItemData item, bool triggerEquipEffects = true)
+        {
+            if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Tool)
+            {
+                __instance.UnequipItem(__instance.m_rightItem, triggerEquipEffects);
+                __instance.UnequipItem(__instance.m_leftItem, triggerEquipEffects);
+                __instance.m_rightItem = item;
+                __instance.m_hiddenRightItem = null;
+                __instance.m_hiddenLeftItem = null;
+            }
+            else if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Torch)
+            {
+                if (__instance.m_rightItem != null && __instance.m_leftItem == null && __instance.m_rightItem.m_shared.m_itemType == ItemDrop.ItemData.ItemType.OneHandedWeapon)
+                {
+                    __instance.m_leftItem = item;
+                }
+                else
+                {
+                    __instance.UnequipItem(__instance.m_rightItem, triggerEquipEffects);
+                    if (__instance.m_leftItem != null && __instance.m_leftItem.m_shared.m_itemType != ItemDrop.ItemData.ItemType.Shield)
+                    {
+                        __instance.UnequipItem(__instance.m_leftItem, triggerEquipEffects);
+                    }
+                    __instance.m_rightItem = item;
+                }
+                __instance.m_hiddenRightItem = null;
+                __instance.m_hiddenLeftItem = null;
+            }
+            else if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.OneHandedWeapon)
+            {
+                if (__instance.m_rightItem != null && __instance.m_rightItem.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Torch && __instance.m_leftItem == null)
+                {
+                    ItemDrop.ItemData rightItem = __instance.m_rightItem;
+                    __instance.UnequipItem(__instance.m_rightItem, triggerEquipEffects);
+                    __instance.m_leftItem = rightItem;
+                    __instance.m_leftItem.m_equiped = true;
+                }
+                __instance.UnequipItem(__instance.m_rightItem, triggerEquipEffects);
+                if (__instance.m_leftItem != null && __instance.m_leftItem.m_shared.m_itemType != ItemDrop.ItemData.ItemType.Shield && __instance.m_leftItem.m_shared.m_itemType != ItemDrop.ItemData.ItemType.Torch)
+                {
+                    __instance.UnequipItem(__instance.m_leftItem, triggerEquipEffects);
+                }
+                __instance.m_rightItem = item;
+                __instance.m_hiddenRightItem = null;
+                __instance.m_hiddenLeftItem = null;
+            }
+            else if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shield)
+            {
+                __instance.UnequipItem(__instance.m_leftItem, triggerEquipEffects);
+                if (__instance.m_rightItem != null && __instance.m_rightItem.m_shared.m_itemType != ItemDrop.ItemData.ItemType.OneHandedWeapon && __instance.m_rightItem.m_shared.m_itemType != ItemDrop.ItemData.ItemType.Torch)
+                {
+                    __instance.UnequipItem(__instance.m_rightItem, triggerEquipEffects);
+                }
+                __instance.m_leftItem = item;
+                __instance.m_hiddenRightItem = null;
+                __instance.m_hiddenLeftItem = null;
+            }
+            else if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Bow)
+            {
+                __instance.UnequipItem(__instance.m_leftItem, triggerEquipEffects);
+                __instance.UnequipItem(__instance.m_rightItem, triggerEquipEffects);
+                __instance.m_leftItem = item;
+                __instance.m_hiddenRightItem = null;
+                __instance.m_hiddenLeftItem = null;
+            }
+            else if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.TwoHandedWeapon)
+            {
+                __instance.UnequipItem(__instance.m_leftItem, triggerEquipEffects);
+                __instance.UnequipItem(__instance.m_rightItem, triggerEquipEffects);
+                __instance.m_rightItem = item;
+                __instance.m_hiddenRightItem = null;
+                __instance.m_hiddenLeftItem = null;
+            }
+            else if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Chest)
+            {
+                __instance.UnequipItem(__instance.m_chestItem, triggerEquipEffects);
+                __instance.m_chestItem = item;
+            }
+            else if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Legs)
+            {
+                __instance.UnequipItem(__instance.m_legItem, triggerEquipEffects);
+                __instance.m_legItem = item;
+            }
+            else if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Ammo)
+            {
+                __instance.UnequipItem(__instance.m_ammoItem, triggerEquipEffects);
+                __instance.m_ammoItem = item;
+            }
+            else if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Helmet)
+            {
+                __instance.UnequipItem(__instance.m_helmetItem, triggerEquipEffects);
+                __instance.m_helmetItem = item;
+            }
+            else if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Shoulder)
+            {
+                __instance.UnequipItem(__instance.m_shoulderItem, triggerEquipEffects);
+                __instance.m_shoulderItem = item;
+            }
+            else if (item.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Utility)
+            {
+                __instance.UnequipItem(__instance.m_utilityItem, triggerEquipEffects);
+                __instance.m_utilityItem = item;
+            }
+            if (__instance.IsItemEquiped(item))
+            {
+                item.m_equiped = true;
+            }
+            __instance.SetupEquipment();
+            if (triggerEquipEffects)
+            {
+                __instance.TriggerEquipEffect(item);
+            }
+            return true;
+        }
+
         [HarmonyPatch(typeof(Humanoid), "EquipItem")]
         [HarmonyPrefix]
         private static bool EquipItem(ref Humanoid __instance, ref bool __result, ItemDrop.ItemData item, bool triggerEquipEffects)
@@ -105,6 +223,7 @@ namespace ValheimMP.Patches
 
             if (__instance.IsItemEquiped(item))
             {
+                __result = true;
                 return false;
             }
             if (!__instance.m_inventory.ContainsItem(item))

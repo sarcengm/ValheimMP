@@ -370,7 +370,7 @@ namespace ValheimMP.Patches
                     {
                         Player_Patch.SuppressMessages = true;
                         Humanoid_Patch.LocalActionOnly = true;
-                        if (m_equiped) humanoid.EquipItem(itemData);
+                        if (m_equiped) Humanoid_Patch.ForceEquipItem(humanoid, itemData);
                         else humanoid.UnequipItem(itemData);
                         Humanoid_Patch.LocalActionOnly = false;
                         Player_Patch.SuppressMessages = false;

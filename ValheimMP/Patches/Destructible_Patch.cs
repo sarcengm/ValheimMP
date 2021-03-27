@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace ValheimMP.Patches
 {
@@ -12,9 +13,21 @@ namespace ValheimMP.Patches
     {
         [HarmonyPatch(typeof(Destructible), "Damage")]
         [HarmonyPrefix]
-        private static bool Damage()
+        private static bool Damage(Destructible __instance, HitData hit)
         {
-            return ZNet.instance.IsServer();
+            if (ValheimMP.IsDedicated)
+            {
+                __instance.RPC_Damage(0, hit);
+            }
+            else
+            {
+                hit.ApplyResistance(__instance.m_damages, out _);
+                if (hit.GetTotalDamage() > 0)
+                {
+                    __instance.m_hitEffect.Create(hit.m_point, Quaternion.identity, __instance.transform);
+                }
+            }
+            return false;
         }
 
         [HarmonyPatch(typeof(Destructible), "RPC_Damage")]

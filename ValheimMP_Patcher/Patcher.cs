@@ -23,6 +23,7 @@ namespace ValheimMP_Patcher
             var ZRpcType = valheim.GetType("ZRpc");
             var ZDOIDType = valheim.GetType("ZDOID");
             var ZNetPeerType = valheim.GetType("ZNetPeer");
+            var CharacterType = valheim.GetType("Character");
             var PlayerType = valheim.GetType("Player");
             var PlayerProfileType = valheim.GetType("PlayerProfile");
             var ZPackageType = valheim.GetType("ZPackage");
@@ -122,6 +123,11 @@ namespace ValheimMP_Patcher
                 var SEManType = valheim.GetType("SEMan");
                 SEManType.Fields.Add(new FieldDefinition("m_clientStatus", FieldAttributes.Private, ObjectType));
                 SEManType.Fields.Add(new FieldDefinition("m_clientStatusSyncTime", FieldAttributes.Private, FloatType));
+            }
+
+            // HitData
+            {
+                HitDataType.Fields.Add(new FieldDefinition("m_attackerCharacter", FieldAttributes.Private, CharacterType));
             }
 
             // Container

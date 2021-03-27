@@ -360,7 +360,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
 /assembly_valheim
 /*.bat
 /ValheimMPTests
 /ValheimMP.sln
+/ValheimMP/Properties/launchSettings.json
