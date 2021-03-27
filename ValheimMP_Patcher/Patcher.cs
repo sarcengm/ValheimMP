@@ -198,6 +198,20 @@ namespace ValheimMP_Patcher
                 var ItemDataType = valheim.GetType("ItemDrop/ItemData");
                 ItemDataType.Fields.Add(new FieldDefinition("m_id", FieldAttributes.Private | FieldAttributes.NotSerialized, IntType));
             }
+
+            // ZRoutedRpc/RoutedRPCData
+            {
+                var RoutedRPCDataType = valheim.GetType("ZRoutedRpc/RoutedRPCData");
+                RoutedRPCDataType.Fields.Add(new FieldDefinition("m_range", FieldAttributes.Private | FieldAttributes.NotSerialized, FloatType));
+                RoutedRPCDataType.Fields.Add(new FieldDefinition("m_position", FieldAttributes.Private | FieldAttributes.NotSerialized, Vector3Type));
+            }
+
+            // ZRpc
+            {
+                ZRpcType.Fields.Add(new FieldDefinition("m_ping", FieldAttributes.Private | FieldAttributes.NotSerialized, FloatType));
+                ZRpcType.Fields.Add(new FieldDefinition("m_averagePing", FieldAttributes.Private | FieldAttributes.NotSerialized, FloatType));
+                ZRpcType.Fields.Add(new FieldDefinition("m_pingTime", FieldAttributes.Private | FieldAttributes.NotSerialized, FloatType));
+            }
         }
 
 

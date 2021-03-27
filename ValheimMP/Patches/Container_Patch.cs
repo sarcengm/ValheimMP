@@ -110,9 +110,6 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool RPC_RequestTakeAll(Container __instance, long uid, long playerID)
         {
-            
-            ZLog.Log("RPC_RequestTakeAll!");
-            ZLog.Log(new System.Diagnostics.StackTrace().ToString());
             if (__instance.m_checkGuardStone && !PrivateArea_Patch.CheckAccess(uid, __instance.transform.position))
                 return false;
 

@@ -110,4 +110,12 @@ namespace ValheimMP.Patches
         }
 #endif
     }
+
+    public static class ZNetViewExtension
+    {
+        public static void InvokeProximityRPC(this ZNetView netView, float range, long targetID,  string method, params object[] parameters)
+        {
+            ZRoutedRpc.instance.InvokeProximityRoutedRPC(netView.transform.position, range, targetID, netView.m_zdo.m_uid, method, parameters);
+        }
+    }
 }

@@ -29,10 +29,26 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool Damage(Character __instance, HitData hit)
         {
-            if (!ZNet.instance.IsServer())
+            if (!ValheimMP.IsDedicated)
                 return false;
-            __instance.m_nview.InvokeRPC("Damage", hit);
-            __instance.RPC_Damage(0, hit);
+
+            if (__instance is Player player)
+            {
+                player.m_delayedDamage.Enqueue(new KeyValuePair<float, HitData>(Time.time, hit));
+            }
+            else
+            {
+                __instance.RPC_Damage(0, hit);
+            }
+            return false;
+        }
+
+        private static bool Heal(Character __instance, float hp, bool showText = true)
+        {
+            if (!ValheimMP.IsDedicated)
+                return false;
+
+            __instance.RPC_Heal(0, hp, showText);
             return false;
         }
 

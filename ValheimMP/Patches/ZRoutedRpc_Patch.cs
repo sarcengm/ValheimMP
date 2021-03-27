@@ -2,9 +2,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 using ValheimMP.Util;
+using static ZRoutedRpc;
 
 namespace ValheimMP.Patches
 {
@@ -60,6 +63,63 @@ namespace ValheimMP.Patches
             }
 
             return false;
+        }
+
+
+        [HarmonyPatch(typeof(ZRoutedRpc), "RouteRPC", new[] { typeof(RoutedRPCData) })]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> CreateNonOriginatorHitEffects(IEnumerable<CodeInstruction> instructions)
+        {
+            var list = instructions.ToList();
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].Calls(AccessTools.Method(typeof(ZNetPeer), "IsReady")))
+                {
+                    list[i] = new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ZRoutedRpcExtension), "IsReadyAndInRange"));
+                    list.InsertRange(i, new[]
+                    {
+                        new CodeInstruction(OpCodes.Ldarg_1),
+                        new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(RoutedRPCData), "m_range")),
+                        new CodeInstruction(OpCodes.Ldarg_1),
+                        new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(RoutedRPCData), "m_position")),
+                    });
+                }
+            }
+            return list;
+        }
+    }
+
+    public static class ZRoutedRpcExtension
+    {
+        public static bool IsReadyAndInRange(this ZNetPeer peer, float range, Vector3 pos)
+        {
+            if (!peer.IsReady())
+                return false;
+            if (range == 0)
+                return true;
+            return (peer.m_refPos - pos).sqrMagnitude <= range * range;
+        }
+
+        public static void InvokeProximityRoutedRPC(this ZRoutedRpc rpc, Vector3 position, float range, long targetPeerID, ZDOID targetZDO, string methodName, params object[] parameters)
+        {
+            RoutedRPCData routedRPCData = new RoutedRPCData();
+            routedRPCData.m_msgID = rpc.m_id + rpc.m_rpcMsgID++;
+            routedRPCData.m_senderPeerID = rpc.m_id;
+            routedRPCData.m_targetPeerID = targetPeerID;
+            routedRPCData.m_targetZDO = targetZDO;
+            routedRPCData.m_methodHash = methodName.GetStableHashCode();
+            routedRPCData.m_range = range;
+            routedRPCData.m_position = position;
+            ZRpc.Serialize(parameters, ref routedRPCData.m_parameters);
+            routedRPCData.m_parameters.SetPos(0);
+            if (targetPeerID == rpc.m_id || targetPeerID == 0L)
+            {
+                rpc.HandleRoutedRPC(routedRPCData);
+            }
+            if (targetPeerID != rpc.m_id)
+            {
+                rpc.RouteRPC(routedRPCData);
+            }
         }
     }
 }

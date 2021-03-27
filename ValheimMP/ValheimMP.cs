@@ -264,6 +264,15 @@ namespace ValheimMP
 
             var hitdata = new HitData();
             hitdata.m_attackerCharacter = new Character();
+
+            var routedRpcData = new ZRoutedRpc.RoutedRPCData();
+            routedRpcData.m_range = 0f;
+            routedRpcData.m_position = Vector3.zero;
+
+            var zrpc = new ZRpc(null);
+            zrpc.m_ping = 0f;
+            zrpc.m_averagePing = 0f;
+            zrpc.m_pingTime = 0f;
         }
 
         internal void WriteDebugData()

@@ -22,7 +22,7 @@ namespace ValheimMP.Patches
         [HarmonyPatch(typeof(MineRock5), "DamageArea", new Type[] { typeof(int), typeof(HitData) })]
         [HarmonyPatch(typeof(MineRock), "RPC_Hit", new Type[] { typeof(long), typeof(HitData), typeof(int) })]
         [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> CreateNonOriginatorEffects(IEnumerable<CodeInstruction> instructions)
+        private static IEnumerable<CodeInstruction> CreateNonOriginatorHitEffects(IEnumerable<CodeInstruction> instructions)
         {
             var list = instructions.ToList();
             for (int i = 0; i < list.Count; i++)

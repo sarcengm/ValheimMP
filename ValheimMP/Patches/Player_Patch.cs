@@ -40,6 +40,7 @@ namespace ValheimMP.Patches
         private static void Awake(Player __instance)
         {
             __instance.m_delayedDamage = new Queue<KeyValuePair<float, HitData>>();
+            var zdo = __instance.m_nview.m_zdo;
 
             if (ZNet.instance != null && ZNet.instance.IsServer())
             {
@@ -144,18 +145,39 @@ namespace ValheimMP.Patches
                 {
                     RPC_TeleportTo(__instance, pos, rot);
                 });
+                __instance.m_nview.Register("Pushback", (long sender, Vector3 pushForce) =>
+                {
+                    RPC_Pushback(__instance, pushForce);
+                });
+                zdo.SetFieldType("stamina", ZDOFieldType.Private);
+                zdo.RegisterZDOEvent("stamina", (ZDO zdo) =>
+                {
+                    ZDOEvent_SyncStamina(__instance);
+                });
 
                 __instance.SetLocalPlayer();
 
                 CheckPlayerReady();
             }
 
-            if (__instance.m_nview != null && __instance.m_nview.m_zdo != null)
+            if (zdo != null)
             {
-                __instance.m_nview.m_zdo.RegisterZDOEvent("m_attachPoint", (ZDO zdo) =>
+                zdo.RegisterZDOEvent("m_attachPoint", (ZDO zdo) =>
                 {
                     ZDOEvent_Attach(__instance);
                 });
+            }
+        }
+
+        private static void ZDOEvent_SyncStamina(Player __instance)
+        {
+            if (__instance is null)
+                return;
+            var targetStamina = __instance.m_nview.m_zdo.GetFloat("stamina");
+
+            if (Mathf.Abs(__instance.m_stamina - targetStamina) > 5f)
+            {
+                __instance.m_stamina = targetStamina;
             }
         }
 
@@ -167,6 +189,22 @@ namespace ValheimMP.Patches
             {
                 __instance.m_nview.m_zdo.ClearZDOEvent("m_attachPoint");
             }
+        }
+
+
+        [HarmonyPatch(typeof(Character), "ApplyPushback")]
+        [HarmonyPostfix]
+        private static void ApplyPushback(Character __instance)
+        {
+            if (ValheimMP.IsDedicated && __instance is Player player)
+            {
+                player.m_nview.InvokeRPC("Pushback", __instance.m_pushForce);
+            }
+        }
+
+        private static void RPC_Pushback(Player __instance, Vector3 pushForce)
+        {
+            __instance.m_pushForce = pushForce;
         }
 
         public static void CheckPlayerReady()
@@ -620,13 +658,12 @@ namespace ValheimMP.Patches
                 lineObj.SetPosition(1, __instance.m_nview.m_zdo.GetPosition() - new Vector3(0, 0, 0));
             }
 
-            
+
 
             // the server should handle all most of this as well
             if (!__instance.IsDead())
             {
                 SyncPlayerMovement(__instance);
-
                 UpdateDelayedDamage(__instance);
                 __instance.UpdateEquipQueue(fixedDeltaTime);
                 __instance.PlayerAttackInput(fixedDeltaTime);
@@ -647,11 +684,13 @@ namespace ValheimMP.Patches
                 {
                     __instance.AutoPickup(fixedDeltaTime);
                     __instance.EdgeOfWorldKill(fixedDeltaTime);
+
+                    __instance.m_nview.GetZDO().Set("stamina", __instance.m_stamina);
                 }
 
                 if (!ZNet.instance.IsServer())
                 {
-                    if (!ValheimMP.Instance.DoNotHideCharacterWhenCameraClose && (bool) GameCamera.instance &&
+                    if (!ValheimMP.Instance.DoNotHideCharacterWhenCameraClose && (bool)GameCamera.instance &&
                         Vector3.Distance(GameCamera.instance.transform.position, __instance.transform.position) < 2f)
                     {
                         __instance.SetVisible(visible: false);
@@ -664,17 +703,17 @@ namespace ValheimMP.Patches
 
         private static void UpdateDelayedDamage(Player __instance)
         {
-            if(__instance.m_delayedDamage.Count == 0)
+            if (__instance.m_delayedDamage.Count == 0)
                 return;
 
             var peer = ZNet.instance.GetPeer(__instance.GetPlayerID());
-            var sock = peer?.m_socket;
-            if (sock is null) return;
-            sock.GetConnectionQuality(out var localQuality, out var remoteQuality, out var ping, out var outByteSec, out var inByteSec);
-            var fping = ping / 1000f;
-            while (Time.time + fping > __instance.m_delayedDamage.Peek().Key)
+
+            if (peer == null)
+                return;
+
+            while (Time.time + peer.m_rpc.m_averagePing > __instance.m_delayedDamage.Peek().Key)
             {
-                __instance.m_nview.InvokeRPC("Damage", __instance.m_delayedDamage.Dequeue().Value);
+                __instance.RPC_Damage(0, __instance.m_delayedDamage.Dequeue().Value);
                 if (__instance.m_delayedDamage.Count == 0)
                     break;
             }
@@ -724,7 +763,7 @@ namespace ValheimMP.Patches
             __instance.m_timeSinceDeath = 0f;
             peer.m_respawnWait = ValheimMP.Instance.RespawnDelay;
 
-            
+
 
             if (!__instance.HardDeath())
             {
@@ -739,7 +778,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void RPC_OnDeath(Player __instance, long sender)
         {
-            if(__instance == Player.m_localPlayer)
+            if (__instance == Player.m_localPlayer)
             {
                 Game.instance.m_playerProfile.SetDeathPoint(__instance.transform.position);
                 __instance.ShowTutorial("death");
@@ -754,7 +793,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void GetSlideAngle(Character __instance, ref float __result)
         {
-            if(ValheimMP.IsDedicated)
+            if (ValheimMP.IsDedicated)
                 __result = 90f;
         }
 
@@ -1110,7 +1149,7 @@ namespace ValheimMP.Patches
                     break;
                 }
             }
-            
+
             return list.AsEnumerable();
         }
 
@@ -1137,7 +1176,7 @@ namespace ValheimMP.Patches
             if (__instance.m_crouchToggled != crouch)
             {
                 __instance.m_crouchToggled = crouch;
-                if(!ValheimMP.IsDedicated)
+                if (!ValheimMP.IsDedicated)
                 {
                     __instance.m_nview.InvokeRPC(ZNet.instance.GetServerPeer().m_uid, "Crouch", crouch);
                 }
@@ -1505,7 +1544,7 @@ namespace ValheimMP.Patches
             {
                 if (list[i].Calls(AccessTools.Method(typeof(Player), "FaceLookDirection")))
                 {
-                    list.InsertRange(i+1, new[]
+                    list.InsertRange(i + 1, new[]
                     {
                         new CodeInstruction(OpCodes.Ldarg_0),
                         new CodeInstruction(OpCodes.Ldloc_0),
@@ -1660,13 +1699,13 @@ namespace ValheimMP.Patches
             {
                 if (list[i].StoresField(AccessTools.Field(typeof(Player), "m_attached")))
                 {
-                    list.InsertRange(i+1, new []
+                    list.InsertRange(i + 1, new[]
                     {
                         new CodeInstruction(OpCodes.Ldarg_0),
                         new CodeInstruction(OpCodes.Ldarg_1),
                         new CodeInstruction(OpCodes.Ldarg_S, 4),
                         new CodeInstruction(OpCodes.Ldarg_S, 5),
-                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Player_Patch), "AttachStart", 
+                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Player_Patch), "AttachStart",
                             new Type[] { typeof(Player), typeof(Transform), typeof(string), typeof(Vector3) }))
 
                     });
@@ -1729,23 +1768,6 @@ namespace ValheimMP.Patches
 
             __instance.AttachStop();
         }
-
-        [HarmonyPatch(typeof(Character),"Damage")]
-        [HarmonyPrefix]
-        private static bool Damage(Character __instance, HitData hit)
-        {
-            if (ValheimMP.IsDedicated && __instance.m_nview.IsValid())
-            {
-                if (__instance is Player player)
-                {
-                    player.m_delayedDamage.AddItem(new KeyValuePair<float, HitData>(Time.time, hit));
-                }
-            }
-
-            return false;
-        }
-
-
     }
 }
 
