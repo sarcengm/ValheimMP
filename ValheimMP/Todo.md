@@ -1,4 +1,4 @@
-﻿# TODO:
+﻿# TODO
 
 - Player attack (compensation)
 - Player appearance

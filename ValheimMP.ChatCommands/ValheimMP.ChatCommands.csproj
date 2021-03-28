@@ -1,33 +1,48 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <AssemblyName>ValheimMP</AssemblyName>
+    <AssemblyName>ValheimMP.ChatCommands</AssemblyName>
     <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
     <TargetFramework>net47</TargetFramework>
   </PropertyGroup>
   <PropertyGroup>
     <LangVersion>Preview</LangVersion>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <RootNamespace>ValheimMP</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
-    <DefineConstants>TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\assembly_valheim\assembly_valheim.csproj" />
+    <ProjectReference Include="..\ValheimMP\ValheimMP.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\BepInEx\core\0Harmony.dll</HintPath>
     </Reference>
+    <Reference Include="assembly_googleanalytics">
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\valheim_Data\Managed\publicized_assemblies\assembly_googleanalytics_publicized.dll</HintPath>
+    </Reference>
     <Reference Include="assembly_guiutils">
-      <HintPath>..\..\base\bin\Debug\net40\assembly_guiutils.dll</HintPath>
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\valheim_Data\Managed\publicized_assemblies\assembly_guiutils_publicized.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_lux">
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\valheim_Data\Managed\publicized_assemblies\assembly_lux_publicized.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_postprocessing">
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\valheim_Data\Managed\publicized_assemblies\assembly_postprocessing_publicized.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_simplemeshcombine">
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\valheim_Data\Managed\publicized_assemblies\assembly_simplemeshcombine_publicized.dll</HintPath>
     </Reference>
     <Reference Include="assembly_steamworks">
-      <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\valheim_Data\Managed\assembly_steamworks.dll</HintPath>
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\valheim_Data\Managed\publicized_assemblies\assembly_steamworks_publicized.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_sunshafts">
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\valheim_Data\Managed\publicized_assemblies\assembly_sunshafts_publicized.dll</HintPath>
     </Reference>
     <Reference Include="assembly_utils">
-      <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\valheim_Data\Managed\assembly_utils.dll</HintPath>
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\valheim_Data\Managed\publicized_assemblies\assembly_utils_publicized.dll</HintPath>
+    </Reference>
+    <Reference Include="assembly_valheim">
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\valheim_Data\Managed\publicized_assemblies\assembly_valheim_publicized.dll</HintPath>
     </Reference>
     <Reference Include="BepInEx">
       <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\BepInEx\core\BepInEx.dll</HintPath>

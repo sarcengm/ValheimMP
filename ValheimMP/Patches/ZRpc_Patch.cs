@@ -57,7 +57,7 @@ namespace ValheimMP.Patches
         {
             var currentPing = Time.realtimeSinceStartup - __instance.m_pingTime;
             // the laziest possible average ping calculation!
-            __instance.m_averagePing = (__instance.m_ping + currentPing) / 2f;
+            __instance.m_averagePing = (__instance.m_averagePing*2 + __instance.m_ping + currentPing) / 4f;
             __instance.m_ping = currentPing;
             __instance.m_timeSinceLastPing = 0f;
         }

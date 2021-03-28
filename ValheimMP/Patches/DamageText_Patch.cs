@@ -28,10 +28,9 @@ namespace ValheimMP.Patches
             zPackage.Write(pos);
             zPackage.Write(dmg);
             zPackage.Write(player);
-            
             if (ZNet.instance.IsServer())
             {
-                ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.Everybody, "DamageText", zPackage);
+                ZRoutedRpc.instance.InvokeProximityRoutedRPC(pos, 100f, ZRoutedRpc.Everybody, ZDOID.None, "DamageText", zPackage);
             }
             else
             {

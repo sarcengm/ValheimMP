@@ -45,6 +45,9 @@ namespace ValheimMP
         /// </summary>
         public bool DebugOutputZDO { get; internal set; }
 
+        /// <summary>
+        /// Outputs all RPC invokes to log
+        /// </summary>
         public bool DebugRPC { get; internal set; }
 
         /// <summary>
@@ -53,7 +56,7 @@ namespace ValheimMP
         public Dictionary<int, Dictionary<string, int>> ZDODebug { get; internal set; } = new Dictionary<int, Dictionary<string, int>>();
 
         /// <summary>
-        /// Turned in a variable just because I overwrote that whole function.
+        /// 
         /// </summary>
         public bool DoNotHideCharacterWhenCameraClose { get; internal set; }
 
@@ -84,6 +87,21 @@ namespace ValheimMP
         public OnChatMessageDel OnChatMessage { get; set; }
         public delegate bool OnChatMessageDel(ZNetPeer peer, Player player, ref string playerName, ref Vector3 messageLocation, ref float messageDistance, ref string text, ref Talker.Type type);
 
+        /// <summary>
+        /// Fired when the plugin is patched into the game
+        /// </summary>
+        public OnPluginActivateDel OnPluginActivate { get; set; }
+        public delegate void OnPluginActivateDel();
+
+        /// <summary>
+        /// Fired when the plugin is unpatched from the game
+        /// </summary>
+        public OnPluginDeactivateDel OnPluginDeactivate { get; set; }
+        public delegate void OnPluginDeactivateDel();
+
+        /// <summary>
+        /// Show an ingame marker where the server thinks your character is
+        /// </summary>
         public bool DebugShowZDOPlayerLocation { get; internal set; }
 
         /// <summary>
@@ -92,7 +110,59 @@ namespace ValheimMP
         public float ArtificialPing { get; internal set; }
 
         public static bool IsDedicated { get; private set; }
-        public float RespawnDelay { get; internal set; }
+
+        /// <summary>
+        /// Minimal time it takes to respawn, it may be slightly longer if it still needs to load
+        /// </summary>
+        public float RespawnDelay { get; set; }
+
+        /// <summary>
+        /// Player Attacks something (other then a player) in a ward where they have no access
+        /// </summary>
+        public float WardPlayerDamageMultiplier { get; set; }
+
+        /// <summary>
+        /// Monster attacks something (other then a player) in a ward where they have no access
+        /// </summary>
+        public float WardMonsterDamageMultiplier { get; set; }
+
+        /// <summary>
+        /// Monster attacks something (other then a player) in a ward where they have no access
+        /// 
+        /// And receives this multiplier worth of his own damage in return
+        /// </summary>
+        public float WardMonsterReflectDamage { get; set; }
+
+        /// <summary>
+        /// Player attacks something (other then a player) in a ward where they have no access
+        /// 
+        /// And receives this multiplier worth of his own damage in return
+        /// </summary>
+        public float WardPlayerReflectDamage { get; set; }
+
+        /// <summary>
+        /// Monster attacks player in a ward where they have no access
+        /// </summary>
+        public float WardMonsterVPlayerDamageMultiplier { get; set; }
+
+        /// <summary>
+        /// Player attacks player in a ward where they have no access
+        /// </summary>
+        public float WardPlayerVPlayerDamageMultiplier { get; set; }
+
+        /// <summary>
+        /// Player attacks player in a ward where they have no access
+        /// 
+        /// And receives this multiplier worth of his own damage in return
+        /// </summary>
+        public float WardPlayerVPlayerReflectDamage { get; set; }
+
+        /// <summary>
+        /// Monster attacks player in a ward where they have no access
+        /// 
+        /// And receives this multiplier worth of his own damage in return
+        /// </summary>
+        public float WardMonsterVPlayerReflectDamage { get; set; }
 
         // Awake is called once when both the game and the plug-in are loaded
         private void Awake()
@@ -128,8 +198,15 @@ namespace ValheimMP
             ArtificialPing = 125f;
             RespawnDelay = 10.0f;
 
-            AddChatFuntions();
+            WardPlayerDamageMultiplier = 0.0f;
+            WardPlayerReflectDamage = 1.0f;
+            WardPlayerVPlayerDamageMultiplier = 0.0f;
+            WardPlayerVPlayerReflectDamage = 0.0f;
 
+            WardMonsterDamageMultiplier = 0.0f;
+            WardMonsterReflectDamage = 1.0f;
+            WardMonsterVPlayerDamageMultiplier = 1.0f;
+            WardMonsterVPlayerReflectDamage = 0.0f;
             //Directory.CreateDirectory(System.IO.Path.Combine(Utils.GetSaveDataPath(), CharacterPath));
         }
 
@@ -159,57 +236,17 @@ namespace ValheimMP
                 {
                     Logger.LogInfo($"Patching {HarmonyGUID}");
                     m_harmony.PatchAll();
+                    if(OnPluginActivate != null)
+                        OnPluginActivate();
                 }
                 else
                 {
                     Logger.LogInfo($"Unpatching {HarmonyGUID}");
                     m_harmony.UnpatchAll(HarmonyGUID);
+                    if (OnPluginDeactivate != null)
+                        OnPluginDeactivate();
                 }
             }
-        }
-
-        private void AddChatFuntions()
-        {
-            OnChatMessage += (ZNetPeer peer, Player player, ref string playerName, ref Vector3 messageLocation, ref float messageDistance, ref string text, ref Talker.Type type) =>
-            {
-                // This normally happens on the client but we supress it here so we can still send marked up text ourselves!
-                text = text.Replace('<', ' ');
-                text = text.Replace('>', ' ');
-
-                if (text.StartsWith("/vmp", StringComparison.OrdinalIgnoreCase))
-                {
-                    ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", messageLocation, -1, "",
-                        $"<color=white>Server is running <color=green><b>{Name}</b></color> version <color=green><b>{Version}</b></color>.</color>"
-                    );
-                    return false;
-                }
-
-                if (text.StartsWith("/claim", StringComparison.OrdinalIgnoreCase))
-                {
-                    var list = new List<Piece>();
-                    var guardStones = 0;
-                    var claimFor = text.Substring("/claim".Length);
-                    long.TryParse(claimFor, out var claimForId);
-                    if (claimForId == 0L)
-                        claimForId = peer.m_uid;
-
-                    Piece.GetAllPiecesInRadius(player.transform.position, 20f, list);
-                    foreach (var item in list.Where(item => item.GetComponent<PrivateArea>() != null))
-                    {
-                        item.m_creator = claimForId;
-                        item.m_nview.GetZDO().Set(Piece.m_creatorHash, claimForId);
-                        guardStones++;
-                    }
-
-                    ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", messageLocation, -1, "",
-                        $"<color=white>Claimed <color=green>{guardStones}</color> guardstones for <color=green>{claimForId}</color>.</color>"
-                    );
-
-                    return false;
-                }
-
-                return true;
-            };
         }
 
         /// <summary>

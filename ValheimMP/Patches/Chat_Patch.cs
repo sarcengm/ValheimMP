@@ -78,21 +78,17 @@ namespace ValheimMP.Patches
                     break;
             }
 
-            foreach (ValheimMP.OnChatMessageDel del in ValheimMP.Instance.OnChatMessage.GetInvocationList())
+            if (ValheimMP.Instance.OnChatMessage != null)
             {
-                if (!del(peer, player, ref playerName, ref messageLocation, ref messageDistance, ref text, ref type))
-                    return;
-            }
-
-            messageDistance *= messageDistance;
-
-            foreach (var otherPeer in ZNet.instance.m_peers) 
-            {
-                if (otherPeer != null && (otherPeer.m_player.transform.position - player.transform.position).sqrMagnitude < messageDistance)
+                foreach (ValheimMP.OnChatMessageDel del in ValheimMP.Instance.OnChatMessage.GetInvocationList())
                 {
-                    ZRoutedRpc.instance.InvokeRoutedRPC(otherPeer.m_uid, "ChatMessage", messageLocation, (int)type, playerName, text);
+                    if (!del(peer, player, ref playerName, ref messageLocation, ref messageDistance, ref text, ref type))
+                        return;
                 }
             }
+
+            ZRoutedRpc.instance.InvokeProximityRoutedRPC(messageLocation, messageDistance,
+                ZRoutedRpc.Everybody, ZDOID.None, "ChatMessage", messageLocation, (int)type, playerName, text);
         }
     }
 }

@@ -154,6 +154,10 @@ namespace ValheimMP.Patches
                 {
                     ZDOEvent_SyncStamina(__instance);
                 });
+                zdo.RegisterZDOEvent("health", (ZDO zdo) =>
+                {
+                    ZDOEvent_SyncHealth(__instance);
+                });
 
                 __instance.SetLocalPlayer();
 
@@ -178,6 +182,18 @@ namespace ValheimMP.Patches
             if (Mathf.Abs(__instance.m_stamina - targetStamina) > 5f)
             {
                 __instance.m_stamina = targetStamina;
+            }
+        }
+
+        private static void ZDOEvent_SyncHealth(Player __instance)
+        {
+            if (__instance is null)
+                return;
+            var targetHealth = __instance.m_nview.m_zdo.GetFloat("health");
+
+            if (Mathf.Abs(__instance.m_health - targetHealth) > 1f)
+            {
+                __instance.m_health = targetHealth;
             }
         }
 
