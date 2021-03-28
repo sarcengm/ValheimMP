@@ -20,15 +20,19 @@ namespace ValheimMP.Patches
                 __instance.m_nview.Unregister("AddOre");
                 __instance.m_nview.Unregister("AddFuel");
 
-                __instance.m_nview.Register("AddOre", (long sender, int itemId) => { RPC_AddOre(__instance, sender, itemId); });
-                __instance.m_nview.Register("AddFuel", (long sender, int itemId) => { RPC_AddFuel(__instance, sender, itemId); });
+                __instance.m_nview.Register("AddOre2", (long sender, int itemId) => { RPC_AddOre(__instance, sender, itemId); });
+                __instance.m_nview.Register("AddFuel2", (long sender, int itemId) => { RPC_AddFuel(__instance, sender, itemId); });
             }
         }
 
         [HarmonyPatch(typeof(Smelter), "OnAddFuel")]
         [HarmonyPrefix]
-        private static bool OnAddFuel(Smelter __instance, Switch sw, Humanoid user, ItemDrop.ItemData item)
+        private static bool OnAddFuel(Smelter __instance, ref bool __result, Switch sw, Humanoid user, ItemDrop.ItemData item)
         {
+            __result = false;
+            if (user == null)
+                return false;
+
             if (item != null && item.m_shared.m_name != __instance.m_fuelItem.m_itemData.m_shared.m_name)
             {
                 user.Message(MessageHud.MessageType.Center, "$msg_wrongitem");
@@ -39,13 +43,21 @@ namespace ValheimMP.Patches
                 user.Message(MessageHud.MessageType.Center, "$msg_itsfull");
                 return false;
             }
-            if (!user.GetInventory().HaveItem(__instance.m_fuelItem.m_itemData.m_shared.m_name))
+
+            if (item == null)
+            {
+                item = user.m_inventory.m_inventory.SingleOrDefault(k => k.m_shared.m_name == __instance.m_fuelItem.m_itemData.m_shared.m_name);
+            }
+
+            if (item == null)
             {
                 user.Message(MessageHud.MessageType.Center, "$msg_donthaveany " + __instance.m_fuelItem.m_itemData.m_shared.m_name);
                 return false;
             }
-            __instance.m_nview.InvokeRPC("AddFuel", item.m_id);
-            return true;
+            
+            __instance.m_nview.InvokeRPC("AddFuel2", item.m_id);
+            __result = true;
+            return false;
         }
 
         private static void RPC_AddFuel(Smelter __instance, long sender, int itemId)
@@ -58,8 +70,10 @@ namespace ValheimMP.Patches
             if (peer == null || peer.m_player == null)
                 return;
             var item = peer.m_player.m_inventory.m_inventory.SingleOrDefault(k => k.m_id == itemId);
+            if (item == null)
+                return;
             var user = peer.m_player;
-            if (item != null && item.m_shared.m_name != __instance.m_fuelItem.m_itemData.m_shared.m_name)
+            if (item.m_shared.m_name != __instance.m_fuelItem.m_itemData.m_shared.m_name)
             {
                 user.Message(MessageHud.MessageType.Center, "$msg_wrongitem");
                 return;
@@ -69,13 +83,9 @@ namespace ValheimMP.Patches
                 user.Message(MessageHud.MessageType.Center, "$msg_itsfull");
                 return;
             }
-            if (!user.GetInventory().HaveItem(__instance.m_fuelItem.m_itemData.m_shared.m_name))
-            {
-                user.Message(MessageHud.MessageType.Center, "$msg_donthaveany " + __instance.m_fuelItem.m_itemData.m_shared.m_name);
-                return;
-            }
+
             user.Message(MessageHud.MessageType.Center, "$msg_added " + __instance.m_fuelItem.m_itemData.m_shared.m_name);
-            user.GetInventory().RemoveItem(__instance.m_fuelItem.m_itemData.m_shared.m_name, 1);
+            user.GetInventory().RemoveItem(item, 1);
 
 
             float fuel = __instance.GetFuel();
@@ -107,8 +117,9 @@ namespace ValheimMP.Patches
                 user.Message(MessageHud.MessageType.Center, "$msg_itsfull");
                 return false;
             }
-            __instance.m_nview.InvokeRPC("AddOre", item.m_id);
-            return true;
+            __instance.m_nview.InvokeRPC("AddOre2", item.m_id);
+            __result = true;
+            return false;
         }
 
         private static void RPC_AddOre(Smelter __instance, long sender, int itemId)
@@ -119,17 +130,11 @@ namespace ValheimMP.Patches
                 if (peer == null || peer.m_player == null)
                     return;
                 var item = peer.m_player.m_inventory.m_inventory.SingleOrDefault(k => k.m_id == itemId);
+                if (item == null)
+                    return;
+
                 var user = peer.m_player;
 
-                if (item == null)
-                {
-                    item = __instance.FindCookableItem(user.GetInventory());
-                    if (item == null)
-                    {
-                        user.Message(MessageHud.MessageType.Center, "$msg_noprocessableitems");
-                        return;
-                    }
-                }
                 if (!__instance.IsItemAllowed(item.m_dropPrefab.name))
                 {
                     user.Message(MessageHud.MessageType.Center, "$msg_wontwork");

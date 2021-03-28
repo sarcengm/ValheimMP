@@ -394,16 +394,6 @@ namespace ValheimMP.Patches
             return ZNet.instance == null || ZNet.instance.IsServer();
         }
 
-        [HarmonyPatch(typeof(ZNet), "Disconnect")]
-        [HarmonyPrefix]
-        private static void Disconnect(ref ZNet __instance, ZNetPeer peer)
-        {
-            if (ZNet.instance.IsServer())
-            {
-                ZNetPeer_Patch.SavePeer(peer);
-            }
-        }
-
         [HarmonyPatch(typeof(ZNet), "SetCharacterID")]
         [HarmonyPrefix]
         private static bool SetCharacterID(ref ZNet __instance, ZDOID id)

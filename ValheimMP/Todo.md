@@ -14,7 +14,7 @@
 - Hide weapons hides them completely rather then stashing them on your person
 - Raven shows up because tutorial text is still out of sync when it triggers.
 - When rocks turn into fragmentable rocks, the first rock is destroyed before it turns into a fragmentable rock making you see a short flicker.
-
+- Sometimes items fail to show the durability properly in the inventory grid
 
 ---
 

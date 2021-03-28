@@ -1,8 +1,4 @@
-﻿#if DEBUG
-//#define DEBUGINV
-#endif
-
-using HarmonyLib;
+﻿using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,17 +25,17 @@ namespace ValheimMP.Patches
         {
             if (__instance.m_zdo != null)
             {
-                var container = __instance.GetComponent<Container>();
+                var container = __instance.GetComponentInChildren<Container>();
                 if (container != null)
                 {
-                    Unregister(__instance.m_zdo.m_uid);
+                    Unregister(container.m_inventory);
                     return;
                 }
 
                 var humanoid = __instance.GetComponent<Humanoid>();
                 if (humanoid != null)
                 {
-                    Unregister(__instance.m_zdo.m_uid);
+                    Unregister(humanoid.m_inventory);
                     return;
                 }
             }
@@ -63,6 +59,10 @@ namespace ValheimMP.Patches
             __result.m_id = ++itemDataId;
         }
 
+        public static void RemoveListenerFromAll(long user)
+        {
+            m_inventoryListeners.Values.Do(k => k.RemoveListener(user));
+        }
 
         /// <summary>
         /// Add a listener to this inventory. User will be send updates when the inventory changes.
@@ -70,14 +70,31 @@ namespace ValheimMP.Patches
         /// <param name="user"></param>
         /// <param name="m_inventory"></param>
         /// <param name="index"></param>
-        public static void AddListener(long user, Inventory inventory, int index = 0)
+        public static bool AddListener(long user, Inventory inventory)
         {
-            var id = inventory.m_nview.m_zdo.m_uid;
+            var key = new InventoryKey(inventory);
 
-            if (m_inventoryListeners.TryGetValue(new InventoryKey(id, index), out var inventoryWrapper))
+            if (m_inventoryListeners.TryGetValue(key, out var inventoryWrapper))
             {
                 inventoryWrapper.AddListener(user);
+                return true;
             }
+
+            ZLog.Log($"Inventory AddListener, missing inventory wrapper {key.m_owner}:{key.m_index}, inventory not registered.");
+            return false;
+        }
+
+        internal static bool IsListener(long user, Inventory inventory)
+        {
+            var key = new InventoryKey(inventory);
+
+            if (m_inventoryListeners.TryGetValue(key, out var inventoryWrapper))
+            {
+                return inventoryWrapper.IsListener(user);
+            }
+
+            ZLog.Log($"Inventory IsListener, missing inventory wrapper {key.m_owner}:{key.m_index}, inventory not registered.");
+            return false;
         }
 
 
@@ -87,22 +104,30 @@ namespace ValheimMP.Patches
         /// <param name="user"></param>
         /// <param name="inventory"></param>
         /// <param name="index"></param>
-        public static void RemoveListener(long user, Inventory inventory, int index = 0)
+        public static bool RemoveListener(long user, Inventory inventory)
         {
-            var id = inventory.m_nview.m_zdo.m_uid;
-            if (m_inventoryListeners.TryGetValue(new InventoryKey(id, index), out var inventoryWrapper))
+            var key = new InventoryKey(inventory);
+
+            if (m_inventoryListeners.TryGetValue(key, out var inventoryWrapper))
             {
                 inventoryWrapper.RemoveListener(user);
+                return true;
             }
+
+            ZLog.Log($"Inventory RemoveListener, missing inventory wrapper {key.m_owner}:{key.m_index}, inventory not registered.");
+            return false;
         }
 
-        public static List<long> GetListeners(Inventory inventory, int index = 0)
+        public static List<long> GetListeners(Inventory inventory)
         {
-            var id = inventory.m_nview.m_zdo.m_uid;
-            if (m_inventoryListeners.TryGetValue(new InventoryKey(id, index), out var inventoryWrapper))
+            var key = new InventoryKey(inventory);
+
+            if (m_inventoryListeners.TryGetValue(key, out var inventoryWrapper))
             {
                 return inventoryWrapper.GetListeners();
             }
+
+            ZLog.Log($"Inventory GetListeners, missing inventory wrapper {key.m_owner}:{key.m_index}, inventory not registered.");
             return null;
         }
 
@@ -325,7 +350,7 @@ namespace ValheimMP.Patches
                     }
                 }
 
-#if DEBUGINV
+#if DEBUG_INVENTORY
                 if (flags != NetworkedItemDataFlags.none)
                 {
                     var sb = new List<string>();
@@ -344,7 +369,7 @@ namespace ValheimMP.Patches
                 }
 #endif
 
-                if (itemData == null && 
+                if (itemData == null &&
                     // No point in creating an item just to destroy it right away!
                     (flags & NetworkedItemDataFlags.m_destroy) != NetworkedItemDataFlags.m_destroy)
                 {
@@ -410,7 +435,7 @@ namespace ValheimMP.Patches
 
             ~InventoryListener()
             {
-                if(Inventory != null)
+                if (Inventory != null)
                     Inventory.m_onChanged -= OnChanged;
             }
 
@@ -432,6 +457,9 @@ namespace ValheimMP.Patches
             {
                 if (!listenerItemData.ContainsKey(user))
                 {
+#if DEBUG_INVENTORY
+                    ZLog.Log($"AddListener {user} {NetView}: {Inventory}:{Index} ");
+#endif
                     listenerItemData.Add(user, new Dictionary<int, NetworkedItemData>());
 
                     OnChanged();
@@ -528,6 +556,11 @@ namespace ValheimMP.Patches
                     peer.m_rpc.Invoke("InventoryData", pkg);
                 }
             }
+
+            public bool IsListener(long user)
+            {
+                return listenerItemData.ContainsKey(user);
+            }
         }
         internal static void DeserializeRPC(ZPackage pkg)
         {
@@ -560,6 +593,13 @@ namespace ValheimMP.Patches
             {
                 this.m_owner = owner;
                 this.m_index = index;
+                this.m_hash = 0;
+            }
+
+            public InventoryKey(Inventory inventory)
+            {
+                this.m_owner = inventory.m_nview.m_zdo.m_uid;
+                this.m_index = inventory.m_inventoryIndex;
                 this.m_hash = 0;
             }
 
@@ -614,10 +654,13 @@ namespace ValheimMP.Patches
             }
 
             var key = new InventoryKey(zdo.m_uid, index);
-            if (!m_inventoryListeners.ContainsKey(key))
+
+            if (m_inventoryListeners.Remove(key))
             {
-                m_inventoryListeners.Add(key, new InventoryListener(inventory, netview, index));
+                ZLog.Log("Register Inventory, key already exists, unregistering and registering new.");
             }
+
+            m_inventoryListeners.Add(key, new InventoryListener(inventory, netview, index));
         }
 
         public static void UnregisterAll(ZNetView netview)
@@ -650,6 +693,13 @@ namespace ValheimMP.Patches
                 m_inventoryListeners.Remove(key);
                 m_changedInventories.Remove(key);
             }
+        }
+
+        public static void Unregister(Inventory inventory)
+        {
+            var key = new InventoryKey(inventory);
+            m_inventoryListeners.Remove(key);
+            m_changedInventories.Remove(key);
         }
 
         public static void Unregister(ZDOID id, int index = 0)
@@ -760,6 +810,20 @@ namespace ValheimMP.Patches
                 return;
             }
 
+            var peer = ZNet.instance.GetPeer(rpc);
+            if (peer == null)
+                return;
+            if (!Inventory_Patch.IsListener(peer.m_uid, toInv))
+            {
+                ZLog.Log($"RPC_MoveItemToThis without being listener on the source container");
+                return;
+            }
+            if (!Inventory_Patch.IsListener(peer.m_uid, fromInv))
+            {
+                ZLog.Log($"RPC_MoveItemToThis without being listener on the target container");
+                return;
+            }
+
             toInv.MoveItemToThis(fromInv, item);
         }
 
@@ -767,7 +831,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Changed(Inventory __instance)
         {
-            if(ZNet.instance != null && ZNet.instance.IsServer())
+            if (ZNet.instance != null && ZNet.instance.IsServer())
             {
                 // The client does not know what inventories contain unless they are listeners on it
                 __instance.m_nview.m_zdo.Set("Inventory_NrOfItems" + __instance.m_inventoryIndex, __instance.m_inventory.Count);
@@ -784,7 +848,10 @@ namespace ValheimMP.Patches
             }
             else
             {
-                __result = __instance.m_nview.m_zdo.GetInt("Inventory_NrOfItems" + __instance.m_inventoryIndex, 0);
+                if (__instance.m_nview != null && __instance.m_nview.m_zdo != null)
+                {
+                    __result = __instance.m_nview.m_zdo.GetInt("Inventory_NrOfItems" + __instance.m_inventoryIndex, 0);
+                }
             }
             return false;
         }

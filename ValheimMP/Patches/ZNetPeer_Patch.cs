@@ -25,6 +25,7 @@ namespace ValheimMP.Patches
             if (ZNet.instance != null && ZNet.instance.IsServer())
             {
                 SavePeer(__instance);
+                Inventory_Patch.RemoveListenerFromAll(__instance.m_uid);
             }
         }
 

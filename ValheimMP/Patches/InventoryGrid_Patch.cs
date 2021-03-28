@@ -70,6 +70,20 @@ namespace ValheimMP.Patches
                 return;
             }
 
+            var peer = ZNet.instance.GetPeer(rpc);
+            if (peer == null)
+                return;
+            if (!Inventory_Patch.IsListener(peer.m_uid, m_inventory))
+            {
+                ZLog.Log($"RPC_DropItem without being listener on the source container");
+                return;
+            }
+            if (!Inventory_Patch.IsListener(peer.m_uid, fromInventory))
+            {
+                ZLog.Log($"RPC_DropItem without being listener on the target container");
+                return;
+            }
+
             ItemDrop.ItemData itemAt = m_inventory.GetItemAt(pos.x, pos.y);
             if (itemAt == item)
             {
