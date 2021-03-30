@@ -4,7 +4,7 @@ using Mono.Cecil;
 using Mono.Cecil.Cil;
 using Mono.Cecil.Rocks;
 
-namespace ValheimMP_Patcher
+namespace ValheimMP.Patcher
 {
     public static class Patcher
     {

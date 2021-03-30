@@ -22,6 +22,8 @@ namespace ValheimMP.Patches
                 {
                     RPC_SitChair(__instance, sender);
                 });
+
+                __instance.m_useDistance *= 1.2f;
             }
             return false;
         }

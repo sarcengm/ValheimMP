@@ -21,6 +21,8 @@ namespace ValheimMP.Patches
                 {
                     RPC_ClimbLadder(__instance, sender);
                 });
+
+                __instance.m_useDistance *= 1.2f;
             }
             return false;
         }
@@ -59,6 +61,10 @@ namespace ValheimMP.Patches
             {
                 nview.InvokeRPC("ClimbLadder_" + __instance.name);
             }
+
+            character.transform.position = __instance.m_targetPos.position;
+            character.transform.rotation = __instance.m_targetPos.rotation;
+            character.SetLookDir(__instance.m_targetPos.forward);
             __result = true;
             return false;
         }

@@ -1786,10 +1786,11 @@ namespace ValheimMP.Patches
 
     public static class PlayerExtension
     {
-        public static double GetMaxSqrInteractRange(this Player player)
+        public static float GetMaxSqrInteractRange(this Player player)
         {
             var range = player.m_maxInteractDistance;
-            range *= 1.1f;
+            if(ValheimMP.IsDedicated)
+                range *= 1.1f;
             range *= range;
             return range;
         }

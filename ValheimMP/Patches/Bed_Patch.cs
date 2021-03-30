@@ -42,6 +42,9 @@ namespace ValheimMP.Patches
             if (player == null || !PrivateArea_Patch.CheckAccess(player.GetPlayerID(), __instance.transform.position))
                 return false;
 
+            if ((__instance.transform.position - player.transform.position).sqrMagnitude > player.GetMaxSqrInteractRange())
+                return false;
+
             __instance.m_nview.InvokeRPC("Sleep");
             return false;
         }
@@ -53,8 +56,12 @@ namespace ValheimMP.Patches
             if (peer == null || peer.m_player == null)
                 return;
 
+            if ((__instance.transform.position - peer.m_player.transform.position).sqrMagnitude > peer.m_player.GetMaxSqrInteractRange())
+                return;
+
             if (!PrivateArea_Patch.CheckAccess(sender, __instance.transform.position))
                 return;
+
 
             if (owner == 0L)
             {
