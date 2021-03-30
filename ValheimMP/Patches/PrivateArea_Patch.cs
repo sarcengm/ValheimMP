@@ -135,13 +135,13 @@ namespace ValheimMP.Patches
 
             if (attacker == 0)
             {
-                reflectMul = hitPlayerId == 0 ? vmp.WardMonsterReflectDamage : vmp.WardMonsterVPlayerReflectDamage;
-                damageMul = hitPlayerId == 0 ? vmp.WardMonsterDamageMultiplier : vmp.WardMonsterVPlayerDamageMultiplier;
+                reflectMul = hitPlayerId == 0 ? vmp.WardMonsterReflectDamage.Value : vmp.WardMonsterVPlayerReflectDamage.Value;
+                damageMul = hitPlayerId == 0 ? vmp.WardMonsterDamageMultiplier.Value : vmp.WardMonsterVPlayerDamageMultiplier.Value;
             }
             else
             {
-                reflectMul = hitPlayerId == 0 ? vmp.WardPlayerReflectDamage : vmp.WardPlayerVPlayerReflectDamage;
-                damageMul = hitPlayerId == 0 ? vmp.WardPlayerDamageMultiplier : vmp.WardPlayerVPlayerDamageMultiplier;
+                reflectMul = hitPlayerId == 0 ? vmp.WardPlayerReflectDamage.Value : vmp.WardPlayerVPlayerReflectDamage.Value;
+                damageMul = hitPlayerId == 0 ? vmp.WardPlayerDamageMultiplier.Value : vmp.WardPlayerVPlayerDamageMultiplier.Value;
             }
 
             if (hit.m_attackerCharacter != null && reflectMul > 0f)

@@ -11,7 +11,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;DEBUG_INVENTORY</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\assembly_valheim\assembly_valheim.csproj" />

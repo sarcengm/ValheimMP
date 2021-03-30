@@ -28,12 +28,10 @@ namespace ValheimMP.Patches
 
         [HarmonyPatch(typeof(Player), "Message")]
         [HarmonyPrefix]
-        public static bool Message(MessageHud.MessageType type, string msg, int amount, Sprite icon)
+        private static bool Message(MessageHud.MessageType type, string msg, int amount, Sprite icon)
         {
             return !SuppressMessages;
         }
-
-
 
         [HarmonyPatch(typeof(Player), "Awake")]
         [HarmonyPostfix]
@@ -659,7 +657,7 @@ namespace ValheimMP.Patches
                 return;
             }
 
-            if (ValheimMP.Instance.DebugShowZDOPlayerLocation && !ZNet.instance.IsServer())
+            if (ValheimMP.Instance.DebugShowZDOPlayerLocation.Value && !ZNet.instance.IsServer())
             {
                 if (m_debugZdoPlayerLocationObject == null)
                 {
@@ -706,7 +704,7 @@ namespace ValheimMP.Patches
 
                 if (!ZNet.instance.IsServer())
                 {
-                    if (!ValheimMP.Instance.DoNotHideCharacterWhenCameraClose && (bool)GameCamera.instance &&
+                    if (!ValheimMP.Instance.DoNotHideCharacterWhenCameraClose.Value && (bool)GameCamera.instance &&
                         Vector3.Distance(GameCamera.instance.transform.position, __instance.transform.position) < 2f)
                     {
                         __instance.SetVisible(visible: false);
@@ -737,7 +735,7 @@ namespace ValheimMP.Patches
 
         [HarmonyPatch(typeof(Player), "CreateTombStone")]
         [HarmonyPrefix]
-        static bool CreateTombStone(Player __instance)
+        private static bool CreateTombStone(Player __instance)
         {
             if (__instance.m_inventory.NrOfItems() != 0)
             {
@@ -777,7 +775,7 @@ namespace ValheimMP.Patches
             ZNetPeer_Patch.SavePeer(peer, false);
 
             __instance.m_timeSinceDeath = 0f;
-            peer.m_respawnWait = ValheimMP.Instance.RespawnDelay;
+            peer.m_respawnWait = ValheimMP.Instance.RespawnDelay.Value;
 
 
 
@@ -801,7 +799,7 @@ namespace ValheimMP.Patches
                 string eventLabel = "biome:" + __instance.GetCurrentBiome();
                 Gogan.LogEvent("Game", "Death", eventLabel, 0L);
 
-                Game.instance.RequestRespawn(ValheimMP.Instance.RespawnDelay);
+                Game.instance.RequestRespawn(ValheimMP.Instance.RespawnDelay.Value);
             }
         }
 
@@ -1187,7 +1185,7 @@ namespace ValheimMP.Patches
 
         [HarmonyPatch(typeof(Player), "SetCrouch")]
         [HarmonyPrefix]
-        public static bool SetCrouch(Player __instance, bool crouch)
+        private static bool SetCrouch(Player __instance, bool crouch)
         {
             if (__instance.m_crouchToggled != crouch)
             {
@@ -1783,6 +1781,17 @@ namespace ValheimMP.Patches
             }
 
             __instance.AttachStop();
+        }
+    }
+
+    public static class PlayerExtension
+    {
+        public static double GetMaxSqrInteractRange(this Player player)
+        {
+            var range = player.m_maxInteractDistance;
+            range *= 1.1f;
+            range *= range;
+            return range;
         }
     }
 }

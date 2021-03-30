@@ -48,7 +48,7 @@ namespace ValheimMP_Patcher
             var LongType = assembly.MainModule.TypeSystem.Int64;
             var StringType = assembly.MainModule.TypeSystem.String;
             var ObjectType = assembly.MainModule.TypeSystem.Object;
-
+            var ByteArrayType = assembly.MainModule.ImportReference(typeof(byte[]));
 
 
             // Player
@@ -197,6 +197,9 @@ namespace ValheimMP_Patcher
             {
                 var ItemDataType = valheim.GetType("ItemDrop/ItemData");
                 ItemDataType.Fields.Add(new FieldDefinition("m_id", FieldAttributes.Private | FieldAttributes.NotSerialized, IntType));
+                ItemDataType.Fields.Add(new FieldDefinition("m_customData", FieldAttributes.Private | FieldAttributes.NotSerialized,
+                    assembly.MainModule.ImportReference(typeof(System.Collections.Generic.Dictionary<,>))
+                    .MakeGenericInstanceType(IntType, ByteArrayType)));
             }
 
             // ZRoutedRpc/RoutedRPCData

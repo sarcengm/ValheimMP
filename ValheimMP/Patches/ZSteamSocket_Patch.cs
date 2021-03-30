@@ -30,10 +30,10 @@ namespace ValheimMP.Patches
 
         private static void RegisterGlobalCallbacks()
         {
-            if (ValheimMP.Instance.ArtificialPing > 0)
+            if (ValheimMP.Instance.ArtificialPing.Value > 0)
             {
-                using var fakePacketLag_Send = new DisposeableHandle(ValheimMP.Instance.ArtificialPing);
-                using var fakePacketLag_Recv = new DisposeableHandle(ValheimMP.Instance.ArtificialPing);
+                using var fakePacketLag_Send = new DisposeableHandle(ValheimMP.Instance.ArtificialPing.Value);
+                using var fakePacketLag_Recv = new DisposeableHandle(ValheimMP.Instance.ArtificialPing.Value);
                 try
                 {
                     SteamNetworkingUtils.SetConfigValue(ESteamNetworkingConfigValue.k_ESteamNetworkingConfig_FakePacketLag_Send,

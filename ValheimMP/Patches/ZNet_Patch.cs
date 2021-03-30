@@ -260,10 +260,11 @@ namespace ValheimMP.Patches
             pkg.Write(ValheimMP.ProtocolIdentifier);
             pkg.Write(ValheimMP.Version);
 
-            if (__instance.IsServer())
+            if (ValheimMP.IsDedicated)
             {
                 pkg.Write((long)(rpc.GetSocket() as ZSteamSocket).GetPeerID().m_SteamID);
-                pkg.Write(ValheimMP.Instance.UseZDOCompression);
+                pkg.Write(ValheimMP.Instance.UseZDOCompression.Value);
+                pkg.Write(ValheimMP.Instance.RespawnDelay.Value);
             }
             else
             {
@@ -297,11 +298,20 @@ namespace ValheimMP.Patches
                 }
             }
 
-            var valheimMPIdentifier = pkg.ReadString();
+            string valheimMPIdentifier = String.Empty;
+            try
+            {
+                valheimMPIdentifier = pkg.ReadString();
+            }
+            catch (Exception ex)
+            {
+                ZLog.Log($"Exception trying to read ValheimMP Identifier: {ex}");
+            }
+
             var validIdentifier = string.Compare(valheimMPIdentifier, ValheimMP.ProtocolIdentifier) == 0;
             if (!validIdentifier)
             {
-                ZLog.LogError("Valheim MP Identifier mismatch: " + valheimMPIdentifier + " vs. mine " + ValheimMP.ProtocolIdentifier);
+                ZLog.LogError($"Valheim MP Identifier mismatch: {valheimMPIdentifier} vs. mine {ValheimMP.ProtocolIdentifier}");
                 if (ZNet.m_isServer)
                 {
                     rpc.Invoke("Error", 3);
@@ -317,7 +327,7 @@ namespace ValheimMP.Patches
             var validVersion = string.Compare(valheimMPVersion, ValheimMP.Version) == 0;
             if (!validVersion)
             {
-                ZLog.LogError("Valheim MP Version mismatch: " + valheimMPVersion + " vs. mine " + ValheimMP.Version);
+                ZLog.LogError($"Valheim MP Version mismatch: {valheimMPVersion} vs. mine {ValheimMP.Version}");
                 if (ZNet.m_isServer)
                 {
                     rpc.Invoke("Error", 3);
@@ -342,7 +352,11 @@ namespace ValheimMP.Patches
                 ZLog.Log("UID=" + userId);
                 var useZDOCompression = pkg.ReadBool();
                 ZLog.Log("UseZDOCompression=" + useZDOCompression);
-                valheimMP.UseZDOCompression = useZDOCompression;
+                valheimMP.UseZDOCompression.Value = useZDOCompression;
+
+                var respawnDelay = pkg.ReadSingle();
+                valheimMP.RespawnDelay.Value = respawnDelay;
+
                 Game.instance.m_firstSpawn = true;
                 Game.instance.GetPlayerProfile().m_playerID = userId;
                 ZLog.Log("Connected to Valheim MP Server: " + valheimMPIdentifier + valheimMPVersion);
@@ -358,10 +372,8 @@ namespace ValheimMP.Patches
             }
             else
             {
-                //var beard = 
-
                 var steamId = (peer.m_socket as ZSteamSocket).GetPeerID();
-                peer.m_playerProfile = new PlayerProfile(System.IO.Path.Combine(valheimMP.CharacterPath, steamId.ToString()));
+                peer.m_playerProfile = new PlayerProfile(System.IO.Path.Combine(valheimMP.CharacterPath.Value, steamId.ToString()));
                 // Loading can and should possibly be done async?
                 var loaded = peer.m_playerProfile.Load();
                 if (!loaded)
@@ -372,7 +384,7 @@ namespace ValheimMP.Patches
                 peer.m_firstSpawn = true;
                 peer.m_requestRespawn = true;
 
-                ZLog.Log("Client connected to Valheim MP Server: " + valheimMPIdentifier + valheimMPVersion);
+                ZLog.Log($"Client connected to Valheim MP Server: {valheimMPIdentifier}  {valheimMPVersion}");
 
                 if (valheimMP.OnServerConnect != null)
                 {

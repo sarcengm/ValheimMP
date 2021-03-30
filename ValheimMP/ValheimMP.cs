@@ -6,19 +6,21 @@ using HarmonyLib;
 using UnityEngine;
 using System.Linq;
 using ValheimMP.Patches;
-
+using BepInEx.Configuration;
 
 namespace ValheimMP
 {
-    [BepInPlugin(BepInGUID, Name, Version)]
+    [BepInPlugin(BepInGUID, PluginName, Version)]
     public class ValheimMP : BaseUnityPlugin
     {
         public const string Author = "Sarcen";
-        public const string Name = "ValheimMP";
+        public const string PluginName = "ValheimMP";
         public const string Version = "0.1.0";
-        public const string BepInGUID = "BepIn." + Author + "." + Name;
-        public const string HarmonyGUID = "Harmony." + Author + "." + Name;
+        public const string BepInGUID = "BepIn." + Author + "." + PluginName;
+        public const string HarmonyGUID = "Harmony." + Author + "." + PluginName;
         public const string ProtocolIdentifier = "VMP";
+
+        public static string CurrentVersion { get { return Version; } }
 
         public static ValheimMP Instance { get; private set; }
 
@@ -31,34 +33,14 @@ namespace ValheimMP
         public bool IsOnValheimMPServer { get; private set; } = true;
 
         /// <summary>
-        /// Path where characters are stored
+        /// Whether or not this is a dedicated server!
         /// </summary>
-        public string CharacterPath { get; private set; } = "vmmp/";
-
-        /// <summary>
-        /// Does the current server use compression?
-        /// </summary>
-        public bool UseZDOCompression { get; internal set; }
-
-        /// <summary>
-        /// Whether to store and output the ZDO traffic usage
-        /// </summary>
-        public bool DebugOutputZDO { get; internal set; }
-
-        /// <summary>
-        /// Outputs all RPC invokes to log
-        /// </summary>
-        public bool DebugRPC { get; internal set; }
+        public static bool IsDedicated { get; private set; }
 
         /// <summary>
         /// DebugOutputZDO information
         /// </summary>
         public Dictionary<int, Dictionary<string, int>> ZDODebug { get; internal set; } = new Dictionary<int, Dictionary<string, int>>();
-
-        /// <summary>
-        /// 
-        /// </summary>
-        public bool DoNotHideCharacterWhenCameraClose { get; internal set; }
 
         /// <summary>
         /// Fired when you connect to a Valheim MP server as Client
@@ -100,69 +82,92 @@ namespace ValheimMP
         public delegate void OnPluginDeactivateDel();
 
         /// <summary>
+        /// Path where characters are stored
+        /// </summary>
+        public ConfigEntry<string> CharacterPath { get; internal set; }
+
+        /// <summary>
+        /// Does the current server use compression?
+        /// </summary>
+        public ConfigEntry<bool> UseZDOCompression { get; internal set; }
+
+        /// <summary>
+        /// Whether to store and output the ZDO traffic usage
+        /// </summary>
+        public ConfigEntry<bool> DebugOutputZDO { get; internal set; }
+
+        /// <summary>
+        /// Outputs all RPC invokes to log
+        /// </summary>
+        public ConfigEntry<bool> DebugRPC { get; internal set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public ConfigEntry<bool> DoNotHideCharacterWhenCameraClose { get; internal set; }
+
+        /// <summary>
         /// Show an ingame marker where the server thinks your character is
         /// </summary>
-        public bool DebugShowZDOPlayerLocation { get; internal set; }
+        public ConfigEntry<bool> DebugShowZDOPlayerLocation { get; internal set; }
 
         /// <summary>
         /// Additional delay on both sending and receiving of packets.
         /// </summary>
-        public float ArtificialPing { get; internal set; }
-
-        public static bool IsDedicated { get; private set; }
+        public ConfigEntry<float> ArtificialPing { get; internal set; }
 
         /// <summary>
         /// Minimal time it takes to respawn, it may be slightly longer if it still needs to load
         /// </summary>
-        public float RespawnDelay { get; set; }
+        public ConfigEntry<float> RespawnDelay { get; internal set; }
 
         /// <summary>
         /// Player Attacks something (other then a player) in a ward where they have no access
         /// </summary>
-        public float WardPlayerDamageMultiplier { get; set; }
+        public ConfigEntry<float> WardPlayerDamageMultiplier { get; internal set; }
 
         /// <summary>
         /// Monster attacks something (other then a player) in a ward where they have no access
         /// </summary>
-        public float WardMonsterDamageMultiplier { get; set; }
+        public ConfigEntry<float> WardMonsterDamageMultiplier { get; internal set; }
 
         /// <summary>
         /// Monster attacks something (other then a player) in a ward where they have no access
         /// 
         /// And receives this multiplier worth of his own damage in return
         /// </summary>
-        public float WardMonsterReflectDamage { get; set; }
+        public ConfigEntry<float> WardMonsterReflectDamage { get; internal set; }
 
         /// <summary>
         /// Player attacks something (other then a player) in a ward where they have no access
         /// 
         /// And receives this multiplier worth of his own damage in return
         /// </summary>
-        public float WardPlayerReflectDamage { get; set; }
+        public ConfigEntry<float> WardPlayerReflectDamage { get; internal set; }
 
         /// <summary>
         /// Monster attacks player in a ward where they have no access
         /// </summary>
-        public float WardMonsterVPlayerDamageMultiplier { get; set; }
+        public ConfigEntry<float> WardMonsterVPlayerDamageMultiplier { get; internal set; }
 
         /// <summary>
         /// Player attacks player in a ward where they have no access
         /// </summary>
-        public float WardPlayerVPlayerDamageMultiplier { get; set; }
+        public ConfigEntry<float> WardPlayerVPlayerDamageMultiplier { get; internal set; }
 
         /// <summary>
         /// Player attacks player in a ward where they have no access
         /// 
         /// And receives this multiplier worth of his own damage in return
         /// </summary>
-        public float WardPlayerVPlayerReflectDamage { get; set; }
+        public ConfigEntry<float> WardPlayerVPlayerReflectDamage { get; internal set; }
 
         /// <summary>
         /// Monster attacks player in a ward where they have no access
         /// 
         /// And receives this multiplier worth of his own damage in return
         /// </summary>
-        public float WardMonsterVPlayerReflectDamage { get; set; }
+        public ConfigEntry<float> WardMonsterVPlayerReflectDamage { get; internal set; }
 
         // Awake is called once when both the game and the plug-in are loaded
         private void Awake()
@@ -191,23 +196,49 @@ namespace ValheimMP
                 m_harmony.PatchAll();
             }
 
-            UseZDOCompression = true;
-            DebugOutputZDO = false;
-            DebugRPC = false;
-            DebugShowZDOPlayerLocation = true;
-            ArtificialPing = 125f;
-            RespawnDelay = 10.0f;
+            CharacterPath = Config.Bind("Server", "CharacterPath", "vmp/", "Where it stores the server side characters.");
+            UseZDOCompression = Config.Bind("Server", "UseZDOCompression", true, "Whether or not to compress ZDO data.");
+            DebugOutputZDO = Config.Bind("Debug", "DebugOutputZDO", false, "ZDO send number debug output.");
+            DebugRPC = Config.Bind("Debug", "DebugRPC", false, "Log all RPC invokes.");
+            DebugShowZDOPlayerLocation = Config.Bind("Debug", "DebugShowZDOPlayerLocation", false, "Show a marker of where the server thinks the player is");
+            ArtificialPing = Config.Bind("Debug", "ArtificialPing", 0f, "Add this delay in ms to your incoming and outgoing packets.");
+            RespawnDelay = Config.Bind("Server", "RespawnDelay", 10f, "Minimum time it takes to respawn.");
+            DoNotHideCharacterWhenCameraClose = Config.Bind("Client", "DoNotHideCharacterWhenCameraClose", false, "");
 
-            WardPlayerDamageMultiplier = 0.0f;
-            WardPlayerReflectDamage = 1.0f;
-            WardPlayerVPlayerDamageMultiplier = 0.0f;
-            WardPlayerVPlayerReflectDamage = 0.0f;
+            DebugRPC.Value = false;
 
-            WardMonsterDamageMultiplier = 0.0f;
-            WardMonsterReflectDamage = 1.0f;
-            WardMonsterVPlayerDamageMultiplier = 1.0f;
-            WardMonsterVPlayerReflectDamage = 0.0f;
-            //Directory.CreateDirectory(System.IO.Path.Combine(Utils.GetSaveDataPath(), CharacterPath));
+            WardPlayerDamageMultiplier = Config.Bind("Server",
+                "WardPlayerDamageMultiplier", 0f,
+                "Player (without access) attacks something (other then a player) in a ward.\n" +
+                "Their damage is multiplied by this amount, 0 means no damage, 1 means normal damage.");
+            WardPlayerReflectDamage = Config.Bind("Server",
+                "WardPlayerReflectDamage", 1.0f,
+                "Player (without access) attacks something (other then a player) in a ward.\n" +
+                "And receives this multiplier worth of his own damage in return.");
+            WardPlayerVPlayerDamageMultiplier = Config.Bind("Server",
+                "WardPlayerVPlayerDamageMultiplier", 0f,
+                "Player (without access) attacks player (with access) in a ward.\n" +
+                "Their damage is multiplied by this amount, 0 means no damage, 1 means normal damage.");
+            WardPlayerVPlayerReflectDamage = Config.Bind("Server",
+                "WardPlayerVPlayerReflectDamage", 0f,
+                "Player (without access) attacks player (with access) in a ward.\n" +
+                "And receives this multiplier worth of his own damage in return.");
+            WardMonsterDamageMultiplier = Config.Bind("Server",
+                "WardMonsterDamageMultiplier", 0f,
+                "Monster attacks something (other then a player) in a ward.\n" +
+                "Their damage is multiplied by this amount, 0 means no damage, 1 means normal damage.");
+            WardMonsterReflectDamage = Config.Bind("Server",
+                "WardMonsterReflectDamage", 1f,
+                "Monster attacks something (other then a player) in a ward.\n" +
+                "And receives this multiplier worth of his own damage in return.");
+            WardMonsterVPlayerDamageMultiplier = Config.Bind("Server",
+                "WardMonsterVPlayerDamageMultiplier", 1f,
+                "Monster attacks player (with access) in a ward.\n" +
+                "Their damage is multiplied by this amount, 0 means no damage, 1 means normal damage.");
+            WardMonsterVPlayerReflectDamage = Config.Bind("Server",
+                "WardMonsterVPlayerReflectDamage", 0f,
+                "Monster attacks player (with access) in a ward.\n" +
+                "And receives this multiplier worth of his own damage in return.");
         }
 
         private static bool isDedicated()
@@ -236,21 +267,25 @@ namespace ValheimMP
                 {
                     Logger.LogInfo($"Patching {HarmonyGUID}");
                     m_harmony.PatchAll();
-                    if(OnPluginActivate != null)
-                        OnPluginActivate();
+                    OnPluginActivate?.Invoke();
                 }
                 else
                 {
                     Logger.LogInfo($"Unpatching {HarmonyGUID}");
                     m_harmony.UnpatchAll(HarmonyGUID);
-                    if (OnPluginDeactivate != null)
-                        OnPluginDeactivate();
+                    OnPluginDeactivate?.Invoke();
                 }
             }
         }
 
         /// <summary>
         /// Dummy function to easily generate all the fields I created inside various classes.
+        /// 
+        /// When editing valheim MP.
+        /// 
+        /// If using valheim MP as a library extension functions should be used to retrieve them.
+        /// 
+        /// E.g. ZNetPeerExtension.GetPlayerProfile();
         ///
         /// These fields will be inserted by the patcher
         /// </summary>
@@ -294,9 +329,10 @@ namespace ValheimMP
 
             var itemdata = new ItemDrop.ItemData();
             itemdata.m_id = 0;
+            itemdata.m_customData = new Dictionary<int, byte[]>();
 
             var seman = new SEMan(null, null);
-            seman.m_clientStatus = (object)null; ///new Dictionary<int, NetworkedStatusEffect>();
+            seman.m_clientStatus = (object)null; 
             seman.m_clientStatusSyncTime = 0f;
 
             var hitdata = new HitData();
@@ -315,7 +351,7 @@ namespace ValheimMP
         internal void WriteDebugData()
         {
 #if DEBUG
-            if (!DebugOutputZDO) return;
+            if (!DebugOutputZDO.Value) return;
 
             var prefabList = new Dictionary<int, List<KeyValuePair<string, int>>>();
             foreach (var i in ZDODebug)

@@ -36,7 +36,7 @@ namespace ValheimMP.ChatCommands
             if (text.StartsWith("/vmp", StringComparison.OrdinalIgnoreCase))
             {
                 ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", messageLocation, -1, "",
-                    $"<color=white>Server is running <color=green><b>{ValheimMP.Name}</b></color> version <color=green><b>{ValheimMP.Version}</b></color>.</color>"
+                    $"<color=white>Server is running <color=green><b>{ValheimMP.PluginName}</b></color> version <color=green><b>{ValheimMP.CurrentVersion}</b></color>.</color>"
                 );
                 return false;
             }

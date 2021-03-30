@@ -379,7 +379,7 @@ namespace ValheimMP.Patches
                     singleItemCollection.Write((int)1);
                     singleItemCollection.Write(zdoPkg);
 
-                    peer.m_peer.m_rpc.Invoke("ZDOData", valheimMP.UseZDOCompression ? singleItemCollection.Compress() : singleItemCollection);
+                    peer.m_peer.m_rpc.Invoke("ZDOData", valheimMP.UseZDOCompression.Value ? singleItemCollection.Compress() : singleItemCollection);
                     totalCollections++;
                     // we've send the single item in a packge and now we continue
                     // any smaller zdos will stil continue being added to the current collection
@@ -394,7 +394,7 @@ namespace ValheimMP.Patches
                     zdoCollectionPkg.Write(zdoCollectionCount);
                     zdoCollectionPkg.SetPos(collectionEndPos);
 
-                    peer.m_peer.m_rpc.Invoke("ZDOData", valheimMP.UseZDOCompression ? zdoCollectionPkg.Compress() : zdoCollectionPkg);
+                    peer.m_peer.m_rpc.Invoke("ZDOData", valheimMP.UseZDOCompression.Value ? zdoCollectionPkg.Compress() : zdoCollectionPkg);
                     totalCollections++;
 
 
@@ -419,7 +419,7 @@ namespace ValheimMP.Patches
                 zdoCollectionPkg.SetPos(zdoCollectionCountPos);
                 zdoCollectionPkg.Write(zdoCollectionCount);
                 zdoCollectionPkg.SetPos(collectionEndPos);
-                peer.m_peer.m_rpc.Invoke("ZDOData", valheimMP.UseZDOCompression ? zdoCollectionPkg.Compress() : zdoCollectionPkg);
+                peer.m_peer.m_rpc.Invoke("ZDOData", valheimMP.UseZDOCompression.Value ? zdoCollectionPkg.Compress() : zdoCollectionPkg);
                 totalCollections++;
             }
             return false;
@@ -430,7 +430,7 @@ namespace ValheimMP.Patches
             var valheimMP = ValheimMP.Instance;
 
 #if DEBUG
-            if (valheimMP.DebugOutputZDO)
+            if (valheimMP.DebugOutputZDO.Value)
             {
                 if (!valheimMP.ZDODebug.ContainsKey(zDO.m_prefab))
                     valheimMP.ZDODebug.Add(zDO.m_prefab, new Dictionary<string, int>());
@@ -541,7 +541,7 @@ namespace ValheimMP.Patches
                         zdoPkg.Write(item.Key);
                         zdoPkg.Write(item.Value);
 #if DEBUG
-                        if (valheimMP.DebugOutputZDO)
+                        if (valheimMP.DebugOutputZDO.Value)
                             valheimMP.ZDODebug[zDO.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
 #endif
                     }
@@ -583,7 +583,7 @@ namespace ValheimMP.Patches
                         zdoPkg.Write(item.Key);
                         zdoPkg.Write(item.Value);
 #if DEBUG
-                        if (valheimMP.DebugOutputZDO)
+                        if (valheimMP.DebugOutputZDO.Value)
                             valheimMP.ZDODebug[zDO.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
 #endif
                     }
@@ -624,7 +624,7 @@ namespace ValheimMP.Patches
                         zdoPkg.Write(item.Key);
                         zdoPkg.Write(item.Value);
 #if DEBUG
-                        if (valheimMP.DebugOutputZDO)
+                        if (valheimMP.DebugOutputZDO.Value)
                             valheimMP.ZDODebug[zDO.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
 #endif
                     }
@@ -665,7 +665,7 @@ namespace ValheimMP.Patches
                         zdoPkg.Write(item.Key);
                         zdoPkg.Write(item.Value);
 #if DEBUG
-                        if (valheimMP.DebugOutputZDO)
+                        if (valheimMP.DebugOutputZDO.Value)
                             valheimMP.ZDODebug[zDO.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
 #endif
                     }
@@ -706,7 +706,7 @@ namespace ValheimMP.Patches
                         zdoPkg.Write(item.Key);
                         zdoPkg.Write(item.Value);
 #if DEBUG
-                        if (valheimMP.DebugOutputZDO)
+                        if (valheimMP.DebugOutputZDO.Value)
                             valheimMP.ZDODebug[zDO.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
 #endif
                     }
@@ -747,7 +747,7 @@ namespace ValheimMP.Patches
                         zdoPkg.Write(item.Key);
                         zdoPkg.Write(item.Value);
 #if DEBUG
-                        if (valheimMP.DebugOutputZDO)
+                        if (valheimMP.DebugOutputZDO.Value)
                             valheimMP.ZDODebug[zDO.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
 #endif
                     }
@@ -777,7 +777,7 @@ namespace ValheimMP.Patches
             zdoPkg.SetPos(endPos);
 
 #if DEBUG
-            if (valheimMP.DebugOutputZDO)
+            if (valheimMP.DebugOutputZDO.Value)
             {
                 for (int i = 0; i < 20; i++)
                 {
@@ -818,7 +818,7 @@ namespace ValheimMP.Patches
                 return false;
             }
 
-            if (ValheimMP.Instance.UseZDOCompression)
+            if (ValheimMP.Instance.UseZDOCompression.Value)
                 pkg = pkg.Decompress();
 
             var count = pkg.ReadInt();

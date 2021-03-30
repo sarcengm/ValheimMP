@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ValheimMP.Patches
 {
     [HarmonyPatch]
-    public class ZNetPeer_Patch
+    public static class ZNetPeer_Patch
     {
         [HarmonyPatch(typeof(ZNetPeer), MethodType.Constructor, new[] { typeof(ISocket), typeof(bool) })]
         [HarmonyPostfix]
@@ -43,6 +43,19 @@ namespace ValheimMP.Patches
             }
 
             __instance.m_playerProfile.Save();
+        }
+    }
+
+    public static class ZNetPeerExtension
+    {
+        public static PlayerProfile GetPlayerProfile(this ZNetPeer peer)
+        {
+            return peer.m_playerProfile;
+        }
+
+        public static Player GetPlayer(this ZNetPeer peer)
+        {
+            return peer.m_player;
         }
     }
 }

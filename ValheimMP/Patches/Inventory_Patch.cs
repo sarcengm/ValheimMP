@@ -11,125 +11,9 @@ namespace ValheimMP.Patches
     [HarmonyPatch]
     public class Inventory_Patch
     {
-        /// <summary>
-        /// Unregister items attached to netviews when reset, ideally objects would unregister on destruction
-        /// but looking at the code it seems they lose their ZDO before destruction, since we need that ID we
-        /// hook into ResetZDO. And I don't want to copy paste this same patch for every object type I will 
-        /// unregister all of them here.
-        /// </summary>
-        /// <param name="__instance"></param>
-        [HarmonyPatch(typeof(ZNetView), "ResetZDO")]
-        [HarmonyPatch(typeof(ZNetView), "Destroy")]
-        [HarmonyPrefix]
-        private static void UnregisterNetViewPatch(ZNetView __instance)
-        {
-            if (__instance.m_zdo != null)
-            {
-                var container = __instance.GetComponentInChildren<Container>();
-                if (container != null)
-                {
-                    Unregister(container.m_inventory);
-                    return;
-                }
-
-                var humanoid = __instance.GetComponent<Humanoid>();
-                if (humanoid != null)
-                {
-                    Unregister(humanoid.m_inventory);
-                    return;
-                }
-            }
-        }
-
-        private static int itemDataId = 0;
-
-        [HarmonyPatch(typeof(ItemDrop.ItemData), MethodType.Constructor)]
-        [HarmonyPostfix]
-        private static void ItemDataConstructor(ItemDrop.ItemData __instance)
-        {
-            // unique id during runtime used for replication
-            // non persistant after saving.
-            __instance.m_id = ++itemDataId;
-        }
-
-        [HarmonyPatch(typeof(ItemDrop.ItemData), "Clone")]
-        [HarmonyPostfix]
-        private static void Clone(ItemDrop.ItemData __instance, ItemDrop.ItemData __result)
-        {
-            __result.m_id = ++itemDataId;
-        }
-
-        public static void RemoveListenerFromAll(long user)
-        {
-            m_inventoryListeners.Values.Do(k => k.RemoveListener(user));
-        }
-
-        /// <summary>
-        /// Add a listener to this inventory. User will be send updates when the inventory changes.
-        /// </summary>
-        /// <param name="user"></param>
-        /// <param name="m_inventory"></param>
-        /// <param name="index"></param>
-        public static bool AddListener(long user, Inventory inventory)
-        {
-            var key = new InventoryKey(inventory);
-
-            if (m_inventoryListeners.TryGetValue(key, out var inventoryWrapper))
-            {
-                inventoryWrapper.AddListener(user);
-                return true;
-            }
-
-            ZLog.Log($"Inventory AddListener, missing inventory wrapper {key.m_owner}:{key.m_index}, inventory not registered.");
-            return false;
-        }
-
-        internal static bool IsListener(long user, Inventory inventory)
-        {
-            var key = new InventoryKey(inventory);
-
-            if (m_inventoryListeners.TryGetValue(key, out var inventoryWrapper))
-            {
-                return inventoryWrapper.IsListener(user);
-            }
-
-            ZLog.Log($"Inventory IsListener, missing inventory wrapper {key.m_owner}:{key.m_index}, inventory not registered.");
-            return false;
-        }
-
-
-        /// <summary>
-        /// Remove a listener from an inventory
-        /// </summary>
-        /// <param name="user"></param>
-        /// <param name="inventory"></param>
-        /// <param name="index"></param>
-        public static bool RemoveListener(long user, Inventory inventory)
-        {
-            var key = new InventoryKey(inventory);
-
-            if (m_inventoryListeners.TryGetValue(key, out var inventoryWrapper))
-            {
-                inventoryWrapper.RemoveListener(user);
-                return true;
-            }
-
-            ZLog.Log($"Inventory RemoveListener, missing inventory wrapper {key.m_owner}:{key.m_index}, inventory not registered.");
-            return false;
-        }
-
-        public static List<long> GetListeners(Inventory inventory)
-        {
-            var key = new InventoryKey(inventory);
-
-            if (m_inventoryListeners.TryGetValue(key, out var inventoryWrapper))
-            {
-                return inventoryWrapper.GetListeners();
-            }
-
-            ZLog.Log($"Inventory GetListeners, missing inventory wrapper {key.m_owner}:{key.m_index}, inventory not registered.");
-            return null;
-        }
+        private static float inventorySyncTimer = 0;
+        private static Dictionary<ZDOID, Dictionary<int, InventoryManager>> m_inventoryManagers = new Dictionary<ZDOID, Dictionary<int, InventoryManager>>();
+        private static HashSet<InventoryManager> m_changedInventories = new HashSet<InventoryManager>();
 
         [Flags]
         public enum NetworkedItemDataFlags
@@ -148,11 +32,13 @@ namespace ValheimMP.Patches
             m_destroy = 1 << 8,
             // when this item is equiped
             m_equiped = 1 << 9,
+
+            m_customData = 1 << 10,
         }
 
         public class NetworkedItemData
         {
-            public int m_id;
+            internal int m_id;
             private string m_dropPrefab;
             private int m_stack;
             private float m_durability;
@@ -160,7 +46,9 @@ namespace ValheimMP.Patches
             private int m_quality;
             private int m_variant;
             private long m_crafterID;
-            private string m_crafterName = "";
+            private string m_crafterName = string.Empty;
+
+            private Dictionary<int, byte[]> m_customData = new();
 
             private bool m_equiped;
 
@@ -232,6 +120,31 @@ namespace ValheimMP.Patches
                     m_equiped = itemData.m_equiped;
                     flags |= NetworkedItemDataFlags.m_equiped;
                     pkg.Write(m_equiped);
+                }
+
+                var customDataPos = pkg.GetPos();
+                var customDataFields = 0;
+                pkg.Write(customDataFields);
+
+                foreach (var customData in itemData.m_customData)
+                {
+                    if (!m_customData.TryGetValue(customData.Key, out var data) || !data.SequenceEqual(customData.Value))
+                    {
+                        m_customData[customData.Key] = customData.Value;
+                        pkg.Write(customData.Key);
+                        pkg.Write(customData.Value);
+                        customDataFields++;
+                    }
+                }
+
+                var customDataEndPos = pkg.GetPos();
+                pkg.SetPos(customDataPos);
+
+                if (customDataFields > 0)
+                {
+                    flags |= NetworkedItemDataFlags.m_customData;
+                    pkg.Write(customDataFields);
+                    pkg.SetPos(customDataEndPos);
                 }
 
                 var endPos = pkg.GetPos();
@@ -365,6 +278,7 @@ namespace ValheimMP.Patches
                     if ((flags & NetworkedItemDataFlags.m_durability) == NetworkedItemDataFlags.m_durability) sb.Add($"m_durability:{m_durability}");
                     if ((flags & NetworkedItemDataFlags.m_gridPos) == NetworkedItemDataFlags.m_gridPos) sb.Add($"m_gridPos:{m_gridPos}");
                     if ((flags & NetworkedItemDataFlags.m_equiped) == NetworkedItemDataFlags.m_equiped) sb.Add($"m_equiped:{m_equiped}");
+                    if ((flags & NetworkedItemDataFlags.m_customData) == NetworkedItemDataFlags.m_customData) sb.Add($"m_customData");
                     ZLog.Log($"Deserialize item {sb.Join()} ");
                 }
 #endif
@@ -385,6 +299,24 @@ namespace ValheimMP.Patches
                         itemData.m_equiped = m_equiped;
                         itemData.m_durability = m_durability;
                         itemData.m_stack = m_stack;
+                    }
+                }
+
+                // Little out of order here, but there is no need for these fields in the item creation so lets just serialize them straight into the object.
+                // Should possibly re-order some others as well?
+                if ((flags & NetworkedItemDataFlags.m_customData) == NetworkedItemDataFlags.m_customData)
+                {
+                    var itemDataCount = pkg.ReadInt();
+
+                    for (int i = 0; i < itemDataCount; i++)
+                    {
+                        var key = pkg.ReadInt();
+                        var value = pkg.ReadByteArray();
+
+                        if (itemData != null)
+                        {
+                            itemData.m_customData[key] = value;
+                        }
                     }
                 }
 
@@ -416,24 +348,24 @@ namespace ValheimMP.Patches
             }
         }
 
-        public class InventoryListener
+        public class InventoryManager
         {
-            private Dictionary<long, Dictionary<int, NetworkedItemData>> listenerItemData = new Dictionary<long, Dictionary<int, NetworkedItemData>>();
+            private Dictionary<long, Dictionary<int, NetworkedItemData>> listenerItemData = new();
             public Inventory Inventory { get; private set; }
-            public ZNetView NetView { get; private set; }
-            public int Index { get; private set; }
 
-            public InventoryListener(Inventory inventory, ZNetView netview, int index)
+            private static readonly float maxListenerRange = 20f;
+
+            private static readonly float maxListenerRangeSqr = maxListenerRange * maxListenerRange;
+
+            public InventoryManager(Inventory inventory, int index)
             {
-                this.Inventory = inventory;
-                this.NetView = netview;
-                this.Index = index;
+                Inventory = inventory;
 
                 Inventory.m_onChanged += OnChanged;
                 Inventory.m_inventoryIndex = index;
             }
 
-            ~InventoryListener()
+            ~InventoryManager()
             {
                 if (Inventory != null)
                     Inventory.m_onChanged -= OnChanged;
@@ -441,10 +373,10 @@ namespace ValheimMP.Patches
 
             public void OnChanged()
             {
-                if (NetView != null && NetView.m_zdo != null)
+                if (Inventory.m_nview != null && Inventory.m_nview.m_zdo != null)
                 {
                     // may be called multiple times so dont use add.
-                    m_changedInventories[new InventoryKey(NetView.m_zdo.m_uid, Index)] = this;
+                    m_changedInventories.Add(this);
                 }
             }
 
@@ -458,7 +390,7 @@ namespace ValheimMP.Patches
                 if (!listenerItemData.ContainsKey(user))
                 {
 #if DEBUG_INVENTORY
-                    ZLog.Log($"AddListener {user} {NetView}: {Inventory}:{Index} ");
+                    ZLog.Log($"AddListener {user} {Inventory} {Inventory?.m_nview} {Inventory?.m_nview?.m_zdo} ");
 #endif
                     listenerItemData.Add(user, new Dictionary<int, NetworkedItemData>());
 
@@ -471,12 +403,9 @@ namespace ValheimMP.Patches
                 listenerItemData.Remove(user);
             }
 
-            private static float maxListenerRange = 10f;
-            private static float maxListenerRangeSqr = maxListenerRange * maxListenerRange;
-
             public void SyncListeners()
             {
-                if (NetView == null || NetView.m_zdo == null || Inventory == null)
+                if (Inventory == null || Inventory.m_nview == null || Inventory.m_nview.m_zdo == null)
                     return;
 
                 var znet = ZNet.instance;
@@ -492,16 +421,16 @@ namespace ValheimMP.Patches
                     }
 
                     // Far away from the inventory, lets not sync this person.
-                    if ((peer.m_refPos - NetView.m_zdo.GetPosition()).sqrMagnitude > maxListenerRangeSqr)
+                    if ((peer.m_refPos - Inventory.m_nview.m_zdo.GetPosition()).sqrMagnitude > maxListenerRangeSqr)
                     {
                         continue;
                     }
 
                     var pkg = new ZPackage();
                     //Write the inventory owner uid!
-                    pkg.Write(NetView.m_zdo.m_uid);
+                    pkg.Write(Inventory.m_nview.m_zdo.m_uid);
                     //Write the inventory index!
-                    pkg.Write(Index);
+                    pkg.Write(Inventory.m_inventoryIndex);
 
                     var countPos = pkg.GetPos();
                     pkg.Write((int)0); // Placeholder item count
@@ -562,6 +491,7 @@ namespace ValheimMP.Patches
                 return listenerItemData.ContainsKey(user);
             }
         }
+
         internal static void DeserializeRPC(ZPackage pkg)
         {
             var uid = pkg.ReadZDOID();
@@ -583,63 +513,12 @@ namespace ValheimMP.Patches
             }
         }
 
-        private struct InventoryKey : IEquatable<InventoryKey>
-        {
-            public ZDOID m_owner;
-            public int m_index;
-            private int m_hash;
-
-            public InventoryKey(ZDOID owner, int index)
-            {
-                this.m_owner = owner;
-                this.m_index = index;
-                this.m_hash = 0;
-            }
-
-            public InventoryKey(Inventory inventory)
-            {
-                this.m_owner = inventory.m_nview.m_zdo.m_uid;
-                this.m_index = inventory.m_inventoryIndex;
-                this.m_hash = 0;
-            }
-
-            public override bool Equals(object obj)
-            {
-                if (obj is InventoryKey)
-                    return Equals((InventoryKey)obj);
-                return false;
-            }
-
-            /// <summary>
-            /// Not sure if this is a good way to generate a hash but seems ZDOID uses it lets lets just go with it
-            /// After looking how dictionaries work it seems Equals is used after GetHashCode collides so it should be fine.
-            /// </summary>
-            /// <returns></returns>
-            public override int GetHashCode()
-            {
-                if (m_hash == 0)
-                {
-                    m_hash = m_owner.GetHashCode() ^ m_index.GetHashCode();
-                }
-                return m_hash;
-            }
-
-            public bool Equals(InventoryKey other)
-            {
-                return (other.m_index == m_index && other.m_owner.Equals(m_owner));
-            }
-        }
-
-        private static Dictionary<InventoryKey, InventoryListener> m_inventoryListeners = new Dictionary<InventoryKey, InventoryListener>();
-        private static Dictionary<InventoryKey, InventoryListener> m_changedInventories = new Dictionary<InventoryKey, InventoryListener>();
-
         /// <summary>
         /// Register an inventory, needed for network syncing.
         /// </summary>
         /// <param name="inventory">inventory</param>
         /// <param name="netview">netview, usually the one from the parent object, e.g. character or chest.</param>
-        /// <param name="index">index if there is more then one inventory on that netview</param>
-        public static void Register(Inventory inventory, ZNetView netview, int index = 0)
+        public static void Register(Inventory inventory, ZNetView netview)
         {
             if (netview == null)
                 return;
@@ -653,35 +532,33 @@ namespace ValheimMP.Patches
                 return;
             }
 
-            var key = new InventoryKey(zdo.m_uid, index);
-
-            if (m_inventoryListeners.Remove(key))
+            if (!m_inventoryManagers.ContainsKey(zdo.m_uid))
             {
-                ZLog.Log("Register Inventory, key already exists, unregistering and registering new.");
+                m_inventoryManagers.Add(zdo.m_uid, new Dictionary<int, InventoryManager>());
             }
 
-            m_inventoryListeners.Add(key, new InventoryListener(inventory, netview, index));
+            var inventoriesOnZDOID = m_inventoryManagers[zdo.m_uid];
+            var index = inventoriesOnZDOID.Count;
+
+            inventoriesOnZDOID[index] = new InventoryManager(inventory, index);
         }
 
         public static void UnregisterAll(ZNetView netview)
         {
             if (netview == null)
                 return;
+
             var zdo = netview.GetZDO();
             if (zdo != null)
             {
                 var id = zdo.m_uid;
-                var inventories = GetInventories(id);
-                foreach (var inv in inventories)
-                {
-                    var key = new InventoryKey(id, inv.Index);
-                    m_inventoryListeners.Remove(key);
-                    m_changedInventories.Remove(key);
-                }
+
+                m_inventoryManagers.Remove(id);
+                m_changedInventories.RemoveWhere(k => k.Inventory.m_nview == netview);
             }
         }
 
-        public static void Unregister(ZNetView netview, int index = 0)
+        public static void Unregister(ZNetView netview, int index)
         {
             if (netview == null)
                 return;
@@ -689,25 +566,118 @@ namespace ValheimMP.Patches
             if (zdo != null)
             {
                 var id = zdo.m_uid;
-                var key = new InventoryKey(id, index);
-                m_inventoryListeners.Remove(key);
-                m_changedInventories.Remove(key);
+
+                if (m_inventoryManagers.TryGetValue(id, out var val))
+                {
+                    val.Remove(index);
+                }
+
+                m_changedInventories.RemoveWhere(k => k.Inventory.m_nview == netview && k.Inventory.m_inventoryIndex == index);
             }
         }
 
         public static void Unregister(Inventory inventory)
         {
-            var key = new InventoryKey(inventory);
-            m_inventoryListeners.Remove(key);
-            m_changedInventories.Remove(key);
+            var id = inventory.GetZDOID();
+            if (m_inventoryManagers.TryGetValue(id, out var listeners))
+            {
+                listeners.Remove(inventory.m_inventoryIndex);
+            }
+
+            m_changedInventories.RemoveWhere(k => k.Inventory == inventory);
         }
 
-        public static void Unregister(ZDOID id, int index = 0)
+        public static void Unregister(ZDOID id)
         {
-            var key = new InventoryKey(id, index);
-            m_inventoryListeners.Remove(key);
-            m_changedInventories.Remove(key);
+            m_inventoryManagers.Remove(id);
+            m_changedInventories.RemoveWhere(k => k.Inventory.GetZDOID() == id);
         }
+
+        public static void RemoveListenerFromAll(long user)
+        {
+            m_inventoryManagers.Values.Do(k => k.Values.Do(j => j.RemoveListener(user)));
+        }
+
+        private static InventoryManager GetManager(Inventory inventory)
+        {
+            if (m_inventoryManagers.TryGetValue(inventory.GetZDOID(), out var dic))
+            {
+                if (dic.TryGetValue(inventory.m_inventoryIndex, out var val))
+                {
+                    return val;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Add a listener to this inventory. User will be send updates when the inventory changes.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="inventory"></param>
+        public static bool AddListener(long user, Inventory inventory)
+        {
+            InventoryManager manager;
+            if ((manager = GetManager(inventory)) != null)
+            {
+                manager.AddListener(user);
+                return true;
+            }
+
+            ZLog.Log($"Inventory AddListener, missing inventory manager, inventory not registered.");
+            return false;
+        }
+
+        /// <summary>
+        /// Check if user is a listener on that inventory.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="inventory"></param>
+        /// <returns></returns>
+        public static bool IsListener(long user, Inventory inventory)
+        {
+            InventoryManager manager;
+            if ((manager = GetManager(inventory)) != null)
+            {
+                return manager.IsListener(user);
+            }
+
+            ZLog.Log($"Inventory IsListener, missing inventory manager, inventory not registered.");
+            return false;
+        }
+
+
+        /// <summary>
+        /// Remove a listener from an inventory
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="inventory"></param>
+        public static bool RemoveListener(long user, Inventory inventory)
+        {
+            InventoryManager manager;
+            if ((manager = GetManager(inventory)) != null)
+            {
+                manager.RemoveListener(user);
+                return true;
+            }
+
+            ZLog.Log($"Inventory RemoveListener, missing inventory wrapper, inventory not registered.");
+            return false;
+        }
+
+        public static List<long> GetListeners(Inventory inventory)
+        {
+            InventoryManager manager;
+            if ((manager = GetManager(inventory)) != null)
+            {
+                return manager.GetListeners();
+            }
+
+            ZLog.Log($"Inventory GetListeners, missing inventory wrapper, inventory not registered.");
+            return null;
+        }
+
 
         /// <summary>
         /// Get the inventory belonging to the ZDOID
@@ -717,27 +687,44 @@ namespace ValheimMP.Patches
         /// <returns></returns>
         public static Inventory GetInventory(ZDOID id, int index = 0)
         {
-            if (m_inventoryListeners.TryGetValue(new InventoryKey(id, index), out var inventoryWrapper))
+            if (m_inventoryManagers.TryGetValue(id, out var dic))
             {
-                return inventoryWrapper.Inventory;
+                if (dic.TryGetValue(index, out var val))
+                {
+                    return val.Inventory;
+                }
             }
             return null;
         }
 
         /// <summary>
         /// Get all inventories on a ZDOID.
-        /// 
-        /// Loops through all inventories in order to find them, should be avoided if you know the index
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public static List<InventoryListener> GetInventories(ZDOID id)
+        public static List<Inventory> GetInventories(ZDOID id)
         {
-            return m_inventoryListeners.Where(k => k.Key.m_owner == id).Select(k => k.Value).ToList();
+            if(m_inventoryManagers.TryGetValue(id, out var val))
+            {
+                return val.Values.Select(k=>k.Inventory).ToList();
+            }
+            return null;
         }
 
-
-        private static float inventorySyncTimer = 0;
+        /// <summary>
+        /// Unregister items attached to netviews when reset, ideally objects would unregister on destruction
+        /// but looking at the code it seems they lose their ZDO before destruction, since we need that ID we
+        /// hook into ResetZDO. And I don't want to copy paste this same patch for every object type I will 
+        /// unregister all of them here.
+        /// </summary>
+        /// <param name="__instance"></param>
+        [HarmonyPatch(typeof(ZNetView), "ResetZDO")]
+        [HarmonyPatch(typeof(ZNetView), "Destroy")]
+        [HarmonyPrefix]
+        private static void UnregisterNetViewPatch(ZNetView __instance)
+        {
+            UnregisterAll(__instance);
+        }
 
         [HarmonyPatch(typeof(Game), "Update")]
         [HarmonyPrefix]
@@ -757,7 +744,7 @@ namespace ValheimMP.Patches
 
         public static void SyncAll()
         {
-            var list = m_changedInventories.Values.ToList();
+            var list = m_changedInventories.ToList();
             foreach (var item in list)
             {
                 item.SyncListeners();
@@ -862,6 +849,24 @@ namespace ValheimMP.Patches
         {
             __result = (float)__instance.NrOfItems() / (float)(__instance.m_width * __instance.m_height) * 100f;
             return false;
+        }
+    }
+
+    public static class InventoryExtension
+    {
+        public static ZDOID GetZDOID(this Inventory inventory)
+        {
+            return inventory.m_nview.m_zdo.m_uid;
+        }
+
+        public static int GetIndex(this Inventory inventory)
+        {
+            return inventory.m_inventoryIndex;
+        }
+
+        public static ZNetView GetNetView(this Inventory inventory)
+        {
+            return inventory.m_nview;
         }
     }
 }
