@@ -5,13 +5,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using ValheimMP.Framework;
 
 namespace ValheimMP.Patches
 {
 
 
     [HarmonyPatch]
-    public class ZNet_Patch
+    internal class ZNet_Patch
     {
         /// <summary>
         /// Check if the current RPC is allowed from the sender.
@@ -226,7 +227,7 @@ namespace ValheimMP.Patches
             {
                 rpc.Register<double>("NetTime", __instance.RPC_NetTime);
 
-                if (ValheimMP.Instance.IsOnValheimMPServer)
+                if (ValheimMPPlugin.Instance.IsOnValheimMPServer)
                 {
                     rpc.Register("InventoryData", (ZRpc rpc, ZPackage pkg) =>
                     {
@@ -257,14 +258,14 @@ namespace ValheimMP.Patches
         /// <param name="pkg"></param>
         private static void SendValheimMPPeerInfo(ZNet __instance, ZRpc rpc, ZPackage pkg)
         {
-            pkg.Write(ValheimMP.ProtocolIdentifier);
-            pkg.Write(ValheimMP.Version);
+            pkg.Write(ValheimMPPlugin.ProtocolIdentifier);
+            pkg.Write(ValheimMPPlugin.Version);
 
-            if (ValheimMP.IsDedicated)
+            if (ValheimMPPlugin.IsDedicated)
             {
                 pkg.Write((long)(rpc.GetSocket() as ZSteamSocket).GetPeerID().m_SteamID);
-                pkg.Write(ValheimMP.Instance.UseZDOCompression.Value);
-                pkg.Write(ValheimMP.Instance.RespawnDelay.Value);
+                pkg.Write(ValheimMPPlugin.Instance.UseZDOCompression.Value);
+                pkg.Write(ValheimMPPlugin.Instance.RespawnDelay.Value);
             }
             else
             {
@@ -281,7 +282,7 @@ namespace ValheimMP.Patches
         /// <returns>False if the connection is aborted.</returns>
         private static bool ValheimMPPeerInfo(ZRpc rpc, ZPackage pkg, ZNetPeer peer)
         {
-            ValheimMP valheimMP = ValheimMP.Instance;
+            ValheimMPPlugin valheimMP = ValheimMPPlugin.Instance;
             if (pkg.GetPos() >= pkg.Size())
             {
                 if (ZNet.m_isServer)
@@ -308,10 +309,10 @@ namespace ValheimMP.Patches
                 ZLog.Log($"Exception trying to read ValheimMP Identifier: {ex}");
             }
 
-            var validIdentifier = string.Compare(valheimMPIdentifier, ValheimMP.ProtocolIdentifier) == 0;
+            var validIdentifier = string.Compare(valheimMPIdentifier, ValheimMPPlugin.ProtocolIdentifier) == 0;
             if (!validIdentifier)
             {
-                ZLog.LogError($"Valheim MP Identifier mismatch: {valheimMPIdentifier} vs. mine {ValheimMP.ProtocolIdentifier}");
+                ZLog.LogError($"Valheim MP Identifier mismatch: {valheimMPIdentifier} vs. mine {ValheimMPPlugin.ProtocolIdentifier}");
                 if (ZNet.m_isServer)
                 {
                     rpc.Invoke("Error", 3);
@@ -324,10 +325,10 @@ namespace ValheimMP.Patches
             }
 
             var valheimMPVersion = pkg.ReadString();
-            var validVersion = string.Compare(valheimMPVersion, ValheimMP.Version) == 0;
+            var validVersion = string.Compare(valheimMPVersion, ValheimMPPlugin.Version) == 0;
             if (!validVersion)
             {
-                ZLog.LogError($"Valheim MP Version mismatch: {valheimMPVersion} vs. mine {ValheimMP.Version}");
+                ZLog.LogError($"Valheim MP Version mismatch: {valheimMPVersion} vs. mine {ValheimMPPlugin.Version}");
                 if (ZNet.m_isServer)
                 {
                     rpc.Invoke("Error", 3);
@@ -363,7 +364,7 @@ namespace ValheimMP.Patches
 
                 if (valheimMP.OnClientConnect != null)
                 {
-                    foreach (ValheimMP.OnClientConnectDel del in valheimMP.OnClientConnect.GetInvocationList())
+                    foreach (ValheimMPPlugin.OnClientConnectDel del in valheimMP.OnClientConnect.GetInvocationList())
                     {
                         if (!del(rpc))
                             return false;
@@ -388,7 +389,7 @@ namespace ValheimMP.Patches
 
                 if (valheimMP.OnServerConnect != null)
                 {
-                    foreach (ValheimMP.OnServerConnectDel del in valheimMP.OnServerConnect.GetInvocationList())
+                    foreach (ValheimMPPlugin.OnServerConnectDel del in valheimMP.OnServerConnect.GetInvocationList())
                     {
                         if (!del(peer))
                             return false;
@@ -449,7 +450,7 @@ namespace ValheimMP.Patches
         {
             if (!__instance.IsServer() && rpc == __instance.GetServerRPC())
             {
-                Inventory_Patch.DeserializeRPC(pkg);
+                InventoryManager.DeserializeRPC(pkg);
             }
         }
     }

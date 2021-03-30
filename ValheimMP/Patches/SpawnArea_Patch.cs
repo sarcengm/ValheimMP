@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ValheimMP.Patches
 {
     [HarmonyPatch]
-    public class SpawnArea_Patch
+    internal class SpawnArea_Patch
     {
         [HarmonyPatch(typeof(SpawnArea), "Awake")]
         [HarmonyPrefix]

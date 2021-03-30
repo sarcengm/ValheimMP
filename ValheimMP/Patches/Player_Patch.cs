@@ -7,6 +7,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using ValheimMP.Framework;
+using ValheimMP.Framework.Extensions;
 using ValheimMP.Util;
 using static Player;
 
@@ -14,12 +16,12 @@ namespace ValheimMP.Patches
 {
 
     [HarmonyPatch]
-    public class Player_Patch
+    internal class Player_Patch
     {
         /// <summary>
         /// Turn on to suppress any message generated.
         /// </summary>
-        public static bool SuppressMessages { get; set; }
+        internal static bool SuppressMessages { get; set; }
 
         private static GameObject m_debugZdoPlayerLocationObject;
         private static float m_lastSyncTime;
@@ -210,7 +212,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void ApplyPushback(Character __instance)
         {
-            if (ValheimMP.IsDedicated && __instance is Player player)
+            if (ValheimMPPlugin.IsDedicated && __instance is Player player)
             {
                 player.m_nview.InvokeRPC("Pushback", __instance.m_pushForce);
             }
@@ -421,7 +423,7 @@ namespace ValheimMP.Patches
                 SyncCharacter(__instance);
 
                 // Add an inventory listener for their own inventory!
-                Inventory_Patch.AddListener(sender, __instance.m_inventory);
+                InventoryManager.AddListener(sender, __instance.m_inventory);
             }
 
             return false;
@@ -456,7 +458,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool UpdateEyeRotation(Player __instance)
         {
-            if (!ValheimMP.IsDedicated)
+            if (!ValheimMPPlugin.IsDedicated)
                 return true;
             __instance.m_eye.rotation = Quaternion.LookRotation(__instance.m_lookDir);
             __instance.m_lookPitch = __instance.m_eye.rotation.eulerAngles.x;
@@ -657,7 +659,7 @@ namespace ValheimMP.Patches
                 return;
             }
 
-            if (ValheimMP.Instance.DebugShowZDOPlayerLocation.Value && !ZNet.instance.IsServer())
+            if (ValheimMPPlugin.Instance.DebugShowZDOPlayerLocation.Value && !ZNet.instance.IsServer())
             {
                 if (m_debugZdoPlayerLocationObject == null)
                 {
@@ -704,7 +706,7 @@ namespace ValheimMP.Patches
 
                 if (!ZNet.instance.IsServer())
                 {
-                    if (!ValheimMP.Instance.DoNotHideCharacterWhenCameraClose.Value && (bool)GameCamera.instance &&
+                    if (!ValheimMPPlugin.Instance.DoNotHideCharacterWhenCameraClose.Value && (bool)GameCamera.instance &&
                         Vector3.Distance(GameCamera.instance.transform.position, __instance.transform.position) < 2f)
                     {
                         __instance.SetVisible(visible: false);
@@ -775,7 +777,7 @@ namespace ValheimMP.Patches
             ZNetPeer_Patch.SavePeer(peer, false);
 
             __instance.m_timeSinceDeath = 0f;
-            peer.m_respawnWait = ValheimMP.Instance.RespawnDelay.Value;
+            peer.m_respawnWait = ValheimMPPlugin.Instance.RespawnDelay.Value;
 
 
 
@@ -799,7 +801,7 @@ namespace ValheimMP.Patches
                 string eventLabel = "biome:" + __instance.GetCurrentBiome();
                 Gogan.LogEvent("Game", "Death", eventLabel, 0L);
 
-                Game.instance.RequestRespawn(ValheimMP.Instance.RespawnDelay.Value);
+                Game.instance.RequestRespawn(ValheimMPPlugin.Instance.RespawnDelay.Value);
             }
         }
 
@@ -807,7 +809,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void GetSlideAngle(Character __instance, ref float __result)
         {
-            if (ValheimMP.IsDedicated)
+            if (ValheimMPPlugin.IsDedicated)
                 __result = 90f;
         }
 
@@ -1190,7 +1192,7 @@ namespace ValheimMP.Patches
             if (__instance.m_crouchToggled != crouch)
             {
                 __instance.m_crouchToggled = crouch;
-                if (!ValheimMP.IsDedicated)
+                if (!ValheimMPPlugin.IsDedicated)
                 {
                     __instance.m_nview.InvokeRPC(ZNet.instance.GetServerPeer().m_uid, "Crouch", crouch);
                 }
@@ -1213,7 +1215,7 @@ namespace ValheimMP.Patches
             if (__instance.GetPlayerID() != sender)
                 return;
 
-            var inventory = inventoryId.IsNone() ? __instance.m_inventory : Inventory_Patch.GetInventory(inventoryId);
+            var inventory = inventoryId.IsNone() ? __instance.m_inventory : InventoryManager.GetInventory(inventoryId);
 
             if (inventory == null)
             {
@@ -1784,16 +1786,6 @@ namespace ValheimMP.Patches
         }
     }
 
-    public static class PlayerExtension
-    {
-        public static float GetMaxSqrInteractRange(this Player player)
-        {
-            var range = player.m_maxInteractDistance;
-            if(ValheimMP.IsDedicated)
-                range *= 1.1f;
-            range *= range;
-            return range;
-        }
-    }
+
 }
 

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches
 {
@@ -80,7 +81,7 @@ namespace ValheimMP.Patches
         {
             __instance.m_clientStatus = new Dictionary<int, NetworkedStatusEffect>();
 
-            if (!ValheimMP.IsDedicated && __instance.m_nview != null)
+            if (!ValheimMPPlugin.IsDedicated && __instance.m_nview != null)
             {
                 __instance.m_nview.Register("StatusEffectData", (long sender, ZPackage pkg) =>
                 {
@@ -136,7 +137,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Update(SEMan __instance, float dt)
         {
-            if (!ValheimMP.IsDedicated)
+            if (!ValheimMPPlugin.IsDedicated)
                 return;
 
             // do we need to sync all characters? if so we need to not only send it to the owner but to every peer..

@@ -6,7 +6,7 @@ namespace ValheimMP.Patches
 {
 
     [HarmonyPatch]
-    public class SpawnSystem_Patch
+    internal class SpawnSystem_Patch
     {
         [HarmonyPatch(typeof(SpawnSystem), "Awake")]
         [HarmonyPrefix]

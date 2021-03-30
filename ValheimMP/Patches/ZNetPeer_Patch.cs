@@ -4,11 +4,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ValheimMP.Framework;
 
 namespace ValheimMP.Patches
 {
     [HarmonyPatch]
-    public static class ZNetPeer_Patch
+    internal static class ZNetPeer_Patch
     {
         [HarmonyPatch(typeof(ZNetPeer), MethodType.Constructor, new[] { typeof(ISocket), typeof(bool) })]
         [HarmonyPostfix]
@@ -25,7 +26,7 @@ namespace ValheimMP.Patches
             if (ZNet.instance != null && ZNet.instance.IsServer())
             {
                 SavePeer(__instance);
-                Inventory_Patch.RemoveListenerFromAll(__instance.m_uid);
+                InventoryManager.RemoveListenerFromAll(__instance.m_uid);
             }
         }
 
@@ -46,16 +47,5 @@ namespace ValheimMP.Patches
         }
     }
 
-    public static class ZNetPeerExtension
-    {
-        public static PlayerProfile GetPlayerProfile(this ZNetPeer peer)
-        {
-            return peer.m_playerProfile;
-        }
 
-        public static Player GetPlayer(this ZNetPeer peer)
-        {
-            return peer.m_player;
-        }
-    }
 }

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches
 {
@@ -16,7 +17,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool SetTrigger(ZSyncAnimation __instance, string name)
         {
-            if (ValheimMP.IsDedicated)
+            if (ValheimMPPlugin.IsDedicated)
             {
                 __instance.m_animator.SetTrigger(name);
                 __instance.m_nview.InvokeProximityRPC(100f, ZNetView.Everybody, "SetTrigger", name);

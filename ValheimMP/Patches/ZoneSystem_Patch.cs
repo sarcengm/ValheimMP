@@ -10,7 +10,7 @@ namespace ValheimMP.Patches
 {
 
     [HarmonyPatch]
-    public class ZoneSystem_Patch
+    internal class ZoneSystem_Patch
     {
         [HarmonyPatch(typeof(ZoneSystem), "Update")]
         [HarmonyPrefix]

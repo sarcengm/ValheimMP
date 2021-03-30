@@ -7,13 +7,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using ValheimMP.Framework.Extensions;
 using ValheimMP.Util;
 
 namespace ValheimMP.Patches
 {
 
     [HarmonyPatch]
-    public class ZDOMan_Patch
+    internal class ZDOMan_Patch
     {
         [HarmonyPatch(typeof(ZDOMan), MethodType.Constructor, new[] { typeof(int) })]
         [HarmonyPostfix]
@@ -330,7 +331,7 @@ namespace ValheimMP.Patches
             var zdoCollectionCountPos = zdoCollectionPkg.GetPos();
             zdoCollectionPkg.Write(zdoCollectionCount); // Placeholder count;
 
-            var valheimMP = ValheimMP.Instance;
+            var valheimMP = ValheimMPPlugin.Instance;
 
             for (int i = 0; i < __instance.m_tempToSync.Count; i++)
             {
@@ -427,7 +428,7 @@ namespace ValheimMP.Patches
 
         public static bool SerializeZDOFor(ZDOMan.ZDOPeer peer, ref ZPackage zdoPkg, ref ZDO zDO, ref ZDO clientZDO)
         {
-            var valheimMP = ValheimMP.Instance;
+            var valheimMP = ValheimMPPlugin.Instance;
 
 #if DEBUG
             if (valheimMP.DebugOutputZDO.Value)
@@ -818,7 +819,7 @@ namespace ValheimMP.Patches
                 return false;
             }
 
-            if (ValheimMP.Instance.UseZDOCompression.Value)
+            if (ValheimMPPlugin.Instance.UseZDOCompression.Value)
                 pkg = pkg.Decompress();
 
             var count = pkg.ReadInt();

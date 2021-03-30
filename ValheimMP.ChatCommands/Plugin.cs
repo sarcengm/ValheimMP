@@ -8,7 +8,7 @@ using UnityEngine;
 namespace ValheimMP.ChatCommands
 {
     [BepInPlugin(BepInGUID, Name, Version)]
-    [BepInDependency(ValheimMP.BepInGUID)]
+    [BepInDependency(ValheimMPPlugin.BepInGUID)]
     public class ChatCommandsPlugin : BaseUnityPlugin
     {
         public const string Author = "Sarcen";
@@ -18,13 +18,13 @@ namespace ValheimMP.ChatCommands
 
         public void Awake()
         {
-            if(!ValheimMP.IsDedicated)
+            if(!ValheimMPPlugin.IsDedicated)
             {
                 Logger.LogError($"{Name} is a server side only plugin.");
                 return;
             }
 
-            ValheimMP.Instance.OnChatMessage += OnChatMessage;
+            ValheimMPPlugin.Instance.OnChatMessage += OnChatMessage;
         }
 
         private bool OnChatMessage(ZNetPeer peer, Player player, ref string playerName, ref Vector3 messageLocation, ref float messageDistance, ref string text, ref Talker.Type type)
@@ -36,7 +36,7 @@ namespace ValheimMP.ChatCommands
             if (text.StartsWith("/vmp", StringComparison.OrdinalIgnoreCase))
             {
                 ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", messageLocation, -1, "",
-                    $"<color=white>Server is running <color=green><b>{ValheimMP.PluginName}</b></color> version <color=green><b>{ValheimMP.CurrentVersion}</b></color>.</color>"
+                    $"<color=white>Server is running <color=green><b>{ValheimMPPlugin.PluginName}</b></color> version <color=green><b>{ValheimMPPlugin.CurrentVersion}</b></color>.</color>"
                 );
                 return false;
             }

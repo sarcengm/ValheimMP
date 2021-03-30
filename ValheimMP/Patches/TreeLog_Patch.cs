@@ -15,7 +15,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool Damage(TreeLog __instance, HitData hit)
         {
-            if (ValheimMP.IsDedicated)
+            if (ValheimMPPlugin.IsDedicated)
             {
                 __instance.RPC_Damage(0, hit);
             }

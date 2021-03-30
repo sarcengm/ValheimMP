@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using ValheimMP.Framework;
+using ValheimMP.Framework.Extensions;
 using ValheimMP.Util;
 
 namespace ValheimMP.Patches
@@ -27,7 +29,7 @@ namespace ValheimMP.Patches
             var netview = __instance.GetNetView();
             if (netview != null)
             {
-                if (ValheimMP.IsDedicated)
+                if (ValheimMPPlugin.IsDedicated)
                 {
                     netview.Register(rpcBuyItem, (long sender, int itemId, int count) =>
                     {
@@ -72,7 +74,7 @@ namespace ValheimMP.Patches
 
             for(int i=0; i<itemCount; i++)
             {
-                var remoteItemData = new Inventory_Patch.NetworkedItemData();
+                var remoteItemData = new NetworkedItemData();
                 var itemData = remoteItemData.Deserialize(dummyInventory, pkg);
 
                 // m_dropPrefab is the template, I don't think it's a good idea to be modifying it, even if its just the item data, so lets make a copy.
@@ -107,7 +109,7 @@ namespace ValheimMP.Patches
                 localItemData.SetCustomData("m_price", item.m_price);
                 localItemData.SetCustomData("m_stack", item.m_stack);
 
-                var remoteItemData = new Inventory_Patch.NetworkedItemData();
+                var remoteItemData = new NetworkedItemData();
                 remoteItemData.Serialize(localItemData, pkg);
             }
 
@@ -207,41 +209,5 @@ namespace ValheimMP.Patches
         }
     }
 
-    public static class TraderExtension
-    {
-        public static int GetPlayerCurrency(this Trader trader, Player player)
-        {
-            return player.m_inventory.CountItems(GetCurrencyName(trader));
-        }
 
-        public static string GetCurrencyName(this Trader trader)
-        {
-            return trader.GetCurrencyPrefab().m_itemData.m_shared.m_name;
-        }
-
-        public static ItemDrop GetCurrencyPrefab(this Trader trader)
-        {
-            return StoreGui.instance.m_coinPrefab;
-        }
-
-        public static ZNetView GetNetView(this Trader trader)
-        {
-            return trader.GetComponentInParent<ZNetView>();
-        }
-
-        public static void SellItem(this Trader trader, int itemId, int itemCount)
-        {
-            trader.GetNetView().InvokeRPC(Trader_Patch.rpcSellItem, parameters: new object[] { itemId, itemCount });
-        }
-
-        public static void BuyItem(this Trader trader, int itemId, int itemCount)
-        {
-            trader.GetNetView().InvokeRPC(Trader_Patch.rpcBuyItem, parameters: new object[] { itemId, itemCount });
-        }
-
-        public static void RequestTradeList(this Trader trader)
-        {
-            trader.GetNetView().InvokeRPC(Trader_Patch.rpcRequestTradeList);
-        }
-    }
 }

@@ -11,7 +11,7 @@ using System.Security.Permissions;
 namespace ValheimMP.Patches
 {
     [HarmonyPatch]
-    public class ZNetScene_Patch
+    internal class ZNetScene_Patch
     {
 
         [HarmonyPatch(typeof(ZNetScene), "CreateObjects")]

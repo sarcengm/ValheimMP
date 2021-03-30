@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ValheimMP.Patches
 {
     [HarmonyPatch]
-    public class CreatureSpawner_Patch
+    internal class CreatureSpawner_Patch
     {
         [HarmonyPatch(typeof(CreatureSpawner), "Awake")]
         [HarmonyPrefix]

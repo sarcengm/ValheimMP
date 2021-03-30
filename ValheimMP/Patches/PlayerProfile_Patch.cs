@@ -12,7 +12,7 @@ namespace ValheimMP.Patches
 
 
     [HarmonyPatch]
-    public class PlayerProfile_Patch
+    internal class PlayerProfile_Patch
     {
         [HarmonyPatch(typeof(PlayerProfile), "LoadPlayerDataFromDisk")]
         [HarmonyPrefix]

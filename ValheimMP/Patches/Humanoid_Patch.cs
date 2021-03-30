@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using ValheimMP.Framework;
 
 namespace ValheimMP.Patches
 {
@@ -38,7 +39,7 @@ namespace ValheimMP.Patches
                 });
             }
 
-            Inventory_Patch.Register(__instance.m_inventory, __instance.m_nview);
+            InventoryManager.Register(__instance.m_inventory, __instance.m_nview);
         }
 
         private static void RPC_EquipItem(Humanoid __instance, long sender, int itemId, bool triggerEquipEffects)
@@ -312,7 +313,7 @@ namespace ValheimMP.Patches
 
         private static void RPC_DropItem(Humanoid __instance, long sender, ZDOID invId, int itemId, int amount)
         {
-            var inventory = Inventory_Patch.GetInventory(invId);
+            var inventory = InventoryManager.GetInventory(invId);
             if (inventory == null)
                 return;
 
@@ -335,7 +336,7 @@ namespace ValheimMP.Patches
         [HarmonyTranspiler]
         private static IEnumerable<CodeInstruction> BlockAttack(IEnumerable<CodeInstruction> instructions)
         {
-            if (ValheimMP.IsDedicated)
+            if (ValheimMPPlugin.IsDedicated)
                 return instructions;
 
             var list = instructions.ToList();

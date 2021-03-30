@@ -11,7 +11,7 @@ using BepInEx.Configuration;
 namespace ValheimMP
 {
     [BepInPlugin(BepInGUID, PluginName, Version)]
-    public class ValheimMP : BaseUnityPlugin
+    public class ValheimMPPlugin : BaseUnityPlugin
     {
         public const string Author = "Sarcen";
         public const string PluginName = "ValheimMP";
@@ -22,7 +22,7 @@ namespace ValheimMP
 
         public static string CurrentVersion { get { return Version; } }
 
-        public static ValheimMP Instance { get; private set; }
+        public static ValheimMPPlugin Instance { get; private set; }
 
         private Harmony m_harmonyHandshake;
         private Harmony m_harmony;

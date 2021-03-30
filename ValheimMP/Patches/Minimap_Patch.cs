@@ -9,7 +9,7 @@ using UnityEngine;
 namespace ValheimMP.Patches
 {
     [HarmonyPatch]
-    public class Minimap_Patch
+    internal class Minimap_Patch
     {
         //[HarmonyPatch(typeof(Minimap), "Update")]
         //[HarmonyTranspiler]

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches
 {
@@ -129,7 +130,7 @@ namespace ValheimMP.Patches
             if (hitPlayerId != 0 && !CheckAccess(hitPlayerId, hit.m_point, flash: false))
                 return;
 
-            var vmp = ValheimMP.Instance;
+            var vmp = ValheimMPPlugin.Instance;
             float damageMul;
             float reflectMul;
 

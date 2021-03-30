@@ -18,14 +18,4 @@ namespace ValheimMP.Patches
             __instance.m_attackerCharacter = attacker;
         }
     }
-
-    public static class HitDataExtension
-    {
-        public static long GetAttackingPlayerID(this HitData hitData)
-        {
-            if (hitData.m_attackerCharacter is Player player)
-                return player.GetPlayerID();
-            return 0;
-        }
-    }
 }

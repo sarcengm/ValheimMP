@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches
 {
@@ -78,9 +79,9 @@ namespace ValheimMP.Patches
                     break;
             }
 
-            if (ValheimMP.Instance.OnChatMessage != null)
+            if (ValheimMPPlugin.Instance.OnChatMessage != null)
             {
-                foreach (ValheimMP.OnChatMessageDel del in ValheimMP.Instance.OnChatMessage.GetInvocationList())
+                foreach (ValheimMPPlugin.OnChatMessageDel del in ValheimMPPlugin.Instance.OnChatMessage.GetInvocationList())
                 {
                     if (!del(peer, player, ref playerName, ref messageLocation, ref messageDistance, ref text, ref type))
                         return;

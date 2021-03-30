@@ -10,13 +10,13 @@ using static ZRpc;
 namespace ValheimMP.Patches
 {
     [HarmonyPatch]
-    public class ZRpc_Patch
+    internal class ZRpc_Patch
     {
         [HarmonyPatch(typeof(ZRpc), "Invoke")]
         [HarmonyPrefix]
         private static void Invoke(ZRpc __instance, string method, params object[] parameters)
         {
-            if(ValheimMP.Instance.DebugRPC.Value)
+            if(ValheimMPPlugin.Instance.DebugRPC.Value)
                 ZLog.Log("RPC Invoking " + method + " " + method.GetStableHashCode());
         }
 

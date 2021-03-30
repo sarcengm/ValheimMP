@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ValheimMP.Patches
 {
     [HarmonyPatch]
-    public class TimedDestruction_Patch
+    internal class TimedDestruction_Patch
     {
         [HarmonyPatch(typeof(TimedDestruction), "Awake")]
         [HarmonyPostfix]

@@ -11,7 +11,7 @@ namespace ValheimMP.Patches
 
 
     [HarmonyPatch]
-    public class Game_Patch
+    internal class Game_Patch
     {
         [HarmonyPatch(typeof(Game), "Start")]
         [HarmonyPostfix]
@@ -37,7 +37,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool RequestRespawn(Game __instance, float delay)
         {
-            if(ValheimMP.IsDedicated)
+            if(ValheimMPPlugin.IsDedicated)
                 return false;
             return true;
         }
@@ -46,7 +46,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool _RequestRespawn(Game __instance)
         {
-            if (ValheimMP.IsDedicated)
+            if (ValheimMPPlugin.IsDedicated)
                 return false;
 
             if (Player.m_localPlayer != null)
@@ -233,7 +233,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static void OnApplicationQuit()
         {
-            ValheimMP.Instance.WriteDebugData();
+            ValheimMPPlugin.Instance.WriteDebugData();
         }
     }
 }

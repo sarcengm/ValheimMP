@@ -12,22 +12,22 @@ namespace ValheimMP.Util
     {
         public static bool IsOwnerOrServer(this ZNetView netView)
         {
-            return netView.IsOwner() || ValheimMP.IsDedicated;
+            return netView.IsOwner() || ValheimMPPlugin.IsDedicated;
         }
 
         public static bool IsOwnerOrServer(this Character chr)
         {
-            return chr.IsOwner() || ValheimMP.IsDedicated;
+            return chr.IsOwner() || ValheimMPPlugin.IsDedicated;
         }
 
         public static bool IsOwnerOrServer(this IWaterInteractable chr)
         {
-            return chr.IsOwner() || ValheimMP.IsDedicated;
+            return chr.IsOwner() || ValheimMPPlugin.IsDedicated;
         }
         
         public static bool IsOwnerOrServer(this ZDO zDO)
         {
-            return zDO.IsOwner() || ValheimMP.IsDedicated;
+            return zDO.IsOwner() || ValheimMPPlugin.IsDedicated;
         }
     }
 }
