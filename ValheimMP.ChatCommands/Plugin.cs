@@ -1,9 +1,10 @@
 ﻿using BepInEx;
-using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using ValheimMP.Framework;
+using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.ChatCommands
 {
@@ -37,6 +38,14 @@ namespace ValheimMP.ChatCommands
             {
                 ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", messageLocation, -1, "",
                     $"<color=white>Server is running <color=green><b>{ValheimMPPlugin.PluginName}</b></color> version <color=green><b>{ValheimMPPlugin.CurrentVersion}</b></color>.</color>"
+                );
+                return false;
+            }
+
+            if (text.StartsWith("/ping", StringComparison.OrdinalIgnoreCase))
+            {
+                ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", messageLocation, -1, "",
+                    $"<color=white>Ping <color=green><b>{peer.GetPing()}</b></color>ms.</color>"
                 );
                 return false;
             }

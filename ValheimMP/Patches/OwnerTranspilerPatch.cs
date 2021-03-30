@@ -87,7 +87,7 @@ namespace ValheimMP.Patches
             {
                 if (list[i].Calls(AccessTools.Method(typeof(ZNetView), "IsOwner")))
                 {
-                    list[i].operand = AccessTools.Method(typeof(TranspilerUtil), "IsOwnerOrServer", new Type[] { typeof(ZNetView) });
+                    list[i].operand = AccessTools.Method(typeof(TranspilerUtilExtension), "IsOwnerOrServer", new Type[] { typeof(ZNetView) });
                 }
             }
             return list;
@@ -103,7 +103,7 @@ namespace ValheimMP.Patches
             {
                 if (list[i].Calls(AccessTools.Method(typeof(IWaterInteractable), "IsOwner")))
                 {
-                    list[i].operand = AccessTools.Method(typeof(TranspilerUtil), "IsOwnerOrServer", new Type[] { typeof(IWaterInteractable) });
+                    list[i].operand = AccessTools.Method(typeof(TranspilerUtilExtension), "IsOwnerOrServer", new Type[] { typeof(IWaterInteractable) });
                 }
             }
             return list;
@@ -121,7 +121,7 @@ namespace ValheimMP.Patches
             {
                 if (list[i].Calls(AccessTools.Method(typeof(Character), "IsOwner")))
                 {
-                    list[i].operand = AccessTools.Method(typeof(TranspilerUtil), "IsOwnerOrServer", new Type[] { typeof(Character) });
+                    list[i].operand = AccessTools.Method(typeof(TranspilerUtilExtension), "IsOwnerOrServer", new Type[] { typeof(Character) });
                 }
             }
             return list;

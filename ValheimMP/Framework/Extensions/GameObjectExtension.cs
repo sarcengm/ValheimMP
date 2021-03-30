@@ -8,7 +8,7 @@ using UnityEngine;
 
 namespace ValheimMP.Util
 {
-    public static class GameObjectExt
+    public static class GameObjectExtension
     {
         public static string GetFullName(this GameObject gameObject)
         {

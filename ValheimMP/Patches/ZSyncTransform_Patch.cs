@@ -33,10 +33,6 @@ namespace ValheimMP.Patches
             if (__instance.m_body == null)
                 return false;
 
-            var sock = ZNet.instance.GetServerRPC().GetSocket();
-            if (sock == null)
-                return false;
-
             var player = __instance.GetComponent<Player>();
             if (player == null)
                 return false;
@@ -59,9 +55,9 @@ namespace ValheimMP.Patches
                 var distance = (vector - __instance.transform.position).magnitude;
                 var speed = __instance.GetVelocity().magnitude;
 
-                sock.GetConnectionQuality(out var localQuality, out var remoteQuality, out var ping, out var outByteSec, out var inByteSec);
+                var ping = ZNet.instance.GetServerRPC().m_averagePing;
 
-                if (distance > Mathf.Clamp(ping / 1000f * 16f + 3f, 3f, 10f))
+                if (distance > Mathf.Clamp(ping * 16f + 4f, 4f, 10f))
                 {
                     __instance.m_body.position = vector;
                 }

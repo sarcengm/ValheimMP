@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ValheimMP.Util
 {
-    public static class GenericsExt
+    public static class GenericsExtension
     {
         public static bool AddNotNull<T>(this List<T> list, T val)
         {

@@ -7,8 +7,13 @@ using System.Threading.Tasks;
 
 namespace ValheimMP.Util
 {
-    public static class ZPackageExt
+    public static class ZPackageExtension
     {
+        /// <summary>
+        /// Compress a package
+        /// </summary>
+        /// <param name="pkg"></param>
+        /// <returns>Decompressed package</returns>
         public static ZPackage Decompress(this ZPackage pkg)
         {
             var uncompressedSize = pkg.ReadInt();
@@ -25,6 +30,11 @@ namespace ValheimMP.Util
             return zPackage;
         }
 
+        /// <summary>
+        /// Decompress a package
+        /// </summary>
+        /// <param name="zPackage"></param>
+        /// <returns>Compressed package</returns>
         public static ZPackage Compress(this ZPackage zPackage)
         {
             var uncompressedBytes = zPackage.GetArray();

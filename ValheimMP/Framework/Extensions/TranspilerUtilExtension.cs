@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ValheimMP.Util
 {
-    public static class TranspilerUtil
+    public static class TranspilerUtilExtension
     {
         public static bool IsOwnerOrServer(this ZNetView netView)
         {

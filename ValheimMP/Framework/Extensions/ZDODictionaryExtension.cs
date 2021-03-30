@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace ValheimMP.Util
 {
-    public static class ZDODictionaryExt
+    public static class ZDODictionaryExtension
     {
         // I wanted to just implement specific types of generics with just a different compare function but it seems that isn't (properly) possible in C# so it ended up being... this.
 
