@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
-namespace ValheimMP.Util
+namespace ValheimMP.Framework
 {
     /// <summary>
     /// TODO: It would be nice if there was a Z axis as well, or perhaps call it a W axis, for world.

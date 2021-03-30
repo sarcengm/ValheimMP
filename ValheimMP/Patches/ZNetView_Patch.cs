@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
-using System;
-using ValheimMP.Util;
+using ValheimMP.Framework;
 
 namespace ValheimMP.Patches
 {

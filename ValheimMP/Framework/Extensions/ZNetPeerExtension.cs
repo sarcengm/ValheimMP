@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ValheimMP.Framework.Extensions
+﻿namespace ValheimMP.Framework.Extensions
 {
     public static class ZNetPeerExtension
     {

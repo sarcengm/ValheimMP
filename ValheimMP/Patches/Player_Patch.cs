@@ -3,13 +3,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using ValheimMP.Framework;
 using ValheimMP.Framework.Extensions;
-using ValheimMP.Util;
 using static Player;
 
 namespace ValheimMP.Patches
