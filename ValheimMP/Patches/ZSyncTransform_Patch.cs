@@ -37,8 +37,6 @@ namespace ValheimMP.Patches
             // But since we simulate our own position we only need to resync if we go out of sync too much
             Vector3 vector = zdo.GetPosition();
 
-
-
             if (!ZoneSystem.instance.IsZoneLoaded(zdo.m_sector) ||
                 // shortly after we teleport make sure that our Y position remains approximately the same as our zdo
                 // to prevent falling through unloaded objects

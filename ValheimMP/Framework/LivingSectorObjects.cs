@@ -3,10 +3,16 @@
 namespace ValheimMP.Framework
 {
     /// <summary>
-    /// TODO: It would be nice if there was a Z axis as well, or perhaps call it a W axis, for world.
-    /// Because all dungeons exist at the same x\y while being above 3000f this could be considered a different world
-    /// To properly seperat them it wouldnt only need to be done here though or else I would have already done it.
-    /// Needs to be done in creation of the instances as well
+    /// Class that stores all instances objects by sector. 
+    /// 
+    /// The vanilla game does it basically two ways, all instances in a ZDOID dictionary, not useful for fast location looksups
+    /// And a sector based dictionary with all ZDOs regardless whether they are instanced or not, but no reference to the instance, 
+    /// requiring you to find all instances.
+    /// 
+    /// Since looks up of these objects happens on an almost frame by frame basis it basically needs to be fast, so I added this
+    /// for lookup of only *instanced* objects by sector.
+    /// 
+    /// Also pregrouped by type so no sorting or filtering by that is needed while updating ZDOs
     /// </summary>
     public class LivingSectorObjects
     {

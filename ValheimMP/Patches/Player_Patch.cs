@@ -23,6 +23,9 @@ namespace ValheimMP.Patches
         private static float m_lastSyncTime;
         private static float m_playerTickRate = 0.01f;
         private static bool m_isBlocking;
+        private static HashSet<string> m_hairs;
+        private static HashSet<int> m_models;
+        private static HashSet<string> m_beards;
 
         [HarmonyPatch(typeof(Player), "Message")]
         [HarmonyPrefix]
@@ -124,6 +127,15 @@ namespace ValheimMP.Patches
                 {
                     RPC_Crouch(__instance, sender, crouch);
                 });
+
+                __instance.m_nview.Register("ClientMeleeHit", (long sender, ZPackage pkg) =>
+                {
+                    Attack_Patch.RPC_ClientMeleeHit(__instance, __instance.m_currentAttack ?? __instance.m_previousAttack, pkg);
+                });
+                __instance.m_nview.Register("SetAppearance", (long sender, ZPackage pkg) =>
+                {
+                    RPC_SetAppearance(__instance, sender, pkg);
+                });
             }
             else if (__instance.IsOwner())
             {
@@ -167,6 +179,65 @@ namespace ValheimMP.Patches
                     ZDOEvent_Attach(__instance);
                 });
             }
+        }
+
+        private static void RPC_SetAppearance(Player player, long sender, ZPackage pkg)
+        {
+            var beard = pkg.ReadString();
+            var hair = pkg.ReadString();
+            var hairColor = pkg.ReadVector3();
+            var skinColor = pkg.ReadVector3();
+            var modelIndex = pkg.ReadInt();
+
+            if (m_beards == null)
+            {
+                m_beards = new HashSet<string>(ObjectDB.instance.GetAllItems(ItemDrop.ItemData.ItemType.Customization, "Beard").Select(k => k.name));
+                m_hairs = new HashSet<string>(ObjectDB.instance.GetAllItems(ItemDrop.ItemData.ItemType.Customization, "Hair").Select(k => k.name));
+                m_models = new HashSet<int> { 0, 1 };
+                m_beards.Add("BeardNone");
+                m_hairs.Add("HairNone");
+            }
+
+            if (beard != "" && !m_beards.Contains(beard))
+            {
+                ZLog.Log($"Player {player.GetPlayerName()} ({player.GetPlayerID()}) selected invalid beard: {beard} ");
+                return;
+            }
+
+            if (hair != "" && !m_hairs.Contains(hair))
+            {
+                ZLog.Log($"Player {player.GetPlayerName()} ({player.GetPlayerID()}) selected invalid hair: {hair} ");
+                return;
+            }
+
+            if (modelIndex != -1 && !m_models.Contains(modelIndex))
+            {
+                ZLog.Log($"Player {player.GetPlayerName()} ({player.GetPlayerID()}) selected invalid hair: {hair} ");
+                return;
+            }
+
+            if (beard != "")
+                player.SetBeard(beard);
+            if (hair != "")
+                player.SetHair(hair);
+            if (hairColor != Vector3.zero)
+                player.SetHairColor(hairColor);
+            if (skinColor != Vector3.zero)
+                player.SetSkinColor(Vector3.zero);
+            if (modelIndex != -1)
+                player.SetPlayerModel(modelIndex);
+        }
+
+        private static void SetAppearance(Player player)
+        {
+            var pkg = new ZPackage();
+            pkg.Write(FejdStartup_Patch.m_beardItem);
+            pkg.Write(FejdStartup_Patch.m_hairItem);
+            pkg.Write(FejdStartup_Patch.m_hairColor);
+            pkg.Write(FejdStartup_Patch.m_skinColor);
+            pkg.Write(FejdStartup_Patch.m_modelIndex);
+
+            player.m_nview.InvokeRPC(ZNet.instance.GetServerPeer().m_uid, "SetAppearance", pkg);
         }
 
         private static void ZDOEvent_SyncStamina(Player __instance)
@@ -1226,7 +1297,7 @@ namespace ValheimMP.Patches
 
             if (__instance.ConsumeItem(inventory, item))
             {
-                __instance.m_nview.InvokeRPC("ClientConsume", item.m_dropPrefab.name.GetHashCode());
+                __instance.m_nview.InvokeRPC("ClientConsume", item.m_dropPrefab.name.GetStableHashCode());
             }
         }
 

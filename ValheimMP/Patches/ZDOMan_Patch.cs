@@ -843,7 +843,7 @@ namespace ValheimMP.Patches
 
                 var updateActions = new List<Action<ZDO>>();
 
-                DeserializeZDO(ref zdoPkg, ref zDO, updateActions);
+                DeserializeZDO(ref zdoPkg, ref zDO, ref updateActions);
 
                 if (isNewZDO)
                 {
@@ -870,7 +870,7 @@ namespace ValheimMP.Patches
             return false;
         }
 
-        public static void DeserializeZDO(ref ZPackage zdoPkg, ref ZDO zDO, List<Action<ZDO>> updateEvents)
+        public static void DeserializeZDO(ref ZPackage zdoPkg, ref ZDO zDO, ref List<Action<ZDO>> updateEvents)
         {
             zDO.m_uid = zdoPkg.ReadZDOID();
 

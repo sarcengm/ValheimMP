@@ -130,6 +130,17 @@ namespace ValheimMP.Patcher
                 HitDataType.Fields.Add(new FieldDefinition("m_attackerCharacter", FieldAttributes.Private, CharacterType));
             }
 
+            // Attack
+            {
+                var AttackType = valheim.GetType("Attack");
+                AttackType.Fields.Add(new FieldDefinition("m_lastMeleeHitTime", FieldAttributes.Private, FloatType));
+                AttackType.Fields.Add(new FieldDefinition("m_lastClientMeleeHitTime", FieldAttributes.Private, FloatType));
+                AttackType.Fields.Add(new FieldDefinition("m_lastMeleeHits", FieldAttributes.Private, assembly.MainModule.ImportReference(typeof(List<>))
+                        .MakeGenericInstanceType(HitDataType)));
+                AttackType.Fields.Add(new FieldDefinition("m_lastClientMeleeHits", FieldAttributes.Private, assembly.MainModule.ImportReference(typeof(HashSet<>))
+                        .MakeGenericInstanceType(ZDOIDType)));
+            }
+
             // Container
             {
                 var ContainerType = valheim.GetType("Container");

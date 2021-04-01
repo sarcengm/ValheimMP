@@ -80,7 +80,6 @@ namespace ValheimMP.Patches
                 {
                     if (peer.m_respawnWait > 0.0)
                     {
-                        ZLog.Log($"Peer waiting to respawn {peer.m_respawnWait}");
                         continue;
                     }
 

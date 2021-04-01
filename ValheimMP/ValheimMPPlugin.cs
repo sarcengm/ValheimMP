@@ -168,6 +168,12 @@ namespace ValheimMP
         /// </summary>
         public ConfigEntry<float> WardMonsterVPlayerReflectDamage { get; internal set; }
 
+        public ConfigEntry<float> ClientAttackCompensationWindow { get; internal set; }
+        public ConfigEntry<float> ClientAttackCompensationDistance { get; internal set; }
+        public ConfigEntry<float> ClientAttackCompensationDistanceMin { get; internal set; }
+        public ConfigEntry<float> ClientAttackCompensationDistanceMax { get; internal set; }
+
+
         // Awake is called once when both the game and the plug-in are loaded
         private void Awake()
         {
@@ -204,7 +210,16 @@ namespace ValheimMP
             RespawnDelay = Config.Bind("Server", "RespawnDelay", 10f, "Minimum time it takes to respawn.");
             DoNotHideCharacterWhenCameraClose = Config.Bind("Client", "DoNotHideCharacterWhenCameraClose", false, "");
 
-            DebugRPC.Value = false;
+            ClientAttackCompensationWindow = Config.Bind("Server", "ClientAttackCompensationWindow", 0.1f, 
+                "Max amount of time window for hits to be compensated (towards client hit detection).");
+            ClientAttackCompensationDistance = Config.Bind("Server", "ClientAttackCompensationDistance", 10.0f, 
+                "Max amount of distance for hits to be compensated (towards client hit detection). \n" +
+                " This amount is multiplied by the average ping in seconds. \n" +
+                " E.g. 150 ms ping will be multiplied by 0.15");
+            ClientAttackCompensationDistanceMin = Config.Bind("Server", "ClientAttackCompensationDistanceMin", 1.0f, "Minimum value for compensation distance.");
+            ClientAttackCompensationDistanceMax = Config.Bind("Server", "ClientAttackCompensationDistanceMax", 5.0f, "Maximum value for compensation distance.");
+
+            ArtificialPing.Value = 125f;
 
             WardPlayerDamageMultiplier = Config.Bind("Server",
                 "WardPlayerDamageMultiplier", 0f,
@@ -345,6 +360,12 @@ namespace ValheimMP
             zrpc.m_ping = 0f;
             zrpc.m_averagePing = 0f;
             zrpc.m_pingTime = 0f;
+
+            var attack = new Attack();
+            attack.m_lastMeleeHitTime = 0f;
+            attack.m_lastMeleeHits = new List<HitData>();
+            attack.m_lastClientMeleeHitTime = 0f;
+            attack.m_lastClientMeleeHits = new HashSet<ZDOID>();
         }
 
         internal void WriteDebugData()

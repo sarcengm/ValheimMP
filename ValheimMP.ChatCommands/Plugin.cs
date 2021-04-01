@@ -17,64 +17,86 @@ namespace ValheimMP.ChatCommands
         public const string Version = "1.0.0";
         public const string BepInGUID = "BepIn." + Author + "." + Name;
 
+        private ChatCommandManager chatCommandManager;
+
+        public static ChatCommandsPlugin Instance { get; private set; }
+
         public void Awake()
         {
-            if(!ValheimMPPlugin.IsDedicated)
+            if (!ValheimMPPlugin.IsDedicated)
             {
                 Logger.LogError($"{Name} is a server side only plugin.");
                 return;
             }
 
-            ValheimMPPlugin.Instance.OnChatMessage += OnChatMessage;
+            Instance = this;
+
+            chatCommandManager = new ChatCommandManager();
+            ValheimMPPlugin.Instance.OnChatMessage += chatCommandManager.OnChatMessage;
+
+            chatCommandManager.RegisterAll(this);
         }
 
-        private bool OnChatMessage(ZNetPeer peer, Player player, ref string playerName, ref Vector3 messageLocation, ref float messageDistance, ref string text, ref Talker.Type type)
+        public static void Log(string message)
         {
-            // This normally happens on the client but we supress it here so we can still send marked up text ourselves!
-            text = text.Replace('<', ' ');
-            text = text.Replace('>', ' ');
+            Instance.Logger.LogInfo(message);
+        }
 
-            if (text.StartsWith("/vmp", StringComparison.OrdinalIgnoreCase))
+        [ChatCommand("Claim", "Claim all wards in a nearby area.", requireAdmin: true)]
+        private void Command_Claim(ZNetPeer peer, Player player, long userId)
+        {
+            var list = new List<Piece>();
+            var guardStones = 0;
+
+            Piece.GetAllPiecesInRadius(player.transform.position, 20f, list);
+            foreach (var item in list.Where(item => item.GetComponent<PrivateArea>() != null))
             {
-                ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", messageLocation, -1, "",
-                    $"<color=white>Server is running <color=green><b>{ValheimMPPlugin.PluginName}</b></color> version <color=green><b>{ValheimMPPlugin.CurrentVersion}</b></color>.</color>"
-                );
-                return false;
+                item.m_creator = userId;
+                item.m_nview.GetZDO().Set(Piece.m_creatorHash, userId);
+                guardStones++;
             }
 
-            if (text.StartsWith("/ping", StringComparison.OrdinalIgnoreCase))
-            {
-                ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", messageLocation, -1, "",
-                    $"<color=white>Ping <color=green><b>{peer.GetPing()}</b></color>ms.</color>"
-                );
-                return false;
-            }
+            peer.SendServerMessage($"<color=white>Claimed <color=green>{guardStones}</color> guardstones for <color=green>{userId}</color>.</color>");
+        }
 
-            if (text.StartsWith("/claim", StringComparison.OrdinalIgnoreCase))
-            {
-                var list = new List<Piece>();
-                var guardStones = 0;
-                var claimFor = text.Substring("/claim".Length);
-                long.TryParse(claimFor, out var claimForId);
-                if (claimForId == 0L)
-                    claimForId = peer.m_uid;
+        [ChatCommand("Ping", "Get your ping to the server.")]
+        private void Command_Ping(ZNetPeer peer, Player player)
+        {
+            peer.SendServerMessage($"<color=white>Ping <color=green><b>{(int)(peer.GetPing() * 1000)}</b></color>ms.</color>");
+        }
 
-                Piece.GetAllPiecesInRadius(player.transform.position, 20f, list);
-                foreach (var item in list.Where(item => item.GetComponent<PrivateArea>() != null))
-                {
-                    item.m_creator = claimForId;
-                    item.m_nview.GetZDO().Set(Piece.m_creatorHash, claimForId);
-                    guardStones++;
-                }
+        [ChatCommand("Version", "Get the version of ValheimMP", aliases: new[] { "Version", "Ver", "ValheimMP", "Vmp" })]
+        private void Command_Version(ZNetPeer peer, Player player)
+        {
+            peer.SendServerMessage($"<color=white>Server is running <color=green><b>{ValheimMPPlugin.PluginName}</b></color> version <color=green><b>{ValheimMPPlugin.CurrentVersion}</b></color>.</color>");
+        }
 
-                ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", messageLocation, -1, "",
-                    $"<color=white>Claimed <color=green>{guardStones}</color> guardstones for <color=green>{claimForId}</color>.</color>"
-                );
+        [ChatCommand("Teleport", "Teleport to coordinates given.", requireAdmin: true, aliases: new[] { "Tp" })]
+        private void Command_Teleport(ZNetPeer peer, Player player, Player target = null, Player destination = null, float x = 0, float z = 0, float y = 0)
+        {
+            var pos = new Vector3(x, y, z);
 
-                return false;
-            }
+            if (pos == Vector3.zero && destination != null)
+                pos = destination.transform.position;
 
-            return true;
+            if (y == 0)
+                pos.y = ZoneSystem.instance.GetGroundHeight(pos);
+
+            if (target == null)
+                target = player;
+
+            target.TeleportTo(pos, target.transform.rotation, true);
+            peer.SendServerMessage($"<color=white>Teleporting <color=green><b>{target.GetPlayerName()}</b></color> to <color=green><b>{pos}</b></color>.</color>");
+        }
+
+        [ChatCommand("God", "Toggle godmode", requireAdmin: true)]
+        private void Command_God(ZNetPeer peer, Player player, Player target = null)
+        {
+            if (target == null)
+                target = player;
+
+            target.m_godMode = !target.m_godMode;
+            peer.SendServerMessage($"<color=white>Godmode for <color=green><b>{target.GetPlayerName()}</b></color> to <color=green><b>{target.m_godMode}</b></color>.</color>");
         }
     }
 }
