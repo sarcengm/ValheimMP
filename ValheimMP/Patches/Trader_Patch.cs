@@ -69,7 +69,7 @@ namespace ValheimMP.Patches
 
             for(int i=0; i<itemCount; i++)
             {
-                var remoteItemData = new NetworkedItemData();
+                var remoteItemData = new NetworkedItemData(ValheimMPPlugin.Instance.InventoryManager);
                 var itemData = remoteItemData.Deserialize(dummyInventory, pkg);
 
                 // m_dropPrefab is the template, I don't think it's a good idea to be modifying it, even if its just the item data, so lets make a copy.
@@ -80,8 +80,8 @@ namespace ValheimMP.Patches
                 var tradeItem = new Trader.TradeItem()
                 {
                     m_prefab = gameObject.GetComponent<ItemDrop>(),
-                    m_price = itemData.GetCustomDataInt("m_price"),
-                    m_stack = itemData.GetCustomDataInt("m_stack"),
+                    m_price = itemData.GetCustomData<int>("m_price"),
+                    m_stack = itemData.GetCustomData<int>("m_stack"),
                 };
                 tradeItem.m_prefab.m_itemData = itemData;
 
@@ -104,7 +104,7 @@ namespace ValheimMP.Patches
                 localItemData.SetCustomData("m_price", item.m_price);
                 localItemData.SetCustomData("m_stack", item.m_stack);
 
-                var remoteItemData = new NetworkedItemData();
+                var remoteItemData = new NetworkedItemData(ValheimMPPlugin.Instance.InventoryManager);
                 remoteItemData.Serialize(localItemData, pkg);
             }
 

@@ -34,7 +34,7 @@ namespace ValheimMP.Patches
                 });
             }
 
-            InventoryManager.Register(__instance.m_inventory, __instance.m_nview);
+            ValheimMPPlugin.Instance.InventoryManager.Register(__instance.m_inventory, __instance.m_nview);
         }
 
         private static void RPC_EquipItem(Humanoid __instance, long sender, int itemId, bool triggerEquipEffects)
@@ -308,7 +308,7 @@ namespace ValheimMP.Patches
 
         private static void RPC_DropItem(Humanoid __instance, long sender, ZDOID invId, int itemId, int amount)
         {
-            var inventory = InventoryManager.GetInventory(invId);
+            var inventory = ValheimMPPlugin.Instance.InventoryManager.GetInventory(invId);
             if (inventory == null)
                 return;
 

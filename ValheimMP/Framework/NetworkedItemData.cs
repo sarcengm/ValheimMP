@@ -26,6 +26,10 @@ namespace ValheimMP.Framework
         m_equiped = 1 << 9,
 
         m_customData = 1 << 10,
+
+        // special flag set only when the item has been crafted for the first time
+        // for triggers related to crafted item completion
+        m_crafted = 1 << 11,
     }
 
     public class NetworkedItemData
@@ -44,6 +48,13 @@ namespace ValheimMP.Framework
 
         private bool m_equiped;
 
+        private InventoryManager m_inventoryManager;
+
+        public NetworkedItemData(InventoryManager inventoryManager)
+        {
+            m_inventoryManager = inventoryManager;
+        }
+
         /// <summary>
         /// Serializes itemData based on the differences with this NetworkedItemData.
         /// </summary>
@@ -59,6 +70,12 @@ namespace ValheimMP.Framework
             m_id = itemData.m_id;
             pkg.Write(itemData.m_id);
 
+            if(itemData.m_crafted)
+            {
+                // this flag is useful only once, only the person who created it will first serialize it.
+                itemData.m_crafted = false;
+                flags |= NetworkedItemDataFlags.m_crafted;
+            }
             if (itemData.m_dropPrefab.name != m_dropPrefab)
             {
                 m_dropPrefab = itemData.m_dropPrefab.name;
@@ -281,10 +298,11 @@ namespace ValheimMP.Framework
             {
                 // we abuse an empty inventory so we can still use the additem command to create it
                 // if we dont it will act all smart and stack our items!
-                var tempInventory = new Inventory(null, null, 4, 4);
-                itemData = tempInventory.AddItem(m_dropPrefab, m_stack, m_quality, m_variant, m_crafterID, m_crafterName);
-                if (itemData != null)
+                var tempInventory = new Inventory(null, null, 99, 99);
+                tempInventory.AddItem(m_dropPrefab, m_stack, m_durability, m_gridPos, m_equiped, m_quality, m_variant, m_crafterID, m_crafterName);
+                if (tempInventory.m_inventory.Count > 0)
                 {
+                    itemData = tempInventory.m_inventory[0];
                     targetInventory.m_inventory.Add(itemData);
                     itemData.m_id = m_id;
                     itemData.m_gridPos = m_gridPos;
@@ -324,6 +342,11 @@ namespace ValheimMP.Framework
                     Humanoid_Patch.LocalActionOnly = false;
                     Player_Patch.SuppressMessages = false;
                 }
+            }
+
+            if(itemData != null && (flags & NetworkedItemDataFlags.m_crafted) == NetworkedItemDataFlags.m_crafted)
+            {
+                m_inventoryManager.OnItemCrafted?.Invoke(targetInventory, itemData);
             }
 
             if ((flags & NetworkedItemDataFlags.m_destroy) == NetworkedItemDataFlags.m_destroy)

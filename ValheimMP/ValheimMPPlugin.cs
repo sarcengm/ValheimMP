@@ -6,6 +6,7 @@ using UnityEngine;
 using System.Linq;
 using ValheimMP.Patches;
 using BepInEx.Configuration;
+using ValheimMP.Framework;
 
 namespace ValheimMP
 {
@@ -22,6 +23,8 @@ namespace ValheimMP
         public static string CurrentVersion { get { return Version; } }
 
         public static ValheimMPPlugin Instance { get; private set; }
+
+        public InventoryManager InventoryManager { get; private set; }
 
         private Harmony m_harmonyHandshake;
         private Harmony m_harmony;
@@ -173,11 +176,16 @@ namespace ValheimMP
         public ConfigEntry<float> ClientAttackCompensationDistanceMin { get; internal set; }
         public ConfigEntry<float> ClientAttackCompensationDistanceMax { get; internal set; }
 
+        public ConfigEntry<float> ForcedPVPDistanceFromCenter { get; internal set; }
+        public ConfigEntry<float> ForcedPVPDistanceForBiomesOnly { get; internal set; }
+        public Dictionary<Heightmap.Biome, ConfigEntry<bool>> ForcedPVPBiomes { get; internal set; }
 
         // Awake is called once when both the game and the plug-in are loaded
         private void Awake()
         {
             Instance = this;
+
+            InventoryManager = new InventoryManager();
 
             m_harmonyHandshake = new Harmony(HarmonyGUID + ".hs");
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(ZNet), "SendPeerInfo"),
@@ -210,16 +218,24 @@ namespace ValheimMP
             RespawnDelay = Config.Bind("Server", "RespawnDelay", 10f, "Minimum time it takes to respawn.");
             DoNotHideCharacterWhenCameraClose = Config.Bind("Client", "DoNotHideCharacterWhenCameraClose", false, "");
 
-            ClientAttackCompensationWindow = Config.Bind("Server", "ClientAttackCompensationWindow", 0.1f, 
+            ClientAttackCompensationWindow = Config.Bind("Server", "ClientAttackCompensationWindow", 0.1f,
                 "Max amount of time window for hits to be compensated (towards client hit detection).");
-            ClientAttackCompensationDistance = Config.Bind("Server", "ClientAttackCompensationDistance", 10.0f, 
+            ClientAttackCompensationDistance = Config.Bind("Server", "ClientAttackCompensationDistance", 10.0f,
                 "Max amount of distance for hits to be compensated (towards client hit detection). \n" +
                 " This amount is multiplied by the average ping in seconds. \n" +
                 " E.g. 150 ms ping will be multiplied by 0.15");
             ClientAttackCompensationDistanceMin = Config.Bind("Server", "ClientAttackCompensationDistanceMin", 1.0f, "Minimum value for compensation distance.");
             ClientAttackCompensationDistanceMax = Config.Bind("Server", "ClientAttackCompensationDistanceMax", 5.0f, "Maximum value for compensation distance.");
 
-            ArtificialPing.Value = 125f;
+            ForcedPVPDistanceFromCenter = Config.Bind("ForcedPVP", "ForcedPVPDistanceFromCenter", 10000f, "Force PVP on at this distance from the center of the world.");
+            ForcedPVPDistanceForBiomesOnly = Config.Bind("ForcedPVP", "ForcedPVPDistanceForBiomesOnly", 10000f, "Force PVP on at this distance from the center of the world. But only for the selected biomes.");
+
+            ForcedPVPBiomes = new Dictionary<Heightmap.Biome, ConfigEntry<bool>>();
+
+            foreach (Heightmap.Biome val in typeof(Heightmap.Biome).GetEnumValues())
+            {
+                ForcedPVPBiomes.Add(val, Config.Bind("ForcedPVP", val.ToString(), false, "Force PVP on in this biome."));
+            }
 
             WardPlayerDamageMultiplier = Config.Bind("Server",
                 "WardPlayerDamageMultiplier", 0f,
@@ -335,7 +351,7 @@ namespace ValheimMP
             zdo.m_zdoEvents = new Dictionary<int, Action<ZDO>>();
 
             var container = new Container();
-            container.m_onTakeAllSuccess2 = new Action<Humanoid>(delegate(Humanoid humanoid) {  });
+            container.m_onTakeAllSuccess2 = new Action<Humanoid>(delegate (Humanoid humanoid) { });
 
             var inventory = new Inventory(null, null, 0, 0);
             inventory.m_nview = new ZNetView();
@@ -346,7 +362,7 @@ namespace ValheimMP
             itemdata.m_customData = new Dictionary<int, byte[]>();
 
             var seman = new SEMan(null, null);
-            seman.m_clientStatus = (object)null; 
+            seman.m_clientStatus = (object)null;
             seman.m_clientStatusSyncTime = 0f;
 
             var hitdata = new HitData();

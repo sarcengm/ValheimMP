@@ -12,6 +12,29 @@ namespace ValheimMP.Patches
     {
         public static bool LocalMove { get; private set; }
 
+
+        [HarmonyPatch(typeof(InventoryGui), "Awake")]
+        [HarmonyPostfix]
+        private static void Awake()
+        {
+            ValheimMPPlugin.Instance.InventoryManager.OnItemCrafted += OnItemCrafted;
+        }
+
+        [HarmonyPatch(typeof(InventoryGui), "OnDestroy")]
+        [HarmonyPostfix]
+        private static void OnDestroy()
+        {
+            ValheimMPPlugin.Instance.InventoryManager.OnItemCrafted -= OnItemCrafted;
+        }
+
+        private static void OnItemCrafted(Inventory inventory, ItemDrop.ItemData itemData)
+        {
+            if (InventoryGui.instance.isActiveAndEnabled)
+            {
+                InventoryGui.instance.UpdateCraftingPanel();
+            }
+        }
+
         [HarmonyPatch(typeof(InventoryGui), "UpdateContainer")]
         [HarmonyTranspiler]
         private static IEnumerable<CodeInstruction> Replace_IsOwner_With_True(IEnumerable<CodeInstruction> instructions)
@@ -132,45 +155,29 @@ namespace ValheimMP.Patches
             }
             long playerID = player.GetPlayerID();
             string playerName = player.GetPlayerName();
-            if (player.GetInventory().AddItem(__instance.m_craftRecipe.m_item.gameObject.name, __instance.m_craftRecipe.m_amount, num, variant, playerID, playerName) != null)
+            var craftedItem = player.GetInventory().AddItem(__instance.m_craftRecipe.m_item.gameObject.name, __instance.m_craftRecipe.m_amount, num, variant, playerID, playerName);
+            if (craftedItem != null)
             {
                 if (!player.NoCostCheat())
                 {
                     player.ConsumeResources(__instance.m_craftRecipe.m_resources, num);
+                    // this is used as a trigger on the client side when the item is synchonized
+                    // doing an RPC with the item id right now would arrive before the item exists
+                    craftedItem.m_crafted = true;
                 }
             }
         }
 
-        private static void InvokeRepair_Content()
+        private static void RepairOneItem(ItemDrop.ItemData itemData)
         {
-            var tempWornItem = new ItemDrop.ItemData();
-            // Actual content.
-            ZNet.instance.GetServerRPC().Invoke("InventoryGui_DoCrafting", tempWornItem.m_id);
-
-            //IL_0007: call class [assembly_valheim]ZNet [assembly_valheim]ZNet::get_instance()
-            //IL_000c: callvirt instance class [assembly_valheim]ZRpc [assembly_valheim]ZNet::GetServerRPC()
-            //IL_0011: ldstr "InventoryGui_DoCrafting"
-            //IL_0016: ldc.i4.1
-            //IL_0017: newarr [mscorlib]System.Object
-            //IL_001c: dup
-            //IL_001d: ldc.i4.0
-
-            //IL_001e: ldloc.0   <- tempWornItem, different on the actual code.
-
-            //IL_001f: ldfld int32 [assembly_valheim]ItemDrop/ItemData::m_id
-            //IL_0024: box [mscorlib]System.Int32
-            //IL_0029: stelem.ref
-            //// (no C# code)
-            //IL_002a: callvirt instance void [assembly_valheim]ZRpc::Invoke(string, object[])
+            ZNet.instance.GetServerRPC().Invoke("InventoryGui_RepairOneItem", itemData.m_id);
         }
-
 
         [HarmonyPatch(typeof(InventoryGui), "RepairOneItem")]
         [HarmonyTranspiler]
-        private static IEnumerable<CodeInstruction> InvokeRepair(IEnumerable<CodeInstruction> instructions)
+        private static IEnumerable<CodeInstruction> RepairOneItem(IEnumerable<CodeInstruction> instructions)
         {
             var list = instructions.ToList();
-
 
             //stfld float32 ItemDrop / ItemData::m_durability
             var op = AccessTools.Field(typeof(ItemDrop.ItemData), "m_durability");
@@ -181,18 +188,8 @@ namespace ValheimMP.Patches
 
                     var plist = new[]
                     {
-                        new CodeInstruction(OpCodes.Call, AccessTools.PropertyGetter(typeof(ZNet), "instance")),
-                        new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(ZNet), "GetServerRPC")),
-                        new CodeInstruction(OpCodes.Ldstr, "InventoryGui_RepairOneItem"),
-                        new CodeInstruction(OpCodes.Ldc_I4_1),
-                        new CodeInstruction(OpCodes.Newarr, typeof(object)),
-                        new CodeInstruction(OpCodes.Dup),
-                        new CodeInstruction(OpCodes.Ldc_I4_0),
-                        new CodeInstruction(list[i-2].opcode),
-                        new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(ItemDrop.ItemData), "m_id")),
-                        new CodeInstruction(OpCodes.Box, typeof(Int32)),
-                        new CodeInstruction(OpCodes.Stelem_Ref),
-                        new CodeInstruction(OpCodes.Callvirt, AccessTools.Method(typeof(ZRpc), "Invoke")),
+                        new CodeInstruction(OpCodes.Ldloc_2),
+                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(InventoryGui_Patch), "RepairOneItem", new Type[] { typeof(ItemDrop.ItemData) })),
                     };
 
                     list.InsertRange(i + 1, plist);
@@ -205,7 +202,6 @@ namespace ValheimMP.Patches
 
         public static void RPC_RepairOneItem(ZRpc rpc, int itemId)
         {
-            ZLog.Log($"RPC_RepairOneItem {itemId}");
             var peer = ZNet.instance.GetPeer(rpc);
             if (peer == null)
                 return;
@@ -215,17 +211,50 @@ namespace ValheimMP.Patches
                 return;
 
             var item = player.m_inventory.m_inventory.SingleOrDefault(k => k.m_id == itemId);
-            if (item != null)
+            if (item != null && CanRepair(player, item))
             {
-                // TODO: There needs to be checked if we can actually repair this item.
-                // but... there is no clear way, other then checking the radius around the player
-                // and finding all crafting stations that are capable of repairing this item
-                // and then seeing if the player can use said station
-                // *zzz*
                 item.m_durability = item.GetMaxDurability();
             }
         }
 
+        public static bool CanRepair(Player player, ItemDrop.ItemData item)
+        {
+            if (player == null)
+            {
+                return false;
+            }
+            if (!item.m_shared.m_canBeReparied)
+            {
+                return false;
+            }
+            if (player.NoCostCheat())
+            {
+                return true;
+            }
+            CraftingStation currentCraftingStation = player.GetCurrentCraftingStation();
+            if (currentCraftingStation == null)
+            {
+                return false;
+            }
+            Recipe recipe = ObjectDB.instance.GetRecipe(item);
+            if (recipe == null)
+            {
+                return false;
+            }
+            if (recipe.m_craftingStation == null && recipe.m_repairStation == null)
+            {
+                return false;
+            }
+            if ((recipe.m_repairStation != null && recipe.m_repairStation.m_name == currentCraftingStation.m_name) || (recipe.m_craftingStation != null && recipe.m_craftingStation.m_name == currentCraftingStation.m_name))
+            {
+                if (currentCraftingStation.GetLevel() < recipe.m_minStationLevel)
+                {
+                    return false;
+                }
+                return true;
+            }
+            return false;
+        }
 
         [HarmonyPatch(typeof(InventoryGui), "OnTakeAll")]
         [HarmonyPrefix]

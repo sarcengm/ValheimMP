@@ -11,7 +11,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Awake(Container __instance)
         {
-            InventoryManager.Register(__instance.m_inventory, __instance.m_nview);
+            ValheimMPPlugin.Instance.InventoryManager.Register(__instance.m_inventory, __instance.m_nview);
             
             if (__instance.m_nview != null)
             {
@@ -29,8 +29,8 @@ namespace ValheimMP.Patches
 
         private static void RPC_CloseChest(Container __instance, long sender)
         {
-            InventoryManager.RemoveListener(sender, __instance.m_inventory);
-            var l = InventoryManager.GetListeners(__instance.m_inventory);
+            ValheimMPPlugin.Instance.InventoryManager.RemoveListener(sender, __instance.m_inventory);
+            var l = ValheimMPPlugin.Instance.InventoryManager.GetListeners(__instance.m_inventory);
             if(l == null || l.Count == 0)
             {
                 m_LastChestUser = sender;
@@ -47,7 +47,7 @@ namespace ValheimMP.Patches
             if (!PrivateArea_Patch.CheckAccess(uid, __instance.transform.position))
                 return false;
 
-            InventoryManager.AddListener(uid, __instance.m_inventory);
+            ValheimMPPlugin.Instance.InventoryManager.AddListener(uid, __instance.m_inventory);
             m_LastChestUser = uid;
             SetInUse(__instance, true);
             __instance.m_nview.InvokeRPC(uid, "OpenRespons", true);

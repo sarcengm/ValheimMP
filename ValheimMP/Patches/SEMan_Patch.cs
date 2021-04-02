@@ -62,7 +62,14 @@ namespace ValheimMP.Patches
 
                 if (se != null)
                 {
-                    se.m_time = time;
+                    if (time == 0)
+                    {
+                        seman.RemoveStatusEffect(se);
+                    }
+                    else
+                    {
+                        se.m_time = time;
+                    }
                 }
                 else if(time > 0)
                 {
@@ -171,15 +178,10 @@ namespace ValheimMP.Patches
             else if (ZNet.instance != null && ZNet.instance.IsServer())
             {
 
-                // I've realised that RPC'ing these things is just stupid, there is simply too much spam. 
-                // Many of them get called every frame, when in water, when in shelter, when near fire, when resting, when rested
-                // It makes it literally impossible to properly do status effect syncing here
-                // If anything causes a one off status effect it should use seperatly invoke that.
                 __result = __instance.Internal_AddStatusEffect(name, resetTime);
             }
             else
             {
-                // who is this calling addstatuseffect on someone that doesn't belong to them?
                 __result = null;
             }
             return false;

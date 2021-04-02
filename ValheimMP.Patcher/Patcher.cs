@@ -208,6 +208,7 @@ namespace ValheimMP.Patcher
             {
                 var ItemDataType = valheim.GetType("ItemDrop/ItemData");
                 ItemDataType.Fields.Add(new FieldDefinition("m_id", FieldAttributes.Private | FieldAttributes.NotSerialized, IntType));
+                ItemDataType.Fields.Add(new FieldDefinition("m_crafted", FieldAttributes.Private | FieldAttributes.NotSerialized, BoolType));
                 ItemDataType.Fields.Add(new FieldDefinition("m_customData", FieldAttributes.Private | FieldAttributes.NotSerialized,
                     assembly.MainModule.ImportReference(typeof(System.Collections.Generic.Dictionary<,>))
                     .MakeGenericInstanceType(IntType, ByteArrayType)));

@@ -446,7 +446,7 @@ namespace ValheimMP.Patches
         {
             if (!__instance.IsServer() && rpc == __instance.GetServerRPC())
             {
-                InventoryManager.DeserializeRPC(pkg);
+                ValheimMPPlugin.Instance.InventoryManager.DeserializeRPC(pkg);
             }
         }
     }

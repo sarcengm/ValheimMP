@@ -175,7 +175,7 @@ namespace ValheimMP.Patches
                     var collider = obj.GetComponentInChildren<Collider>();
                     if (collider == null) continue;
 
-                    if (attack.m_lastMeleeHits.SingleOrDefault(k => k.m_hitCollider?.GetComponentInParent<ZNetView>() == nv) == null)
+                    if (attack.m_lastMeleeHits.SingleOrDefault(k => k.m_hitCollider?.gameObject?.GetComponentInParent<ZNetView>() == nv) == null)
                     {
                         if((collider.transform.position - attack.m_character.transform.position).sqrMagnitude < maxHitDistance)
                         {

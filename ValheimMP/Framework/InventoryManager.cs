@@ -8,9 +8,12 @@ namespace ValheimMP.Framework
 {
     public class InventoryManager
     {
-        private static float inventorySyncTimer = 0;
-        private static Dictionary<ZDOID, Dictionary<int, InventoryWrapper>> m_inventoryWrappers = new Dictionary<ZDOID, Dictionary<int, InventoryWrapper>>();
-        private static HashSet<InventoryWrapper> m_changedInventories = new HashSet<InventoryWrapper>();
+        private float inventorySyncTimer = 0;
+        private Dictionary<ZDOID, Dictionary<int, InventoryWrapper>> m_inventoryWrappers = new Dictionary<ZDOID, Dictionary<int, InventoryWrapper>>();
+        private HashSet<InventoryWrapper> m_changedInventories = new HashSet<InventoryWrapper>();
+
+        public delegate void OnItemCraftedDel(Inventory inventory, ItemDrop.ItemData itemData);
+        public OnItemCraftedDel OnItemCrafted { get; set; }
 
         private class InventoryWrapper
         {
@@ -21,9 +24,12 @@ namespace ValheimMP.Framework
 
             private static readonly float maxListenerRangeSqr = maxListenerRange * maxListenerRange;
 
-            public InventoryWrapper(Inventory inventory, int index)
+            private InventoryManager m_inventoryManager;
+
+            public InventoryWrapper(InventoryManager inventoryManager, Inventory inventory, int index)
             {
                 Inventory = inventory;
+                m_inventoryManager = inventoryManager;
 
                 Inventory.m_onChanged += OnChanged;
                 Inventory.m_inventoryIndex = index;
@@ -40,7 +46,7 @@ namespace ValheimMP.Framework
                 if (Inventory.m_nview != null && Inventory.m_nview.m_zdo != null)
                 {
                     // may be called multiple times so dont use add.
-                    m_changedInventories.Add(this);
+                    m_inventoryManager.m_changedInventories.Add(this);
                 }
             }
 
@@ -72,6 +78,7 @@ namespace ValheimMP.Framework
                 if (Inventory == null || Inventory.m_nview == null || Inventory.m_nview.m_zdo == null)
                     return;
 
+                var crafted = new List<ItemDrop.ItemData>();
                 var znet = ZNet.instance;
                 var listeners = listenerItemData.Keys.ToList();
                 foreach (var user in listeners)
@@ -112,7 +119,7 @@ namespace ValheimMP.Framework
                         if (!userItemData.TryGetValue(item.m_id, out networkedItemData))
                         {
                             newItems++;
-                            networkedItemData = new NetworkedItemData();
+                            networkedItemData = new NetworkedItemData(m_inventoryManager);
                             userItemData.Add(item.m_id, networkedItemData);
                         }
                         else
@@ -156,7 +163,7 @@ namespace ValheimMP.Framework
             }
         }
 
-        internal static void DeserializeRPC(ZPackage pkg)
+        internal void DeserializeRPC(ZPackage pkg)
         {
             var uid = pkg.ReadZDOID();
             var index = pkg.ReadInt();
@@ -172,7 +179,7 @@ namespace ValheimMP.Framework
 
             for (int i = 0; i < count; i++)
             {
-                var tmp = new NetworkedItemData();
+                var tmp = new NetworkedItemData(this);
                 tmp.Deserialize(inventory, pkg);
             }
         }
@@ -182,7 +189,7 @@ namespace ValheimMP.Framework
         /// </summary>
         /// <param name="inventory">inventory</param>
         /// <param name="netview">netview, usually the one from the parent object, e.g. character or chest.</param>
-        public static void Register(Inventory inventory, ZNetView netview)
+        public void Register(Inventory inventory, ZNetView netview)
         {
             if (netview == null)
                 return;
@@ -204,10 +211,10 @@ namespace ValheimMP.Framework
             var inventoriesOnZDOID = m_inventoryWrappers[zdo.m_uid];
             var index = inventoriesOnZDOID.Count;
 
-            inventoriesOnZDOID[index] = new InventoryWrapper(inventory, index);
+            inventoriesOnZDOID[index] = new InventoryWrapper(this, inventory, index);
         }
 
-        public static void UnregisterAll(ZNetView netview)
+        public void UnregisterAll(ZNetView netview)
         {
             if (netview == null)
                 return;
@@ -222,7 +229,7 @@ namespace ValheimMP.Framework
             }
         }
 
-        public static void Unregister(ZNetView netview, int index)
+        public void Unregister(ZNetView netview, int index)
         {
             if (netview == null)
                 return;
@@ -240,7 +247,7 @@ namespace ValheimMP.Framework
             }
         }
 
-        public static void Unregister(Inventory inventory)
+        public void Unregister(Inventory inventory)
         {
             var id = inventory.GetZDOID();
             if (m_inventoryWrappers.TryGetValue(id, out var listeners))
@@ -251,18 +258,18 @@ namespace ValheimMP.Framework
             m_changedInventories.RemoveWhere(k => k.Inventory == inventory);
         }
 
-        public static void Unregister(ZDOID id)
+        public void Unregister(ZDOID id)
         {
             m_inventoryWrappers.Remove(id);
             m_changedInventories.RemoveWhere(k => k.Inventory.GetZDOID() == id);
         }
 
-        public static void RemoveListenerFromAll(long user)
+        public void RemoveListenerFromAll(long user)
         {
             m_inventoryWrappers.Values.Do(k => k.Values.Do(j => j.RemoveListener(user)));
         }
 
-        private static InventoryWrapper GetInventoryWrapper(Inventory inventory)
+        private InventoryWrapper GetInventoryWrapper(Inventory inventory)
         {
             if (m_inventoryWrappers.TryGetValue(inventory.GetZDOID(), out var dic))
             {
@@ -280,7 +287,7 @@ namespace ValheimMP.Framework
         /// </summary>
         /// <param name="user"></param>
         /// <param name="inventory"></param>
-        public static bool AddListener(long user, Inventory inventory)
+        public bool AddListener(long user, Inventory inventory)
         {
             InventoryWrapper wrapper;
             if ((wrapper = GetInventoryWrapper(inventory)) != null)
@@ -299,7 +306,7 @@ namespace ValheimMP.Framework
         /// <param name="user"></param>
         /// <param name="inventory"></param>
         /// <returns></returns>
-        public static bool IsListener(long user, Inventory inventory)
+        public bool IsListener(long user, Inventory inventory)
         {
             InventoryWrapper wrapper;
             if ((wrapper = GetInventoryWrapper(inventory)) != null)
@@ -317,7 +324,7 @@ namespace ValheimMP.Framework
         /// </summary>
         /// <param name="user"></param>
         /// <param name="inventory"></param>
-        public static bool RemoveListener(long user, Inventory inventory)
+        public bool RemoveListener(long user, Inventory inventory)
         {
             InventoryWrapper wrapper;
             if ((wrapper = GetInventoryWrapper(inventory)) != null)
@@ -330,7 +337,7 @@ namespace ValheimMP.Framework
             return false;
         }
 
-        public static List<long> GetListeners(Inventory inventory)
+        public List<long> GetListeners(Inventory inventory)
         {
             InventoryWrapper wrapper;
             if ((wrapper = GetInventoryWrapper(inventory)) != null)
@@ -349,7 +356,7 @@ namespace ValheimMP.Framework
         /// <param name="id"></param>
         /// <param name="index">Inventory index, in case an object contains more then one inventory object</param>
         /// <returns></returns>
-        public static Inventory GetInventory(ZDOID id, int index = 0)
+        public Inventory GetInventory(ZDOID id, int index = 0)
         {
             if (m_inventoryWrappers.TryGetValue(id, out var dic))
             {
@@ -366,7 +373,7 @@ namespace ValheimMP.Framework
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public static List<Inventory> GetInventories(ZDOID id)
+        public List<Inventory> GetInventories(ZDOID id)
         {
             if (m_inventoryWrappers.TryGetValue(id, out var val))
             {
@@ -375,7 +382,7 @@ namespace ValheimMP.Framework
             return null;
         }
 
-        public static void SyncAll()
+        public void SyncAll()
         {
             if (Time.time - inventorySyncTimer < 0.05f)
             {

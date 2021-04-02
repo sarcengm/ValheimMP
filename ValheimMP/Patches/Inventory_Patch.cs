@@ -19,7 +19,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static void UnregisterNetViewPatch(ZNetView __instance)
         {
-            InventoryManager.UnregisterAll(__instance);
+            ValheimMPPlugin.Instance.InventoryManager.UnregisterAll(__instance);
         }
 
         [HarmonyPatch(typeof(Game), "Update")]
@@ -28,7 +28,7 @@ namespace ValheimMP.Patches
         {
             if (ZNet.instance != null && ZNet.instance.IsServer())
             {
-                InventoryManager.SyncAll();
+                ValheimMPPlugin.Instance.InventoryManager.SyncAll();
             }
         }
 
@@ -59,13 +59,13 @@ namespace ValheimMP.Patches
 
         public static void RPC_MoveItemToThis(ZRpc rpc, ZDOID toId, ZDOID fromId, int itemId)
         {
-            var toInv = InventoryManager.GetInventory(toId);
+            var toInv = ValheimMPPlugin.Instance.InventoryManager.GetInventory(toId);
             if (toInv == null)
             {
                 ZLog.Log($"Missing to inventory RPC_MoveItemToThis toId:{toId} fromId:{fromId} itemId:{itemId} ");
                 return;
             }
-            var fromInv = InventoryManager.GetInventory(fromId);
+            var fromInv = ValheimMPPlugin.Instance.InventoryManager.GetInventory(fromId);
             if (fromInv == null)
             {
                 ZLog.Log($"Missing from inventory RPC_MoveItemToThis toId:{toId} fromId:{fromId} itemId:{itemId} ");
@@ -81,12 +81,12 @@ namespace ValheimMP.Patches
             var peer = ZNet.instance.GetPeer(rpc);
             if (peer == null)
                 return;
-            if (!InventoryManager.IsListener(peer.m_uid, toInv))
+            if (!ValheimMPPlugin.Instance.InventoryManager.IsListener(peer.m_uid, toInv))
             {
                 ZLog.Log($"RPC_MoveItemToThis without being listener on the source container");
                 return;
             }
-            if (!InventoryManager.IsListener(peer.m_uid, fromInv))
+            if (!ValheimMPPlugin.Instance.InventoryManager.IsListener(peer.m_uid, fromInv))
             {
                 ZLog.Log($"RPC_MoveItemToThis without being listener on the target container");
                 return;

@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace ValheimMP.Framework.Extensions
 {
@@ -49,56 +51,40 @@ namespace ValheimMP.Framework.Extensions
             return null;
         }
 
-        public static void SetCustomData(this ItemDrop.ItemData itemData, string name, bool value)
+        public static void SetCustomData<T>(this ItemDrop.ItemData itemData, string name, T value) where T : unmanaged
         {
-            itemData.SetCustomData(name, BitConverter.GetBytes(value));
+            unsafe
+            {
+                var bytes = new byte[sizeof(T)];
+                Marshal.Copy(new IntPtr(&value), bytes, 0, bytes.Length);
+                SetCustomData(itemData, name, bytes);
+            }
         }
 
-        public static bool GetCustomDataBool(this ItemDrop.ItemData itemData, string name)
+        public static T GetCustomData<T>(this ItemDrop.ItemData itemData, string name) where T : unmanaged
         {
-            var bytes = itemData.GetCustomData(name);
-            if (bytes == null || bytes.Length != sizeof(bool))
-                return default;
-            return BitConverter.ToBoolean(itemData.GetCustomData(name), 0);
+            T value;
+            unsafe
+            {
+                var bytes = GetCustomData(itemData, name);
+                if (bytes == null || bytes.Length != sizeof(T))
+                    return default;
+                Marshal.Copy(bytes, 0, new IntPtr(&value), bytes.Length);
+            }
+            return value;
         }
 
-        public static void SetCustomData(this ItemDrop.ItemData itemData, string name, int value)
+        public static string GetCustomData<T>(this ItemDrop.ItemData itemData, string name, string def = default)
         {
-            itemData.SetCustomData(name, BitConverter.GetBytes(value));
+            var bytes = GetCustomData(itemData, name);
+            if (bytes == null)
+                return def;
+            return Encoding.UTF8.GetString(bytes);
         }
 
-        public static int GetCustomDataInt(this ItemDrop.ItemData itemData, string name)
+        public static void SetCustomData(this ItemDrop.ItemData itemData, string name, string value)
         {
-            var bytes = itemData.GetCustomData(name);
-            if (bytes == null || bytes.Length != sizeof(int))
-                return default;
-            return BitConverter.ToInt32(itemData.GetCustomData(name), 0);
-        }
-
-        public static void SetCustomData(this ItemDrop.ItemData itemData, string name, long value)
-        {
-            itemData.SetCustomData(name, BitConverter.GetBytes(value));
-        }
-
-        public static long GetCustomDataLong(this ItemDrop.ItemData itemData, string name)
-        {
-            var bytes = itemData.GetCustomData(name);
-            if (bytes == null || bytes.Length != sizeof(long))
-                return default;
-            return BitConverter.ToInt64(itemData.GetCustomData(name), 0);
-        }
-
-        public static void SetCustomData(this ItemDrop.ItemData itemData, string name, float value)
-        {
-            itemData.SetCustomData(name, BitConverter.GetBytes(value));
-        }
-
-        public static float GetCustomDataFloat(this ItemDrop.ItemData itemData, string name)
-        {
-            var bytes = itemData.GetCustomData(name);
-            if (bytes == null || bytes.Length != sizeof(float))
-                return default;
-            return BitConverter.ToSingle(itemData.GetCustomData(name), 0);
+            SetCustomData(itemData, name, Encoding.UTF8.GetBytes(value));
         }
     }
 }

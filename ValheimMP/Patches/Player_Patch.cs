@@ -167,6 +167,21 @@ namespace ValheimMP.Patches
                     ZDOEvent_SyncHealth(__instance);
                 });
 
+                zdo.RegisterZDOEvent("pvp", (ZDO zdo) =>
+                {
+                    ZDOEvent_PVPChanged(__instance);
+                });
+
+                zdo.RegisterZDOEvent("forcedpvp", (ZDO zdo) =>
+                {
+                    ZDOEvent_PVPChanged(__instance);
+                });
+
+                zdo.RegisterZDOEvent("noPlacementCost", (ZDO zdo) =>
+                {
+                    ZDOEvent_NoPlacementCostChanged(__instance);
+                });
+
                 __instance.SetLocalPlayer();
 
                 CheckPlayerReady();
@@ -179,6 +194,16 @@ namespace ValheimMP.Patches
                     ZDOEvent_Attach(__instance);
                 });
             }
+        }
+
+        private static void ZDOEvent_NoPlacementCostChanged(Player player)
+        {
+            player.m_noPlacementCost = player.m_nview.m_zdo.GetBool("noPlacementCost");
+        }
+
+        private static void ZDOEvent_PVPChanged(Player player)
+        {
+            player.SetPVP(player.m_nview.m_zdo.GetBool("pvp") || player.m_nview.m_zdo.GetBool("forcedpvp"));
         }
 
         private static void RPC_SetAppearance(Player player, long sender, ZPackage pkg)
@@ -292,15 +317,12 @@ namespace ValheimMP.Patches
 
         public static void CheckPlayerReady()
         {
-            var __instance = Player.m_localPlayer;
+            var player = Player.m_localPlayer;
 
-            //__instance.SetBeard();
-            //__instance.SetPlayerModel();
-            //__instance.SetHair();
-            //__instance.SetHairColor();
-            //__instance.SetSkinColor();
+            SetAppearance(player);
 
-            __instance.m_nview.InvokeRPC(ZNet.instance.GetServerPeer().m_uid, "PlayerReady");
+            player.m_nview.InvokeRPC(ZNet.instance.GetServerPeer().m_uid, "PlayerReady");
+            player.m_firstSpawn = false;
 
             if (Game.instance.m_firstSpawn)
             {
@@ -490,7 +512,7 @@ namespace ValheimMP.Patches
                 SyncCharacter(__instance);
 
                 // Add an inventory listener for their own inventory!
-                InventoryManager.AddListener(sender, __instance.m_inventory);
+                ValheimMPPlugin.Instance.InventoryManager.AddListener(sender, __instance.m_inventory);
             }
 
             return false;
@@ -1282,7 +1304,7 @@ namespace ValheimMP.Patches
             if (__instance.GetPlayerID() != sender)
                 return;
 
-            var inventory = inventoryId.IsNone() ? __instance.m_inventory : InventoryManager.GetInventory(inventoryId);
+            var inventory = inventoryId.IsNone() ? __instance.m_inventory : ValheimMPPlugin.Instance.InventoryManager.GetInventory(inventoryId);
 
             if (inventory == null)
             {
@@ -1850,6 +1872,59 @@ namespace ValheimMP.Patches
             }
 
             __instance.AttachStop();
+        }
+
+        [HarmonyPatch(typeof(Player), "IsPVPEnabled")]
+        [HarmonyPrefix]
+        private static bool IsPVPEnabled(Player __instance, ref bool __result)
+        {
+            if(__instance.m_nview.m_zdo.GetBool("forcedpvp", false))
+            {
+                __result = true;
+                return false;
+            }
+
+            return true;
+        }
+
+        [HarmonyPatch(typeof(Player), "CanSwitchPVP")]
+        [HarmonyPrefix]
+        private static bool CanSwitchPVP(Player __instance, ref bool __result)
+        {
+            if(__instance.m_nview.m_zdo.GetBool("forcedpvp", false))
+            {
+                __result = false;
+                return false;
+            }
+
+            return true;
+        }
+
+        [HarmonyPatch(typeof(Player), "UpdateBiome")]
+        [HarmonyPrefix]
+        private static void UpdateBiome(Player __instance, float dt)
+        {
+            if (__instance.m_biomeTimer + dt > 1f)
+            {
+                TestForcePVP(__instance);
+            }
+        }
+
+        private static void TestForcePVP(Player __instance)
+        {
+            var vmp = ValheimMPPlugin.Instance;
+            var biomeDistance = vmp.ForcedPVPDistanceForBiomesOnly.Value;
+            biomeDistance *= biomeDistance;
+            var centerDistance = vmp.ForcedPVPDistanceFromCenter.Value;
+            centerDistance *= centerDistance;
+            var playerDistance = __instance.transform.position.sqrMagnitude;
+
+            var forcedpvp =
+                playerDistance > centerDistance ||
+                (vmp.ForcedPVPBiomes.TryGetValue(__instance.m_currentBiome, out var configEntry)
+                && configEntry.Value && playerDistance > biomeDistance);
+
+            __instance.m_nview?.m_zdo?.Set("forcedpvp", forcedpvp);
         }
     }
 
