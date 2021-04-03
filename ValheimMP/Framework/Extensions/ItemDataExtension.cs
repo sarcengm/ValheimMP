@@ -28,63 +28,42 @@ namespace ValheimMP.Framework.Extensions
         /// <param name="data"></param>
         public static void SetCustomData(this ItemDrop.ItemData itemData, string name, byte[] data)
         {
-            itemData.SetCustomData(name.GetStableHashCode(), data);
+            itemData.m_customData.SetCustomData(name.GetStableHashCode(), data);
         }
 
         public static void SetCustomData(this ItemDrop.ItemData itemData, int hash, byte[] data)
         {
-            itemData.m_customData[hash] = data;
+            itemData.m_customData.SetCustomData(hash, data);
         }
 
         public static byte[] GetCustomData(this ItemDrop.ItemData itemData, string name)
         {
-            return itemData.GetCustomData(name.GetStableHashCode());
+            return itemData.m_customData.GetCustomData(name.GetStableHashCode());
         }
 
         public static byte[] GetCustomData(this ItemDrop.ItemData itemData, int hash)
         {
-            if (itemData.m_customData.TryGetValue(hash, out var val))
-            {
-                return val;
-            }
-
-            return null;
+            return itemData.m_customData.GetCustomData(hash);
         }
 
         public static void SetCustomData<T>(this ItemDrop.ItemData itemData, string name, T value) where T : unmanaged
         {
-            unsafe
-            {
-                var bytes = new byte[sizeof(T)];
-                Marshal.Copy(new IntPtr(&value), bytes, 0, bytes.Length);
-                SetCustomData(itemData, name, bytes);
-            }
+            itemData.m_customData.SetCustomData(name, value);
         }
 
         public static T GetCustomData<T>(this ItemDrop.ItemData itemData, string name) where T : unmanaged
         {
-            T value;
-            unsafe
-            {
-                var bytes = GetCustomData(itemData, name);
-                if (bytes == null || bytes.Length != sizeof(T))
-                    return default;
-                Marshal.Copy(bytes, 0, new IntPtr(&value), bytes.Length);
-            }
-            return value;
+            return itemData.m_customData.GetCustomData<T>(name);
         }
 
         public static string GetCustomData<T>(this ItemDrop.ItemData itemData, string name, string def = default)
         {
-            var bytes = GetCustomData(itemData, name);
-            if (bytes == null)
-                return def;
-            return Encoding.UTF8.GetString(bytes);
+            return itemData.m_customData.GetCustomData<T>(name);
         }
 
         public static void SetCustomData(this ItemDrop.ItemData itemData, string name, string value)
         {
-            SetCustomData(itemData, name, Encoding.UTF8.GetBytes(value));
+            itemData.m_customData.SetCustomData(name, value);
         }
     }
 }

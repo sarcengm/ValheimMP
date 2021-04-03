@@ -1,7 +1,11 @@
 ﻿using HarmonyLib;
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection.Emit;
 using UnityEngine;
 using ValheimMP.Framework;
+using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches
 {
@@ -50,203 +54,104 @@ namespace ValheimMP.Patches
             return ZNet.instance.GetServerPeer().m_uid;
         }
 
-        //[HarmonyPatch(typeof(ZNet), "SendPeerInfo")]
-        //[HarmonyPrefix]
-        private static bool SendPeerInfo(ref ZNet __instance, ZRpc rpc, string password = "")
+        private static IEnumerable<CodeInstruction> SendPeerInfo(IEnumerable<CodeInstruction> instructions)
         {
-            ZPackage zPackage = new ZPackage();
-
-            zPackage.Write(__instance.GetUID()); // TODO: This should be the steam ID, letting a client generate their own UID is madness!
-            zPackage.Write(Version.GetVersionString());
-            zPackage.Write(__instance.m_referencePosition);
-            zPackage.Write(Game.instance.GetPlayerProfile().GetName());
-            if (__instance.IsServer())
+            var list = instructions.ToList();
+            for (int i = 0; i < list.Count; i++)
             {
-                zPackage.Write(ZNet.m_world.m_name);
-                zPackage.Write(ZNet.m_world.m_seed);
-                zPackage.Write(ZNet.m_world.m_seedName);
-                zPackage.Write(ZNet.m_world.m_uid);
-                zPackage.Write(ZNet.m_world.m_worldGenVersion);
-                zPackage.Write(__instance.m_netTime);
-            }
-            else
-            {
-                string data = (string.IsNullOrEmpty(password) ? "" : ZNet.HashPassword(password));
-                zPackage.Write(data);
-                byte[] array = ZSteamMatchmaking.instance.RequestSessionTicket();
-                if (array == null)
+                if (list[i].opcode == OpCodes.Ldstr && "PeerInfo".Equals(list[i].operand))
                 {
-                    ZNet.m_connectionStatus = ZNet.ConnectionStatus.ErrorConnectFailed;
-                    return false;
-                }
-                zPackage.Write(array);
-            }
-
-            // Add valheim identifier
-            SendValheimMPPeerInfo(__instance, rpc, zPackage);
-
-            rpc.Invoke("PeerInfo", zPackage);
-            return false;
-        }
-
-        // TODO This function is an abomination :(, transpiler needed.
-        //[HarmonyPatch(typeof(ZNet), "RPC_PeerInfo")]
-        //[HarmonyPrefix]
-        private static bool RPC_PeerInfo(ZNet __instance, ZRpc rpc, ZPackage pkg)
-        {
-            ZNetPeer peer = __instance.GetPeer(rpc);
-            if (peer == null)
-            {
-                return false;
-            }
-            long num = pkg.ReadLong();
-            string text = pkg.ReadString();
-            string endPointString = peer.m_socket.GetEndPointString();
-            string hostName = peer.m_socket.GetHostName();
-            ZLog.Log("VERSION check their:" + text + "  mine:" + Version.GetVersionString());
-            if (text != Version.GetVersionString())
-            {
-                if (ZNet.m_isServer)
-                {
-                    rpc.Invoke("Error", 3);
-                }
-                else
-                {
-                    ZNet.m_connectionStatus = ZNet.ConnectionStatus.ErrorVersion;
-                }
-                ZLog.Log("Peer " + endPointString + " has incompatible version, mine:" + Version.GetVersionString() + " remote " + text);
-                return false;
-            }
-            Vector3 refPos = pkg.ReadVector3();
-            string playerName = pkg.ReadString();
-            if (ZNet.m_isServer)
-            {
-                if (!__instance.IsAllowed(hostName, playerName))
-                {
-                    rpc.Invoke("Error", 8);
-                    ZLog.Log("Player " + playerName + " : " + hostName + " is blacklisted or not in whitelist.");
-                    return false;
-                }
-                string text3 = pkg.ReadString();
-                ZSteamSocket zSteamSocket = peer.m_socket as ZSteamSocket;
-                byte[] ticket = pkg.ReadByteArray();
-                if (!ZSteamMatchmaking.instance.VerifySessionTicket(ticket, zSteamSocket.GetPeerID()))
-                {
-                    ZLog.Log("Peer " + endPointString + " has invalid session ticket");
-                    rpc.Invoke("Error", 8);
-                    return false;
-                }
-                if (__instance.GetNrOfPlayers() >= __instance.m_serverPlayerLimit)
-                {
-                    rpc.Invoke("Error", 9);
-                    ZLog.Log("Peer " + endPointString + " disconnected due to server is full");
-                    return false;
-                }
-                if (ZNet.m_serverPassword != text3)
-                {
-                    rpc.Invoke("Error", 6);
-                    ZLog.Log("Peer " + endPointString + " has wrong password");
-                    return false;
-                }
-
-                num = (long)zSteamSocket.GetPeerID().m_SteamID;
-                if (__instance.IsConnected(num))
-                {
-                    rpc.Invoke("Error", 7);
-                    ZLog.Log("Already connected to peer with UID:" + num + "  " + endPointString);
-                    return false;
-                }
-            }
-            else
-            {
-                ZNet.m_world = new World();
-                ZNet.m_world.m_name = pkg.ReadString();
-                ZNet.m_world.m_seed = pkg.ReadInt();
-                ZNet.m_world.m_seedName = pkg.ReadString();
-                ZNet.m_world.m_uid = pkg.ReadLong();
-                ZNet.m_world.m_worldGenVersion = pkg.ReadInt();
-                __instance.m_netTime = pkg.ReadDouble();
-            }
-
-            peer.m_uid = num;
-            peer.m_playerName = playerName;
-
-            /// Valheim handshake
-            if (!ValheimMPPeerInfo(rpc, pkg, peer))
-                return false;
-
-
-            if (!ZNet.m_isServer)
-            {
-                WorldGenerator.Initialize(ZNet.m_world);
-            }
-
-            rpc.Register<Vector3, bool>("RefPos", __instance.RPC_RefPos);
-            rpc.Register<ZPackage>("PlayerList", __instance.RPC_PlayerList);
-            rpc.Register<string>("RemotePrint", __instance.RPC_RemotePrint);
-            if (ZNet.m_isServer)
-            {
-                rpc.Register<ZDOID>("CharacterID", __instance.RPC_CharacterID);
-                rpc.Register<string>("Kick", __instance.RPC_Kick);
-                rpc.Register<string>("Ban", __instance.RPC_Ban);
-                rpc.Register<string>("Unban", __instance.RPC_Unban);
-                rpc.Register("Save", __instance.RPC_Save);
-                rpc.Register("PrintBanned", __instance.RPC_PrintBanned);
-
-                rpc.Register("InventoryGrid_DropItem", (ZRpc rpc, ZPackage pkg) =>
-                {
-                    InventoryGrid_Patch.RPC_DropItem(rpc, pkg);
-                });
-
-                rpc.Register("MoveItemToThis", (ZRpc rpc, ZDOID toId, ZDOID fromId, int itemId) =>
-                {
-                    Inventory_Patch.RPC_MoveItemToThis(rpc, toId, fromId, itemId);
-                });
-
-                rpc.Register("InventoryGui_DoCrafting", (ZRpc rpc, string recipeName, int upgradeItemId) =>
-                {
-                    InventoryGui_Patch.RPC_DoCrafting(rpc, recipeName, upgradeItemId);
-                });
-
-                rpc.Register("InventoryGui_RepairOneItem", (ZRpc rpc, int itemId) =>
-                {
-                    InventoryGui_Patch.RPC_RepairOneItem(rpc, itemId);
-                });
-
-                rpc.Register("SyncPlayerMovement", (ZRpc rpc, ZPackage pkg) =>
-                {
-                    Player_Patch.RPC_SyncPlayerMovement(rpc, pkg);
-                });
-
-            }
-            else
-            {
-                rpc.Register<double>("NetTime", __instance.RPC_NetTime);
-
-                if (ValheimMP.Instance.IsOnValheimMPServer)
-                {
-                    rpc.Register("InventoryData", (ZRpc rpc, ZPackage pkg) =>
+                    var labels = list[i - 1].ExtractLabels();
+                    list.InsertRange(i - 1, new CodeInstruction[]
                     {
-                        RPC_InventoryData(__instance, rpc, pkg);
+                        new CodeInstruction(OpCodes.Ldarg_0).WithLabels(labels), // znet
+                        new CodeInstruction(OpCodes.Ldarg_1), // rpc
+                        new CodeInstruction(OpCodes.Ldloc_0), // pkg
+                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ZNet_Patch), "SendValheimMPPeerInfo"))
                     });
+                    break;
                 }
             }
-            if (ZNet.m_isServer)
-            {
-                __instance.SendPeerInfo(rpc);
-                __instance.SendPlayerList();
-            }
-            else
-            {
-                ZNet.m_connectionStatus = ZNet.ConnectionStatus.Connected;
-                Game.instance.m_firstSpawn = false;
-            }
-            __instance.m_zdoMan.AddPeer(peer);
-            __instance.m_routedRpc.AddPeer(peer);
 
-            return false;
+            return list;
         }
 
+        private static IEnumerable<CodeInstruction> RPC_PeerInfo(ILGenerator generator, IEnumerable<CodeInstruction> instructions)
+        {
+            var list = instructions.ToList();
+            int i = 0;
+            for (; i < list.Count; i++)
+            {
+                if (list[i].Calls(AccessTools.Method(typeof(ZPackage), "ReadLong")))
+                {
+                    i++;
+                    list.InsertRange(i, new CodeInstruction[]
+                    {
+                        new CodeInstruction(OpCodes.Pop),
+                        new CodeInstruction(OpCodes.Ldloc_0), //peer
+                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ZNetPeerExtension), "GetSteamID")),
+                    });
+                    break;
+                }
+            }
+
+            for (; i < list.Count; i++)
+            {
+                if (list[i].Calls(AccessTools.Method(typeof(WorldGenerator), "Initialize")))
+                {
+                    //ldsfld class World ZNet::m_world
+                    //call void WorldGenerator::Initialize(class World)
+                    list.RemoveRange(i - 1, 2);
+                    break;
+                }
+            }
+
+            for (; i < list.Count; i++)
+            {
+                if (list[i].StoresField(AccessTools.Field(typeof(ZNetPeer), "m_refPos")))
+                {
+                    // peer.m_refPos = refPos;
+                    //ldloc.0
+                    //ldloc.s 5
+                    //stfld valuetype[UnityEngine.CoreModule]UnityEngine.Vector3 ZNetPeer::m_refPos
+                    list[i - 2].opcode = OpCodes.Nop; // this one has a label, just nop it and keep the label.
+                    list.RemoveRange(i - 1, 2);
+                    break;
+                }
+            }
+
+            for (; i < list.Count; i++)
+            {
+                if (list[i].StoresField(AccessTools.Field(typeof(ZNetPeer), "m_playerName")))
+                {
+                    var jumpLabel = generator.DefineLabel();
+                    var generatorJump = generator.DefineLabel();
+
+                    list.InsertRange(i + 1, new CodeInstruction[]
+                    {
+                        new CodeInstruction(OpCodes.Ldarg_1), //rpc
+                        new CodeInstruction(OpCodes.Ldarg_2), //pkg
+                        new CodeInstruction(OpCodes.Ldloc_0), //peer
+                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ZNet_Patch), "ValheimMPPeerInfo")),
+                        new CodeInstruction(OpCodes.Brtrue_S, jumpLabel),
+                        new CodeInstruction(OpCodes.Ret),
+                        new CodeInstruction(OpCodes.Nop).WithLabels(jumpLabel),
+
+                        // We reinsert the WorldGenerator.Initialize() that we removed earlier
+                        new CodeInstruction(OpCodes.Call, AccessTools.PropertyGetter(typeof(ValheimMP), "IsDedicated")),
+                        new CodeInstruction(OpCodes.Brtrue_S, generatorJump),
+                        new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(ZNet), "m_world")),
+                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(WorldGenerator), "Initialize")),
+                        new CodeInstruction(OpCodes.Nop).WithLabels(generatorJump),
+                    });
+
+                    break;
+                }
+            }
+
+            return list;
+        }
+ 
         /// <summary>
         /// Send valheim MP information, identifier, version, and possible settings.
         /// </summary>
@@ -254,19 +159,26 @@ namespace ValheimMP.Patches
         /// <param name="pkg"></param>
         private static void SendValheimMPPeerInfo(ZNet __instance, ZRpc rpc, ZPackage pkg)
         {
+            ZLog.Log("SendValheimMPPeerInfo");
             pkg.Write(ValheimMP.ProtocolIdentifier);
             pkg.Write(ValheimMP.Version);
 
+            var dic = new Dictionary<int, byte[]>();
+
             if (ValheimMP.IsDedicated)
             {
-                pkg.Write((long)(rpc.GetSocket() as ZSteamSocket).GetPeerID().m_SteamID);
-                pkg.Write(ValheimMP.Instance.UseZDOCompression.Value);
-                pkg.Write(ValheimMP.Instance.RespawnDelay.Value);
+                dic.SetCustomData("SteamID", (long)(rpc.GetSocket() as ZSteamSocket).GetPeerID().m_SteamID);
+                dic.SetCustomData("UseZDOCompression", ValheimMP.Instance.UseZDOCompression.Value);
+                dic.SetCustomData("RespawnDelay", ValheimMP.Instance.RespawnDelay.Value);
+
+                ValheimMP.Instance.OnServerSendPeerInfo?.Invoke(rpc, dic);
             }
             else
             {
-
+                ValheimMP.Instance.OnClientSendPeerInfo?.Invoke(rpc, dic);
             }
+
+            pkg.Write(dic);
         }
 
         /// <summary>
@@ -338,20 +250,22 @@ namespace ValheimMP.Patches
 
             valheimMP.SetIsOnValheimMPServer(true);
 
-            if (!ZNet.m_isServer)
+            var customData = new Dictionary<int, byte[]>();
+            pkg.Read(ref customData);
+
+            if (!ValheimMP.IsDedicated)
             {
-                var userId = pkg.ReadLong();
-                // TODO: this whole userid setting wouldnt be nessasary if it was set sooner like on the dedicated server side. But I'm unsure how to retrieve the SteamID at that point,
-                // Not even sure it's possible at construction time.
+                var userId = customData.GetCustomData<long>("SteamID");
                 ZDOMan.instance.m_myid = userId;
                 ZNet.instance.m_routedRpc.SetUID(userId);
-
                 ZLog.Log("UID=" + userId);
-                var useZDOCompression = pkg.ReadBool();
+
+
+                var useZDOCompression = customData.GetCustomData<bool>("UseZDOCompression");
                 ZLog.Log("UseZDOCompression=" + useZDOCompression);
                 valheimMP.UseZDOCompression.Value = useZDOCompression;
 
-                var respawnDelay = pkg.ReadSingle();
+                var respawnDelay = customData.GetCustomData<float>("RespawnDelay");
                 valheimMP.RespawnDelay.Value = respawnDelay;
 
                 Game.instance.m_firstSpawn = true;
@@ -362,13 +276,22 @@ namespace ValheimMP.Patches
                 {
                     foreach (ValheimMP.OnClientConnectDelegate del in valheimMP.OnClientConnect.GetInvocationList())
                     {
-                        if (!del(rpc))
+                        if (!del(rpc, peer, customData))
                             return false;
                     }
                 }
             }
             else
             {
+                if (valheimMP.OnServerConnectBeforeProfileLoad != null)
+                {
+                    foreach (ValheimMP.OnServerConnectBeforeProfileLoadDelegate del in valheimMP.OnServerConnectBeforeProfileLoad.GetInvocationList())
+                    {
+                        if (!del(rpc, peer, customData))
+                            return false;
+                    }
+                }
+
                 var steamId = (peer.m_socket as ZSteamSocket).GetPeerID();
                 peer.m_playerProfile = new PlayerProfile(System.IO.Path.Combine(valheimMP.CharacterPath.Value, steamId.ToString()));
                 // Loading can and should possibly be done async?
@@ -387,10 +310,45 @@ namespace ValheimMP.Patches
                 {
                     foreach (ValheimMP.OnServerConnectDelegate del in valheimMP.OnServerConnect.GetInvocationList())
                     {
-                        if (!del(peer))
+                        if (!del(rpc, peer, customData))
                             return false;
                     }
                 }
+            }
+
+            if (ValheimMP.IsDedicated)
+            {
+                rpc.Register("InventoryGrid_DropItem", (ZRpc rpc, ZPackage pkg) =>
+                {
+                    InventoryGrid_Patch.RPC_DropItem(rpc, pkg);
+                });
+
+                rpc.Register("MoveItemToThis", (ZRpc rpc, ZDOID toId, ZDOID fromId, int itemId) =>
+                {
+                    Inventory_Patch.RPC_MoveItemToThis(rpc, toId, fromId, itemId);
+                });
+
+                rpc.Register("InventoryGui_DoCrafting", (ZRpc rpc, string recipeName, int upgradeItemId) =>
+                {
+                    InventoryGui_Patch.RPC_DoCrafting(rpc, recipeName, upgradeItemId);
+                });
+
+                rpc.Register("InventoryGui_RepairOneItem", (ZRpc rpc, int itemId) =>
+                {
+                    InventoryGui_Patch.RPC_RepairOneItem(rpc, itemId);
+                });
+
+                rpc.Register("SyncPlayerMovement", (ZRpc rpc, ZPackage pkg) =>
+                {
+                    Player_Patch.RPC_SyncPlayerMovement(rpc, pkg);
+                });
+            }
+            else if (ValheimMP.Instance.IsOnValheimMPServer)
+            {
+                rpc.Register("InventoryData", (ZRpc rpc, ZPackage pkg) =>
+                {
+                    RPC_InventoryData(rpc, pkg);
+                });
             }
 
             return true;
@@ -442,9 +400,9 @@ namespace ValheimMP.Patches
             return false;
         }
 
-        private static void RPC_InventoryData(ZNet __instance, ZRpc rpc, ZPackage pkg)
+        private static void RPC_InventoryData(ZRpc rpc, ZPackage pkg)
         {
-            if (!__instance.IsServer() && rpc == __instance.GetServerRPC())
+            if (!ZNet.instance.IsServer() && rpc == ZNet.instance.GetServerRPC())
             {
                 ValheimMP.Instance.InventoryManager.DeserializeRPC(pkg);
             }

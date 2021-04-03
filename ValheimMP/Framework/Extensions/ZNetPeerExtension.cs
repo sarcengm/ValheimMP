@@ -2,6 +2,11 @@
 {
     public static class ZNetPeerExtension
     {
+        public static long GetSteamID(this ZNetPeer peer)
+        {
+            return (long)(peer.m_socket as ZSteamSocket).m_peerID.GetSteamID().m_SteamID;
+        }
+
         public static PlayerProfile GetPlayerProfile(this ZNetPeer peer)
         {
             return peer.m_playerProfile;

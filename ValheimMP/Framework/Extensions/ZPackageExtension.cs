@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace ValheimMP.Framework.Extensions
 {
@@ -46,6 +48,27 @@ namespace ValheimMP.Framework.Extensions
                 pkg.Write(ms.ToArray());
             }
             return pkg;
+        }
+
+        public static void Write(this ZPackage pkg, Dictionary<int, byte[]> dictionary)
+        {
+            pkg.Write(dictionary.Count);
+            foreach (var item in dictionary.ToList())
+            {
+                pkg.Write(item.Key);
+                pkg.Write(item.Value);
+            }
+        }
+
+        public static void Read(this ZPackage pkg, ref Dictionary<int, byte[]> dictionary)
+        {
+            var count = pkg.ReadInt();
+            for (int i = 0; i < count; i++)
+            {
+                var key = pkg.ReadInt();
+                var val = pkg.ReadByteArray();
+                dictionary[key] = val;
+            }
         }
     }
 }

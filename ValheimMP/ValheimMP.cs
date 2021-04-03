@@ -14,7 +14,7 @@ namespace ValheimMP
     public class ValheimMP : BaseUnityPlugin
     {
         #region Private
-        private Harmony m_harmonyHandshake;
+        internal Harmony m_harmonyHandshake;
         private Harmony m_harmony;
         #endregion
 
@@ -53,17 +53,36 @@ namespace ValheimMP
         /// <param name="serverRpc">RPC of the server</param>
         /// <returns>False if we should abort. Only useful if you want to disconnect the user. Manual disconnect should still be called.</returns>
         public OnClientConnectDelegate OnClientConnect { get; set; }
-        public delegate bool OnClientConnectDelegate(ZRpc serverRpc);
+        public delegate bool OnClientConnectDelegate(ZRpc rpc, ZNetPeer peer, Dictionary<int, byte[]> customData);
 
         /// <summary>
-        /// Fired when someone joins the server.
+        /// Fired when someone joins the server. (After their profile is loaded)
         /// 
         /// Only fired on the server.
         /// </summary>
         /// <param name="peer"></param>
         /// <returns>False if we should abort. Only useful if you want to disconnect the user. Manual disconnect should still be called.</returns>
         public OnServerConnectDelegate OnServerConnect { get; set; }
-        public delegate bool OnServerConnectDelegate(ZNetPeer peer);
+        public delegate bool OnServerConnectDelegate(ZRpc rpc, ZNetPeer peer, Dictionary<int, byte[]> customData);
+
+        /// <summary>
+        /// Fired when someone joins the server, but it is fired before their profile is loaded.
+        /// </summary>
+        /// <returns>False if we should abort. Only useful if you want to disconnect the user. Manual disconnect should still be called.</returns>
+        public OnServerConnectBeforeProfileLoadDelegate OnServerConnectBeforeProfileLoad { get; set; }
+        public delegate bool OnServerConnectBeforeProfileLoadDelegate(ZRpc rpc, ZNetPeer peer, Dictionary<int, byte[]> customData);
+        
+        /// <summary>
+        /// Triggered when the server sends their peer info
+        /// </summary>
+        public OnServerSendPeerInfoDelegate OnServerSendPeerInfo { get; set; }
+        public delegate void OnServerSendPeerInfoDelegate(ZRpc rpc, Dictionary<int, byte[]> customData);
+
+        /// <summary>
+        /// Triggered when the client sends their peer info. 
+        /// </summary>
+        public OnClientSendPeerInfoDelegate OnClientSendPeerInfo { get; set; }
+        public delegate void OnClientSendPeerInfoDelegate(ZRpc rpc, Dictionary<int, byte[]> customData);
 
         /// <summary>
         /// Fired when a chat message is received on the server.
@@ -185,16 +204,13 @@ namespace ValheimMP
         /// And receives this multiplier worth of his own damage in return
         /// </summary>
         public ConfigEntry<float> WardMonsterVPlayerReflectDamage { get; internal set; }
-
         public ConfigEntry<float> ClientAttackCompensationWindow { get; internal set; }
         public ConfigEntry<float> ClientAttackCompensationDistance { get; internal set; }
         public ConfigEntry<float> ClientAttackCompensationDistanceMin { get; internal set; }
         public ConfigEntry<float> ClientAttackCompensationDistanceMax { get; internal set; }
-
         public ConfigEntry<float> ForcedPVPDistanceFromCenter { get; internal set; }
         public ConfigEntry<float> ForcedPVPDistanceForBiomesOnly { get; internal set; }
         public Dictionary<Heightmap.Biome, ConfigEntry<bool>> ForcedPVPBiomes { get; internal set; }
-
         public ConfigEntry<int> ServerObjectsCreatedPerFrame { get; internal set; }
 
         #endregion
@@ -208,10 +224,10 @@ namespace ValheimMP
 
             m_harmonyHandshake = new Harmony(HarmonyGUID + ".hs");
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(ZNet), "SendPeerInfo"),
-                prefix: new HarmonyMethod(AccessTools.Method(typeof(ZNet_Patch), "SendPeerInfo")));
+                transpiler: new HarmonyMethod(AccessTools.Method(typeof(ZNet_Patch), "SendPeerInfo")));
 
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(ZNet), "RPC_PeerInfo"),
-                prefix: new HarmonyMethod(AccessTools.Method(typeof(ZNet_Patch), "RPC_PeerInfo")));
+                transpiler: new HarmonyMethod(AccessTools.Method(typeof(ZNet_Patch), "RPC_PeerInfo")));
 
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(FejdStartup), "IsPublicPasswordValid"),
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "IsPublicPasswordValid")));
@@ -223,9 +239,6 @@ namespace ValheimMP
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "SetupCharacterPreview")));
 
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(FejdStartup), "SetupCharacterPreview"),
-                postfix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "SetupCharacterPreview")));
-
-            m_harmonyHandshake.Patch(AccessTools.Method(typeof(FejdStartup), "OnCharacterStart"),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "SetupCharacterPreview")));
 
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(ZSteamSocket), "RegisterGlobalCallbacks"),
