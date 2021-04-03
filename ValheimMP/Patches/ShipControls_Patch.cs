@@ -10,7 +10,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool RPC_RequestControl(ShipControlls __instance, long sender, ZDOID playerID)
         {
-            if (!ValheimMPPlugin.IsDedicated)
+            if (!ValheimMP.IsDedicated)
                 return false;
 
             var peer = ZNet.instance.GetPeer(sender);
@@ -45,7 +45,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool RPC_ReleaseControl(ShipControlls __instance, long sender, ZDOID playerID)
         {
-            if (!ValheimMPPlugin.IsDedicated)
+            if (!ValheimMP.IsDedicated)
                 return false;
 
             var peer = ZNet.instance.GetPeer(sender);
@@ -67,7 +67,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static void OnUseStop(ShipControlls __instance, Player player)
         {
-            if (!ValheimMPPlugin.IsDedicated)
+            if (!ValheimMP.IsDedicated)
             {
                 __instance.m_nview.InvokeRPC("ReleaseControl", player.GetZDOID());
             }

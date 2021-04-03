@@ -40,7 +40,7 @@ namespace ValheimMP.ChatCommands
                 if (command != null)
                 {
                     var cmd = new CommandInfo() { m_methodObj = methods[i].IsStatic ? null : obj, m_method = methods[i], m_command = command };
-                    ChatCommandsPlugin.Log($"Registered ChatCommand: {GetCommandSyntax(cmd)}");
+                    ChatCommands.Log($"Registered ChatCommand: {GetCommandSyntax(cmd)}");
                     m_commands.Add(cmd);
                 }
             }
@@ -55,7 +55,7 @@ namespace ValheimMP.ChatCommands
         {
             if(!method.IsStatic)
             {
-                ChatCommandsPlugin.Log($"RegisterCommand: Register non static method without instance.");
+                ChatCommands.Log($"RegisterCommand: Register non static method without instance.");
                 return;
             }
             
@@ -66,25 +66,25 @@ namespace ValheimMP.ChatCommands
         {
             if (Instance == null)
             {
-                ChatCommandsPlugin.Log($"RegisterCommand: No command manager available.");
+                ChatCommands.Log($"RegisterCommand: No command manager available.");
                 return;
             }
 
             if (method == null)
             {
-                ChatCommandsPlugin.Log($"RegisterCommand: Missing method.");
+                ChatCommands.Log($"RegisterCommand: Missing method.");
                 return;
             }
 
             var command = method.GetCustomAttribute<ChatCommandAttribute>();
             if (command == null)
             {
-                ChatCommandsPlugin.Log($"RegisterCommand: {method.Name} Missing ChatCommandAttribute.");
+                ChatCommands.Log($"RegisterCommand: {method.Name} Missing ChatCommandAttribute.");
                 return;
             }
 
             var cmd = new CommandInfo() { m_methodObj = obj, m_method = method, m_command = command };
-            ChatCommandsPlugin.Log($"Registered ChatCommand: {GetCommandSyntax(cmd)}");
+            ChatCommands.Log($"Registered ChatCommand: {GetCommandSyntax(cmd)}");
             m_commands.Add(cmd);
         }
 
@@ -123,7 +123,7 @@ namespace ValheimMP.ChatCommands
                         catch (Exception ex)
                         {
                             peer.SendServerMessage($"Error in {command.m_command.m_name}: {ex.Message}");
-                            ChatCommandsPlugin.Log(ex.ToString());
+                            ChatCommands.Log(ex.ToString());
                         }
                         break;
                     }

@@ -10,7 +10,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool Damage(MineRock5 __instance, HitData hit)
         {
-            if (ValheimMPPlugin.IsDedicated)
+            if (ValheimMP.IsDedicated)
             {
                 if (__instance.m_nview == null || !__instance.m_nview.IsValid() || __instance.m_hitAreas == null)
                 {

@@ -10,7 +10,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool SetTrigger(ZSyncAnimation __instance, string name)
         {
-            if (ValheimMPPlugin.IsDedicated)
+            if (ValheimMP.IsDedicated)
             {
                 __instance.m_animator.SetTrigger(name);
                 __instance.m_nview.InvokeProximityRPC(100f, ZNetView.Everybody, "SetTrigger", name);

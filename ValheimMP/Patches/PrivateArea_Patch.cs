@@ -127,7 +127,7 @@ namespace ValheimMP.Patches
             if (hitPlayerId != 0 && !CheckAccess(hitPlayerId, hit.m_point, flash: false))
                 return;
 
-            var vmp = ValheimMPPlugin.Instance;
+            var vmp = ValheimMP.Instance;
             float damageMul;
             float reflectMul;
 

@@ -11,8 +11,24 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool ClientSync(ZSyncTransform __instance, float dt)
         {
-            if (!__instance.m_nview.IsOwner() || ZNet.instance.IsServer())
+            if (ValheimMP.IsDedicated)
+                return true;
+
+
+            if (!__instance.m_nview.IsOwner())
             {
+                // we do the rotation syncing for ships ourselves, we send quaternions with only 0.01 change so the original code would cause issues
+                if (__instance.GetComponent<Ship>() != null)
+                {
+                    __instance.m_syncRotation = false;
+                    Quaternion rotation2 = __instance.m_nview.m_zdo.GetRotation();
+                    if (Quaternion.Angle(__instance.transform.rotation, rotation2) > 0.02f)
+                    {
+                        __instance.transform.rotation = Quaternion.Slerp(__instance.transform.rotation, rotation2, 0.01f);
+                    }
+                }
+                    
+
                 return true;
             }
 
@@ -37,12 +53,9 @@ namespace ValheimMP.Patches
             // But since we simulate our own position we only need to resync if we go out of sync too much
             Vector3 vector = zdo.GetPosition();
 
-            if (!ZoneSystem.instance.IsZoneLoaded(zdo.m_sector) ||
-                // shortly after we teleport make sure that our Y position remains approximately the same as our zdo
-                // to prevent falling through unloaded objects
-                (player.m_teleportCooldown < 4f && Math.Abs(vector.y - __instance.m_body.position.y) > 0.1f))
+            if (player.IsTeleporting())
             {
-                __instance.m_body.position = vector;
+
             }
             else
             {

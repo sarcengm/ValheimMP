@@ -32,7 +32,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool RequestRespawn(Game __instance, float delay)
         {
-            if(ValheimMPPlugin.IsDedicated)
+            if(ValheimMP.IsDedicated)
                 return false;
             return true;
         }
@@ -41,7 +41,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool _RequestRespawn(Game __instance)
         {
-            if (ValheimMPPlugin.IsDedicated)
+            if (ValheimMP.IsDedicated)
                 return false;
 
             if (Player.m_localPlayer != null)
@@ -66,6 +66,16 @@ namespace ValheimMP.Patches
                 return;
             
             RequestRespawn(player, peer);
+        }
+
+        public static void WorldSave(bool force = false)
+        {
+            if (Game.instance.m_saveTimer > 120f || force)
+            {
+                Game.instance.m_saveTimer = 0f;
+                Game.instance.SavePlayerProfile(setLogoutPoint: false);
+                ZNet.instance.Save(sync: false);
+            }
         }
 
         [HarmonyPatch(typeof(Game), "UpdateRespawn")]
@@ -213,7 +223,7 @@ namespace ValheimMP.Patches
         private static bool SavePlayerProfile(ref Game __instance, bool setLogoutPoint)
         {
             if (!ZNet.instance.IsServer())
-                return true;
+                return false;
 
             foreach (var peer in ZNet.instance.GetPeers())
             {
@@ -227,7 +237,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static void OnApplicationQuit()
         {
-            ValheimMPPlugin.Instance.WriteDebugData();
+            ValheimMP.Instance.WriteDebugData();
         }
     }
 }

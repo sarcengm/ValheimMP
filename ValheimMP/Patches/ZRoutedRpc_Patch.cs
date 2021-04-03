@@ -16,7 +16,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static void InvokeRoutedRPC(ref ZRoutedRpc __instance, long targetPeerID, ZDOID targetZDO, string methodName, params object[] parameters)
         {
-            if (ValheimMPPlugin.Instance.DebugRPC.Value)
+            if (ValheimMP.Instance.DebugRPC.Value)
                 ZLog.Log("RoutedRPC Invoking " + methodName + " " + methodName.GetStableHashCode());
         }
 #endif

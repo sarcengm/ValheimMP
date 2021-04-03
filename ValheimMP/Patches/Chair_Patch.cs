@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using UnityEngine;
+using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches
 {
@@ -13,27 +14,44 @@ namespace ValheimMP.Patches
             var m_nview = __instance.GetComponentInParent<ZNetView>();
             if (m_nview != null && ZNet.instance != null && ZNet.instance.IsServer())
             {
-                m_nview.Register("SitChair_" + __instance.name, (long sender) =>
+                if (!m_nview.m_functions.ContainsKey("SitChair".GetStableHashCode()))
                 {
-                    RPC_SitChair(__instance, sender);
-                });
+                    m_nview.Register("SitChair", (long sender, string name) =>
+                    {
+                        RPC_SitChair(m_nview, sender, name);
+                    });
+                }
 
                 __instance.m_useDistance *= 1.2f;
             }
             return false;
         }
 
-        private static void RPC_SitChair(Chair __instance, long sender)
+        private static void RPC_SitChair(ZNetView netView, long sender, string name)
         {
+            var gameObj = netView.transform.Find(name);
+            if(gameObj == null)
+            {
+                ZLog.Log($"Missing Chair game object: {name} in {netView}");
+                return;
+            }
+
+            var chair = gameObj.GetComponent<Chair>();
+            if (chair == null)
+            {
+                ZLog.Log($"Missing Chair component: {name} in {netView}->{gameObj}");
+                return;
+            }
+
             var peer = ZNet.instance.GetPeer(sender);
 
-            if (peer != null && peer.m_player != null && __instance.InUseDistance(peer.m_player))
+            if (peer != null && peer.m_player != null && chair.InUseDistance(peer.m_player))
             {
                 if (peer.m_player.IsEncumbered())
                 {
                     return;
                 }
-                peer.m_player.AttachStart(__instance.m_attachPoint, hideWeapons: false, isBed: false, __instance.m_attachAnimation, __instance.m_detachOffset);
+                peer.m_player.AttachStart(chair.m_attachPoint, hideWeapons: false, isBed: false, chair.m_attachAnimation, chair.m_detachOffset);
 
             }
 
@@ -42,7 +60,7 @@ namespace ValheimMP.Patches
 
         [HarmonyPatch(typeof(Chair), "Interact")]
         [HarmonyPrefix]
-        private static bool Interact(ref Chair __instance, ref bool __result, Humanoid human, bool hold)
+        private static bool Interact(Chair __instance, ref bool __result, Humanoid human, bool hold)
         {
             if (hold)
             {
@@ -64,7 +82,7 @@ namespace ValheimMP.Patches
             var nview = __instance.GetComponentInParent<ZNetView>();
             if (nview)
             {
-                nview.InvokeRPC("SitChair_" + __instance.name);
+                nview.InvokeRPC("SitChair", __instance.gameObject.GetFullName(nview.gameObject));
             }
             __result = true;
             return false;

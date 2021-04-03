@@ -86,7 +86,7 @@ namespace ValheimMP.Patches
         {
             if (__instance.m_character is Player player)
             {
-                if (!ValheimMPPlugin.IsDedicated)
+                if (!ValheimMP.IsDedicated)
                 {
                     if (__instance.m_lastMeleeHits != null &&
                         __instance.m_lastMeleeHits.Count > 0)
@@ -150,12 +150,12 @@ namespace ValheimMP.Patches
 
         private static void CompensateMeleeHits(Attack attack)
         {
-            if (Mathf.Abs(attack.m_lastMeleeHitTime - attack.m_lastClientMeleeHitTime) < ValheimMPPlugin.Instance.ClientAttackCompensationWindow.Value)
+            if (Mathf.Abs(attack.m_lastMeleeHitTime - attack.m_lastClientMeleeHitTime) < ValheimMP.Instance.ClientAttackCompensationWindow.Value)
             {
                 attack.m_lastClientMeleeHitTime = 0f;
                 var player = attack.m_character as Player;
                 var peer = ZNet.instance.GetPeer(player.GetPlayerID());
-                var vmp = ValheimMPPlugin.Instance;
+                var vmp = ValheimMP.Instance;
                 var clientCompDistance = Mathf.Clamp(vmp.ClientAttackCompensationDistance.Value * peer.GetPing(), 
                     vmp.ClientAttackCompensationDistanceMin.Value, 
                     vmp.ClientAttackCompensationDistanceMax.Value);

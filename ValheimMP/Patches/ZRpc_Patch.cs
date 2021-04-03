@@ -11,7 +11,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static void Invoke(ZRpc __instance, string method, params object[] parameters)
         {
-            if(ValheimMPPlugin.Instance.DebugRPC.Value)
+            if(ValheimMP.Instance.DebugRPC.Value)
                 ZLog.Log("RPC Invoking " + method + " " + method.GetStableHashCode());
         }
 

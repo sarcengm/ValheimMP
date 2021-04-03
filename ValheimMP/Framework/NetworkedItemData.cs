@@ -50,6 +50,8 @@ namespace ValheimMP.Framework
 
         private InventoryManager m_inventoryManager;
 
+        internal static Inventory m_tempInventory = new Inventory(null, null, 9999, 9999);
+
         public NetworkedItemData(InventoryManager inventoryManager)
         {
             m_inventoryManager = inventoryManager;
@@ -298,18 +300,19 @@ namespace ValheimMP.Framework
             {
                 // we abuse an empty inventory so we can still use the additem command to create it
                 // if we dont it will act all smart and stack our items!
-                var tempInventory = new Inventory(null, null, 99, 99);
-                tempInventory.AddItem(m_dropPrefab, m_stack, m_durability, m_gridPos, m_equiped, m_quality, m_variant, m_crafterID, m_crafterName);
-                if (tempInventory.m_inventory.Count > 0)
+                m_tempInventory.AddItem(m_dropPrefab, m_stack, m_durability, m_gridPos, m_equiped, m_quality, m_variant, m_crafterID, m_crafterName);
+                if (m_tempInventory.m_inventory.Count > 0)
                 {
-                    itemData = tempInventory.m_inventory[0];
+                    itemData = m_tempInventory.m_inventory[0];
                     targetInventory.m_inventory.Add(itemData);
+                    m_tempInventory.m_inventory.Clear();
                     itemData.m_id = m_id;
                     itemData.m_gridPos = m_gridPos;
                     itemData.m_equiped = m_equiped;
                     itemData.m_durability = m_durability;
                     itemData.m_stack = m_stack;
                 }
+                
             }
 
             // Little out of order here, but there is no need for these fields in the item creation so lets just serialize them straight into the object.

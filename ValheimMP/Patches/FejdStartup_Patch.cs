@@ -20,16 +20,15 @@ namespace ValheimMP.Patches
 
         internal static void Awake(FejdStartup __instance)
         {
-            ValheimMPPlugin.Instance.SetIsOnValheimMPServer(false);
+            ValheimMP.Instance.SetIsOnValheimMPServer(false);
         }
 
-        [HarmonyPatch(typeof(FejdStartup), "SetupCharacterPreview")]
-        [HarmonyPostfix]
-        private static void SetupCharacterPreview(FejdStartup __instance)
+        internal static void SetupCharacterPreview(FejdStartup __instance)
         {
-            var player = __instance.m_playerInstance?.GetComponent<Player>();
-            if(player != null)
+            var player = __instance.m_playerInstance.GetComponent<VisEquipment>();
+            if (player != null)
             {
+                ZLog.Log($"m_beardItem: {m_beardItem} m_hairItem: {m_hairItem} m_hairColor: {m_hairColor} m_skinColor: {m_skinColor} m_modelIndex: {m_modelIndex}");
                 m_beardItem = player.m_beardItem;
                 m_hairItem = player.m_hairItem;
                 m_hairColor = player.m_hairColor;

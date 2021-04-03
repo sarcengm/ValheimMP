@@ -22,7 +22,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool Damage(Character __instance, HitData hit)
         {
-            if (!ValheimMPPlugin.IsDedicated)
+            if (!ValheimMP.IsDedicated)
                 return false;
 
             if (__instance is Player player)
@@ -38,7 +38,7 @@ namespace ValheimMP.Patches
 
         private static bool Heal(Character __instance, float hp, bool showText = true)
         {
-            if (!ValheimMPPlugin.IsDedicated)
+            if (!ValheimMP.IsDedicated)
                 return false;
 
             __instance.RPC_Heal(0, hp, showText);

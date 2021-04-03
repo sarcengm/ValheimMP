@@ -25,9 +25,7 @@ Valheim MP or VMP for short is Valheim mod designed to make all authority server
 
 ## TODO
 
-- Player attack (compensation)
-- Player appearance
-- Fishing
+- Fishing?
 - Player map markers?
 - Destruction of ZDO's via SendZDOData (to prevent sending unneeded RPCs across the map of objects you've never even heard of)
 

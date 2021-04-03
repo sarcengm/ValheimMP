@@ -24,7 +24,7 @@ namespace ValheimMP.Patches
             var netview = __instance.GetNetView();
             if (netview != null)
             {
-                if (ValheimMPPlugin.IsDedicated)
+                if (ValheimMP.IsDedicated)
                 {
                     netview.Register(rpcBuyItem, (long sender, int itemId, int count) =>
                     {
@@ -69,7 +69,7 @@ namespace ValheimMP.Patches
 
             for(int i=0; i<itemCount; i++)
             {
-                var remoteItemData = new NetworkedItemData(ValheimMPPlugin.Instance.InventoryManager);
+                var remoteItemData = new NetworkedItemData(ValheimMP.Instance.InventoryManager);
                 var itemData = remoteItemData.Deserialize(dummyInventory, pkg);
 
                 // m_dropPrefab is the template, I don't think it's a good idea to be modifying it, even if its just the item data, so lets make a copy.
@@ -104,7 +104,7 @@ namespace ValheimMP.Patches
                 localItemData.SetCustomData("m_price", item.m_price);
                 localItemData.SetCustomData("m_stack", item.m_stack);
 
-                var remoteItemData = new NetworkedItemData(ValheimMPPlugin.Instance.InventoryManager);
+                var remoteItemData = new NetworkedItemData(ValheimMP.Instance.InventoryManager);
                 remoteItemData.Serialize(localItemData, pkg);
             }
 
@@ -120,6 +120,15 @@ namespace ValheimMP.Patches
             if (item == null)
                 return;
 
+            if (ValheimMP.Instance.OnTraderClientSoldItem != null)
+            {
+                foreach (ValheimMP.OnTraderClientSoldItemDelegate del in ValheimMP.Instance.OnTraderClientSoldItem.GetInvocationList())
+                {
+                    if (!del(trader, itemHash, count))
+                        return;
+                }
+            }
+
             StoreGui_Patch.SoldItem(StoreGui.instance, item, count);
         }
 
@@ -131,6 +140,16 @@ namespace ValheimMP.Patches
             var item = itemObj.GetComponent<ItemDrop>();
             if (item == null)
                 return;
+
+
+            if (ValheimMP.Instance.OnTraderClientBoughtItem != null)
+            {
+                foreach (ValheimMP.OnTraderClientBoughtItemDelegate del in ValheimMP.Instance.OnTraderClientBoughtItem.GetInvocationList())
+                {
+                    if (!del(trader, itemHash, count))
+                        return;
+                }
+            }
 
             StoreGui_Patch.BoughtItem(StoreGui.instance, item, count);
         }

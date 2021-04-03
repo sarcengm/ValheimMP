@@ -7,77 +7,37 @@ namespace ValheimMP.Framework.Extensions
 {
     public static class GameObjectExtension
     {
-        public static string GetFullName(this GameObject gameObject)
+        /// <summary>
+        /// Get the full name of an object, up to but excluding parent.
+        /// </summary>
+        /// <param name="gameObject"></param>
+        /// <param name="parent"></param>
+        /// <returns></returns>
+        public static string GetFullName(this GameObject gameObject, GameObject parent = null)
         {
-            List<GameObject> list = GetHierarchy(ref gameObject);
-
+            List<GameObject> list = gameObject.GetHierarchy(parent);
             return list.Join(k => k.name, "/");
         }
 
-        public static List<GameObject> GetHierarchy(ref GameObject gameObject)
+        /// <summary>
+        /// Get the entire hierarchy of game objects, up to but excluding parent.
+        /// </summary>
+        /// <param name="gameObject"></param>
+        /// <param name="parent"></param>
+        /// <returns></returns>
+        public static List<GameObject> GetHierarchy(this GameObject gameObject, GameObject parent = null)
         {
             var list = new List<GameObject>();
             var loopObject = gameObject.transform;
             while (loopObject != null)
             {
+                if (loopObject.gameObject == parent)
+                    break;
                 list.Add(loopObject.gameObject);
-
                 loopObject = loopObject.parent;
             }
             list.Reverse();
             return list;
-        }
-
-        public static T GetChildByFullPathAndType<T>(this Component component, string path) where T : Component
-        {
-            return component.gameObject.GetChildByFullPathAndType<T>(path);
-        }
-
-        public static T GetChildByFullPathAndType<T>(this GameObject gameObject, string path) where T : Component
-        {
-            var targetPath = path.Split('/');
-            var myPath = GetHierarchy(ref gameObject);
-
-            if (myPath.Count > targetPath.Length)
-            {
-                return null;
-            }
-
-            for (int i = 0; i < myPath.Count; i++)
-            {
-                if (myPath[i].name != targetPath[i])
-                {
-                    return null;
-                }
-            }
-
-            var children = gameObject.GetComponentsInChildren<T>();
-            for (int c = 0; c < children.Length; c++)
-            {
-                var child = children[c].gameObject;
-                var childHierarchy = GetHierarchy(ref child);
-
-
-                if (childHierarchy.Count != targetPath.Length)
-                    continue;
-
-                var foundMatch = true;
-                for (int j = myPath.Count; j < targetPath.Length; j++)
-                {
-                    if (targetPath[j] != childHierarchy[j].name)
-                    {
-                        foundMatch = false;
-                        break;
-                    }
-                }
-
-                if (foundMatch)
-                {
-                    return children[c];
-                }
-            }
-
-            return null;
         }
     }
 }

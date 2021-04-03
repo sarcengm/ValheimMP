@@ -149,9 +149,9 @@ namespace ValheimMP.Patches
                 {
                     RPC_SyncCharacter(__instance, pkg);
                 });
-                __instance.m_nview.Register("TeleportTo", (long sender, Vector3 pos, Quaternion rot) =>
+                __instance.m_nview.Register("TeleportTo", (long sender, Vector3 pos, Quaternion rot, bool distantTeleport) =>
                 {
-                    RPC_TeleportTo(__instance, pos, rot);
+                    RPC_TeleportTo(__instance, pos, rot, distantTeleport);
                 });
                 __instance.m_nview.Register("Pushback", (long sender, Vector3 pushForce) =>
                 {
@@ -166,24 +166,41 @@ namespace ValheimMP.Patches
                 {
                     ZDOEvent_SyncHealth(__instance);
                 });
-
                 zdo.RegisterZDOEvent("pvp", (ZDO zdo) =>
                 {
                     ZDOEvent_PVPChanged(__instance);
                 });
-
                 zdo.RegisterZDOEvent("forcedpvp", (ZDO zdo) =>
                 {
                     ZDOEvent_PVPChanged(__instance);
                 });
-
                 zdo.RegisterZDOEvent("noPlacementCost", (ZDO zdo) =>
                 {
                     ZDOEvent_NoPlacementCostChanged(__instance);
                 });
+                zdo.RegisterZDOEvent("ModelIndex", (ZDO zdo) =>
+                {
+                    ZDOEvent_PlayerModelChanged(__instance);
+                });
+                zdo.RegisterZDOEvent("SkinColor", (ZDO zdo) =>
+                {
+                    ZDOEvent_SkinColorChanged(__instance);
+                });
+                zdo.RegisterZDOEvent("BeardItem", (ZDO zdo) =>
+                {
+                    ZDOEvent_BeardItemChanged(__instance);
+                });
+                zdo.RegisterZDOEvent("HairItem", (ZDO zdo) =>
+                {
+                    ZDOEvent_HairItemChanged(__instance);
+                });
+                zdo.RegisterZDOEvent("HairColor", (ZDO zdo) =>
+                {
+                    ZDOEvent_HairColorChanged(__instance);
+                });
 
                 __instance.SetLocalPlayer();
-
+                __instance.m_isLoading = true;
                 CheckPlayerReady();
             }
 
@@ -194,6 +211,31 @@ namespace ValheimMP.Patches
                     ZDOEvent_Attach(__instance);
                 });
             }
+        }
+
+        private static void ZDOEvent_HairColorChanged(Player player)
+        {
+            player.SetHairColor(player.m_nview.m_zdo.GetVec3("HairColor", player.m_hairColor));
+        }
+
+        private static void ZDOEvent_HairItemChanged(Player player)
+        {
+            player.SetHair(player.m_nview.m_zdo.GetString("HairItem", player.m_hairItem));
+        }
+
+        private static void ZDOEvent_BeardItemChanged(Player player)
+        {
+            player.SetBeard(player.m_nview.m_zdo.GetString("BeardItem", player.m_beardItem));
+        }
+
+        private static void ZDOEvent_SkinColorChanged(Player player)
+        {
+            player.SetHairColor(player.m_nview.m_zdo.GetVec3("SkinColor", player.m_skinColor));
+        }
+
+        private static void ZDOEvent_PlayerModelChanged(Player player)
+        {
+            player.SetPlayerModel(player.m_nview.m_zdo.GetInt("ModelIndex", 0));
         }
 
         private static void ZDOEvent_NoPlacementCostChanged(Player player)
@@ -208,6 +250,10 @@ namespace ValheimMP.Patches
 
         private static void RPC_SetAppearance(Player player, long sender, ZPackage pkg)
         {
+            if (!player.m_firstSpawn)
+                return;
+            player.m_firstSpawn = false;
+
             var beard = pkg.ReadString();
             var hair = pkg.ReadString();
             var hairColor = pkg.ReadVector3();
@@ -248,7 +294,7 @@ namespace ValheimMP.Patches
             if (hairColor != Vector3.zero)
                 player.SetHairColor(hairColor);
             if (skinColor != Vector3.zero)
-                player.SetSkinColor(Vector3.zero);
+                player.SetSkinColor(skinColor);
             if (modelIndex != -1)
                 player.SetPlayerModel(modelIndex);
         }
@@ -304,7 +350,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void ApplyPushback(Character __instance)
         {
-            if (ValheimMPPlugin.IsDedicated && __instance is Player player)
+            if (ValheimMP.IsDedicated && __instance is Player player)
             {
                 player.m_nview.InvokeRPC("Pushback", __instance.m_pushForce);
             }
@@ -487,6 +533,8 @@ namespace ValheimMP.Patches
             skills.Load(pkg);
             DeserializeKnowledge(__instance, pkg);
             DeserializeFoods(__instance, pkg);
+
+            __instance.m_isLoading = false;
         }
 
         /// <summary>
@@ -509,10 +557,10 @@ namespace ValheimMP.Patches
         {
             if (__instance.GetOwner() == sender && ZNet.instance.IsServer())
             {
-                SyncCharacter(__instance);
-
                 // Add an inventory listener for their own inventory!
-                ValheimMPPlugin.Instance.InventoryManager.AddListener(sender, __instance.m_inventory);
+                ValheimMP.Instance.InventoryManager.AddListener(sender, __instance.m_inventory);
+
+                SyncCharacter(__instance);
             }
 
             return false;
@@ -547,12 +595,20 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool UpdateEyeRotation(Player __instance)
         {
-            if (!ValheimMPPlugin.IsDedicated)
+            if (!ValheimMP.IsDedicated)
                 return true;
             __instance.m_eye.rotation = Quaternion.LookRotation(__instance.m_lookDir);
             __instance.m_lookPitch = __instance.m_eye.rotation.eulerAngles.x;
             __instance.m_lookYaw = Quaternion.Euler(0, __instance.m_eye.rotation.eulerAngles.y, 0);
             return false;
+        }
+
+        private static bool ShowTutorial(Player __instance)
+        {
+            if (ValheimMP.IsDedicated)
+                return false;
+
+            return !__instance.m_isLoading;
         }
 
         [HarmonyPatch(typeof(Player), "RPC_UseStamina")]
@@ -748,7 +804,7 @@ namespace ValheimMP.Patches
                 return;
             }
 
-            if (ValheimMPPlugin.Instance.DebugShowZDOPlayerLocation.Value && !ZNet.instance.IsServer())
+            if (ValheimMP.Instance.DebugShowZDOPlayerLocation.Value && !ZNet.instance.IsServer())
             {
                 if (m_debugZdoPlayerLocationObject == null)
                 {
@@ -795,7 +851,7 @@ namespace ValheimMP.Patches
 
                 if (!ZNet.instance.IsServer())
                 {
-                    if (!ValheimMPPlugin.Instance.DoNotHideCharacterWhenCameraClose.Value && (bool)GameCamera.instance &&
+                    if (!ValheimMP.Instance.DoNotHideCharacterWhenCameraClose.Value && (bool)GameCamera.instance &&
                         Vector3.Distance(GameCamera.instance.transform.position, __instance.transform.position) < 2f)
                     {
                         __instance.SetVisible(visible: false);
@@ -866,7 +922,7 @@ namespace ValheimMP.Patches
             ZNetPeer_Patch.SavePeer(peer, false);
 
             __instance.m_timeSinceDeath = 0f;
-            peer.m_respawnWait = ValheimMPPlugin.Instance.RespawnDelay.Value;
+            peer.m_respawnWait = ValheimMP.Instance.RespawnDelay.Value;
 
 
 
@@ -890,7 +946,7 @@ namespace ValheimMP.Patches
                 string eventLabel = "biome:" + __instance.GetCurrentBiome();
                 Gogan.LogEvent("Game", "Death", eventLabel, 0L);
 
-                Game.instance.RequestRespawn(ValheimMPPlugin.Instance.RespawnDelay.Value);
+                Game.instance.RequestRespawn(ValheimMP.Instance.RespawnDelay.Value);
             }
         }
 
@@ -898,7 +954,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void GetSlideAngle(Character __instance, ref float __result)
         {
-            if (ValheimMPPlugin.IsDedicated)
+            if (ValheimMP.IsDedicated)
                 __result = 90f;
         }
 
@@ -1281,7 +1337,7 @@ namespace ValheimMP.Patches
             if (__instance.m_crouchToggled != crouch)
             {
                 __instance.m_crouchToggled = crouch;
-                if (!ValheimMPPlugin.IsDedicated)
+                if (!ValheimMP.IsDedicated)
                 {
                     __instance.m_nview.InvokeRPC(ZNet.instance.GetServerPeer().m_uid, "Crouch", crouch);
                 }
@@ -1304,7 +1360,7 @@ namespace ValheimMP.Patches
             if (__instance.GetPlayerID() != sender)
                 return;
 
-            var inventory = inventoryId.IsNone() ? __instance.m_inventory : ValheimMPPlugin.Instance.InventoryManager.GetInventory(inventoryId);
+            var inventory = inventoryId.IsNone() ? __instance.m_inventory : ValheimMP.Instance.InventoryManager.GetInventory(inventoryId);
 
             if (inventory == null)
             {
@@ -1433,7 +1489,7 @@ namespace ValheimMP.Patches
                 peer.m_refPos = __instance.transform.position;
             }
 
-            __instance.m_nview.InvokeRPC("TeleportTo", __instance.m_teleportTargetPos, __instance.m_teleportTargetRot);
+            __instance.m_nview.InvokeRPC("TeleportTo", pos, rot, distantTeleport);
 
             __instance.m_teleporting = true;
             __instance.m_distantTeleport = distantTeleport;
@@ -1448,37 +1504,43 @@ namespace ValheimMP.Patches
             return false;
         }
 
-        private static void RPC_TeleportTo(Player __instance, Vector3 pos, Quaternion rot)
+        private static void RPC_TeleportTo(Player __instance, Vector3 pos, Quaternion rot, bool distantTeleport)
         {
+            Hud.instance.m_loadingScreen.alpha = 1f;
             ZNet.instance.SetReferencePosition(pos);
+            __instance.m_teleporting = true;
+            __instance.m_distantTeleport = distantTeleport;
+            __instance.m_teleportTimer = 0f;
             __instance.m_teleportCooldown = 0f;
+            __instance.m_teleportFromPos = pos;
+            __instance.m_teleportFromRot = rot;
+            __instance.m_teleportTargetPos = pos;
+            __instance.m_teleportTargetRot = rot;
         }
 
         [HarmonyPatch(typeof(Player), "UpdateTeleport")]
         [HarmonyPrefix]
         private static bool UpdateTeleport(Player __instance, float dt)
         {
-            if (!ZNet.instance.IsServer())
-            {
-                return true;
-            }
-
             if (!__instance.m_teleporting)
             {
                 __instance.m_teleportCooldown += dt;
                 return false;
             }
 
-            var peer = ZNet.instance.GetPeer(__instance.GetOwner());
-
-            if (peer == null)
+            if (ValheimMP.IsDedicated)
             {
-                ZLog.Log("No peer?");
-                __instance.m_teleporting = false;
-                return false;
-            }
+                var peer = ZNet.instance.GetPeer(__instance.GetOwner());
 
-            peer.m_refPos = __instance.m_teleportTargetPos;
+                if (peer == null)
+                {
+                    ZLog.Log("No peer?");
+                    __instance.m_teleporting = false;
+                    return false;
+                }
+
+                peer.m_refPos = __instance.m_teleportTargetPos;
+            }
 
             __instance.m_teleportCooldown = 0f;
             __instance.m_teleportTimer += dt;
@@ -1495,31 +1557,44 @@ namespace ValheimMP.Patches
                 return false;
             }
 
-            if (ZoneSystem.instance.FindFloor(__instance.m_teleportTargetPos, out var height))
+            if (ValheimMP.IsDedicated)
             {
-                __instance.m_teleportTimer = 0f;
-                __instance.m_teleporting = false;
-                __instance.ResetCloth();
-            }
-            else
-            {
-                if (__instance.m_distantTeleport)
+                if (ZoneSystem.instance.FindFloor(__instance.m_teleportTargetPos, out var height))
                 {
-                    Vector3 position = __instance.transform.position;
-                    position.y = ZoneSystem.instance.GetSolidHeight(__instance.m_teleportTargetPos) + 0.5f;
-                    __instance.transform.position = position;
+                    __instance.m_teleportTimer = 0f;
+                    __instance.m_teleporting = false;
+                    __instance.ResetCloth();
                 }
                 else
                 {
-                    __instance.transform.rotation = __instance.m_teleportFromRot;
-                    __instance.transform.position = __instance.m_teleportFromPos;
-                    __instance.m_maxAirAltitude = __instance.transform.position.y;
-                    __instance.Message(MessageHud.MessageType.Center, "$msg_portal_blocked");
+                    if (__instance.m_distantTeleport)
+                    {
+                        Vector3 position = __instance.transform.position;
+                        position.y = ZoneSystem.instance.GetSolidHeight(__instance.m_teleportTargetPos) + 0.5f;
+                        __instance.transform.position = position;
+                    }
+                    else
+                    {
+                        __instance.transform.rotation = __instance.m_teleportFromRot;
+                        __instance.transform.position = __instance.m_teleportFromPos;
+                        __instance.m_maxAirAltitude = __instance.transform.position.y;
+                        __instance.Message(MessageHud.MessageType.Center, "$msg_portal_blocked");
+                    }
+                    __instance.m_teleportTimer = 0f;
+                    __instance.m_teleporting = false;
+                    __instance.ResetCloth();
                 }
-                __instance.m_teleportTimer = 0f;
-                __instance.m_teleporting = false;
-                __instance.ResetCloth();
             }
+            else
+            {
+                if (__instance.m_teleportTimer > 2f && !ZNetScene_Patch.m_isStillLoading)
+                {
+                    __instance.m_teleportTimer = 0f;
+                    __instance.m_teleporting = false;
+                    __instance.ResetCloth();
+                }
+            }
+
             return false;
         }
 
@@ -1830,7 +1905,7 @@ namespace ValheimMP.Patches
                 {
                     var zdo = __instance.m_nview.GetZDO();
                     zdo.Set(ZSyncTransform.m_parentIDHash, nv.m_zdo.m_uid);
-                    zdo.Set("m_attachPoint", attachPoint.gameObject.GetFullName());
+                    zdo.Set("m_attachPoint", attachPoint.gameObject.GetFullName(nv.gameObject));
                     zdo.Set("m_attachAnimation", attachAnimation);
                     zdo.Set("m_detachOffset", detachOffset);
                 }
@@ -1859,7 +1934,8 @@ namespace ValheimMP.Patches
             var attachObject = ZNetScene.instance.FindInstance(attachObjectID);
             if (!string.IsNullOrWhiteSpace(attachPoint) && attachObject != null)
             {
-                var attachTransform = attachObject.GetChildByFullPathAndType<Transform>(attachPoint);
+                var attachTransform = attachObject.transform.Find(attachPoint);
+                ZLog.Log($"Find {attachPoint} == {attachTransform}");
                 if (attachTransform != null)
                 {
                     __instance.m_attached = true;
@@ -1878,7 +1954,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool IsPVPEnabled(Player __instance, ref bool __result)
         {
-            if(__instance.m_nview.m_zdo.GetBool("forcedpvp", false))
+            if (__instance.m_nview.m_zdo.GetBool("forcedpvp", false))
             {
                 __result = true;
                 return false;
@@ -1891,7 +1967,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool CanSwitchPVP(Player __instance, ref bool __result)
         {
-            if(__instance.m_nview.m_zdo.GetBool("forcedpvp", false))
+            if (__instance.m_nview.m_zdo.GetBool("forcedpvp", false))
             {
                 __result = false;
                 return false;
@@ -1912,7 +1988,7 @@ namespace ValheimMP.Patches
 
         private static void TestForcePVP(Player __instance)
         {
-            var vmp = ValheimMPPlugin.Instance;
+            var vmp = ValheimMP.Instance;
             var biomeDistance = vmp.ForcedPVPDistanceForBiomesOnly.Value;
             biomeDistance *= biomeDistance;
             var centerDistance = vmp.ForcedPVPDistanceFromCenter.Value;

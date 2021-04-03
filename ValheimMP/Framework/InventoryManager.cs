@@ -12,8 +12,8 @@ namespace ValheimMP.Framework
         private Dictionary<ZDOID, Dictionary<int, InventoryWrapper>> m_inventoryWrappers = new Dictionary<ZDOID, Dictionary<int, InventoryWrapper>>();
         private HashSet<InventoryWrapper> m_changedInventories = new HashSet<InventoryWrapper>();
 
-        public delegate void OnItemCraftedDel(Inventory inventory, ItemDrop.ItemData itemData);
-        public OnItemCraftedDel OnItemCrafted { get; set; }
+        public delegate void OnItemCraftedDelegate(Inventory inventory, ItemDrop.ItemData itemData);
+        public OnItemCraftedDelegate OnItemCrafted { get; set; }
 
         private class InventoryWrapper
         {

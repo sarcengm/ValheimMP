@@ -328,7 +328,7 @@ namespace ValheimMP.Patches
             var zdoCollectionCountPos = zdoCollectionPkg.GetPos();
             zdoCollectionPkg.Write(zdoCollectionCount); // Placeholder count;
 
-            var valheimMP = ValheimMPPlugin.Instance;
+            var valheimMP = ValheimMP.Instance;
 
             for (int i = 0; i < __instance.m_tempToSync.Count; i++)
             {
@@ -425,7 +425,7 @@ namespace ValheimMP.Patches
 
         public static bool SerializeZDOFor(ZDOMan.ZDOPeer peer, ref ZPackage zdoPkg, ref ZDO zDO, ref ZDO clientZDO)
         {
-            var valheimMP = ValheimMPPlugin.Instance;
+            var valheimMP = ValheimMP.Instance;
 
 #if DEBUG
             if (valheimMP.DebugOutputZDO.Value)
@@ -816,7 +816,7 @@ namespace ValheimMP.Patches
                 return false;
             }
 
-            if (ValheimMPPlugin.Instance.UseZDOCompression.Value)
+            if (ValheimMP.Instance.UseZDOCompression.Value)
                 pkg = pkg.Decompress();
 
             var count = pkg.ReadInt();

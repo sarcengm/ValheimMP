@@ -74,9 +74,9 @@ namespace ValheimMP.Patches
                     break;
             }
 
-            if (ValheimMPPlugin.Instance.OnChatMessage != null)
+            if (ValheimMP.Instance.OnChatMessage != null)
             {
-                foreach (ValheimMPPlugin.OnChatMessageDel del in ValheimMPPlugin.Instance.OnChatMessage.GetInvocationList())
+                foreach (ValheimMP.OnChatMessageDelegate del in ValheimMP.Instance.OnChatMessage.GetInvocationList())
                 {
                     if (!del(peer, player, ref playerName, ref messageLocation, ref messageDistance, ref text, ref type))
                         return;

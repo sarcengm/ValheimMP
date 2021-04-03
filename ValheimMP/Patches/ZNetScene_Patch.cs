@@ -8,7 +8,7 @@ namespace ValheimMP.Patches
     [HarmonyPatch]
     internal class ZNetScene_Patch
     {
-
+        internal static bool m_isStillLoading = false;
         [HarmonyPatch(typeof(ZNetScene), "CreateObjects")]
         [HarmonyPrefix]
         private static bool CreateObjects(ZNetScene __instance, List<ZDO> currentNearObjects, List<ZDO> currentDistantObjects)
@@ -17,13 +17,12 @@ namespace ValheimMP.Patches
 
             if (ZNet.instance.IsServer())
             {
-                maxCreatedPerFrame = 100;
+                maxCreatedPerFrame = ValheimMP.Instance.ServerObjectsCreatedPerFrame.Value;
             }
 
-            else if(Player.m_localPlayer == null || (Player.m_localPlayer != null && 
-                (Player.m_localPlayer.IsTeleporting() || 
-                Player.m_localPlayer.m_teleportCooldown < 5f || 
-                Hud.instance.m_loadingScreen.isActiveAndEnabled)))
+            else if(Player.m_localPlayer == null || 
+                (Player.m_localPlayer != null && (Player.m_localPlayer.IsTeleporting() || Hud.instance.m_loadingScreen.isActiveAndEnabled)) || 
+                m_isStillLoading)
             {
                 maxCreatedPerFrame = 1000;
             }
@@ -36,6 +35,7 @@ namespace ValheimMP.Patches
             int created = 0;
             __instance.CreateObjectsSorted(currentNearObjects, maxCreatedPerFrame, ref created);
             __instance.CreateDistantObjects(currentDistantObjects, maxCreatedPerFrame, ref created);
+            m_isStillLoading = created > 500;
             return false;
         }
 
@@ -80,7 +80,6 @@ namespace ValheimMP.Patches
             // peers may have overlapping sectors so add them all to a hashset before we scan the final ones.
             foreach (var peer in peers)
             {
-                // better check all these for nulls wouldnt want to suddenly break and stop sending everyones zdos because of one guy 
                 if(peer.m_player != null && peer.m_player.m_nview != null && peer.m_player.m_nview.m_zdo != null)
                 {
                     // Keep player characters alive regardless of whether they fall out of the playable area

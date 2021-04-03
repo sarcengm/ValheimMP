@@ -9,7 +9,7 @@ namespace ValheimMP.Patches
     {
         [HarmonyPatch(typeof(ZoneSystem), "Update")]
         [HarmonyPrefix]
-        private static bool Update(ref ZoneSystem __instance)
+        private static bool Update(ZoneSystem __instance)
         {
             if (!ZNet.instance.IsServer())
                 return true;

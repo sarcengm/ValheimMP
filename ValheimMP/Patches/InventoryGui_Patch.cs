@@ -17,22 +17,20 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Awake()
         {
-            ValheimMPPlugin.Instance.InventoryManager.OnItemCrafted += OnItemCrafted;
+            ValheimMP.Instance.InventoryManager.OnItemCrafted += OnItemCrafted;
         }
 
         [HarmonyPatch(typeof(InventoryGui), "OnDestroy")]
         [HarmonyPostfix]
         private static void OnDestroy()
         {
-            ValheimMPPlugin.Instance.InventoryManager.OnItemCrafted -= OnItemCrafted;
+            ValheimMP.Instance.InventoryManager.OnItemCrafted -= OnItemCrafted;
         }
 
         private static void OnItemCrafted(Inventory inventory, ItemDrop.ItemData itemData)
         {
-            if (InventoryGui.instance.isActiveAndEnabled)
-            {
-                InventoryGui.instance.UpdateCraftingPanel();
-            }
+            ZLog.Log("ItemCrafted");
+            InventoryGui.instance.UpdateCraftingPanel();
         }
 
         [HarmonyPatch(typeof(InventoryGui), "UpdateContainer")]

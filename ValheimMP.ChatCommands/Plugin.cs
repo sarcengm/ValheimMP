@@ -9,21 +9,21 @@ using ValheimMP.Framework.Extensions;
 namespace ValheimMP.ChatCommands
 {
     [BepInPlugin(BepInGUID, Name, Version)]
-    [BepInDependency(ValheimMPPlugin.BepInGUID)]
-    public class ChatCommandsPlugin : BaseUnityPlugin
+    [BepInDependency(ValheimMP.BepInGUID)]
+    public class ChatCommands : BaseUnityPlugin
     {
         public const string Author = "Sarcen";
         public const string Name = "ValheimMP.ChatCommands";
         public const string Version = "1.0.0";
         public const string BepInGUID = "BepIn." + Author + "." + Name;
 
-        private ChatCommandManager chatCommandManager;
+        public ChatCommandManager ChatCommandManager { get; private set; }
 
-        public static ChatCommandsPlugin Instance { get; private set; }
+        public static ChatCommands Instance { get; private set; }
 
         public void Awake()
         {
-            if (!ValheimMPPlugin.IsDedicated)
+            if (!ValheimMP.IsDedicated)
             {
                 Logger.LogError($"{Name} is a server side only plugin.");
                 return;
@@ -31,10 +31,19 @@ namespace ValheimMP.ChatCommands
 
             Instance = this;
 
-            chatCommandManager = new ChatCommandManager();
-            ValheimMPPlugin.Instance.OnChatMessage += chatCommandManager.OnChatMessage;
+            ChatCommandManager = new ChatCommandManager();
+            ValheimMP.Instance.OnChatMessage += ChatCommandManager.OnChatMessage;
 
-            chatCommandManager.RegisterAll(this);
+            ChatCommandManager.RegisterAll(this);
+        }
+
+        /// <summary>
+        /// Register all chat commands in this object.
+        /// </summary>
+        /// <param name="obj"></param>
+        public void RegisterAll(object obj)
+        {
+            ChatCommandManager.RegisterAll(obj);
         }
 
         public static void Log(string message)
@@ -74,7 +83,7 @@ namespace ValheimMP.ChatCommands
         [ChatCommand("Version", "Get the version of ValheimMP", aliases: new[] { "Version", "Ver", "ValheimMP", "Vmp" })]
         private void Command_Version(ZNetPeer peer, Player player)
         {
-            peer.SendServerMessage($"<color=white>Server is running <color=green><b>{ValheimMPPlugin.PluginName}</b></color> version <color=green><b>{ValheimMPPlugin.CurrentVersion}</b></color>.</color>");
+            peer.SendServerMessage($"<color=white>Server is running <color=green><b>{ValheimMP.PluginName}</b></color> version <color=green><b>{ValheimMP.CurrentVersion}</b></color>.</color>");
         }
 
         [ChatCommand("Teleport", "Teleport to target to destination or coordinates.", requireAdmin: true, aliases: new[] { "Tp" })]
@@ -116,6 +125,57 @@ namespace ValheimMP.ChatCommands
             if (peer != target)
             {
                 target.SendServerMessage($"<color=white><color=green><b>{peer.m_playerName}</b></color> set your Godmode to <color=green><b>{player.m_godMode}</b></color>.</color>");
+            }
+        }
+
+        [ChatCommand("SetPlayerModel", "Sets Character Model", requireAdmin: true, aliases: new[] { "Model", "SetModel" })]
+        private void Command_SetModel(ZNetPeer peer, int index, ZNetPeer target = null)
+        {
+            if (target == null)
+                target = peer;
+
+            var player = target.GetPlayer();
+
+            player.SetPlayerModel(index);
+            peer.SendServerMessage($"<color=white>Player model for <color=green><b>{player.GetPlayerName()}</b></color> to <color=green><b>{index}</b></color>.</color>");
+
+            if (peer != target)
+            {
+                target.SendServerMessage($"<color=white><color=green><b>{peer.m_playerName}</b></color> set your Player model to <color=green><b>{index}</b></color>.</color>");
+            }
+        }
+
+        [ChatCommand("SetHair", "Sets Character Hair", requireAdmin: true, aliases: new[] { "Hair" })]
+        private void Command_SetHair(ZNetPeer peer, string hair, ZNetPeer target = null)
+        {
+            if (target == null)
+                target = peer;
+
+            var player = target.GetPlayer();
+
+            player.SetHair(hair);
+            peer.SendServerMessage($"<color=white>Hair for <color=green><b>{player.GetPlayerName()}</b></color> to <color=green><b>{hair}</b></color>.</color>");
+
+            if (peer != target)
+            {
+                target.SendServerMessage($"<color=white><color=green><b>{peer.m_playerName}</b></color> set your hair to <color=green><b>{hair}</b></color>.</color>");
+            }
+        }
+
+        [ChatCommand("SetBeard", "Sets Character Beard", requireAdmin: true, aliases: new[] { "Beard" })]
+        private void Command_SetBeard(ZNetPeer peer, string beard, ZNetPeer target = null)
+        {
+            if (target == null)
+                target = peer;
+
+            var player = target.GetPlayer();
+
+            player.SetBeard(beard);
+            peer.SendServerMessage($"<color=white>Beard for <color=green><b>{player.GetPlayerName()}</b></color> to <color=green><b>{beard}</b></color>.</color>");
+
+            if (peer != target)
+            {
+                target.SendServerMessage($"<color=white><color=green><b>{peer.m_playerName}</b></color> set your beard to <color=green><b>{beard}</b></color>.</color>");
             }
         }
     }

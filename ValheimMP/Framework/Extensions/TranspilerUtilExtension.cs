@@ -4,22 +4,22 @@
     {
         public static bool IsOwnerOrServer(this ZNetView netView)
         {
-            return netView.IsOwner() || ValheimMPPlugin.IsDedicated;
+            return netView.IsOwner() || ValheimMP.IsDedicated;
         }
 
         public static bool IsOwnerOrServer(this Character chr)
         {
-            return chr.IsOwner() || ValheimMPPlugin.IsDedicated;
+            return chr.IsOwner() || ValheimMP.IsDedicated;
         }
 
         public static bool IsOwnerOrServer(this IWaterInteractable chr)
         {
-            return chr.IsOwner() || ValheimMPPlugin.IsDedicated;
+            return chr.IsOwner() || ValheimMP.IsDedicated;
         }
         
         public static bool IsOwnerOrServer(this ZDO zDO)
         {
-            return zDO.IsOwner() || ValheimMPPlugin.IsDedicated;
+            return zDO.IsOwner() || ValheimMP.IsDedicated;
         }
     }
 }

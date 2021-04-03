@@ -11,39 +11,40 @@ using ValheimMP.Framework;
 namespace ValheimMP
 {
     [BepInPlugin(BepInGUID, PluginName, Version)]
-    public class ValheimMPPlugin : BaseUnityPlugin
+    public class ValheimMP : BaseUnityPlugin
     {
+        #region Private
+        private Harmony m_harmonyHandshake;
+        private Harmony m_harmony;
+        #endregion
+
+        #region Constants
         public const string Author = "Sarcen";
         public const string PluginName = "ValheimMP";
         public const string Version = "0.1.0";
         public const string BepInGUID = "BepIn." + Author + "." + PluginName;
         public const string HarmonyGUID = "Harmony." + Author + "." + PluginName;
         public const string ProtocolIdentifier = "VMP";
+        #endregion
 
+        #region Properties
         public static string CurrentVersion { get { return Version; } }
 
-        public static ValheimMPPlugin Instance { get; private set; }
+        public static ValheimMP Instance { get; private set; }
+
+        public static bool IsDedicated { get; private set; }
 
         public InventoryManager InventoryManager { get; private set; }
-
-        private Harmony m_harmonyHandshake;
-        private Harmony m_harmony;
 
         /// <summary>
         /// If the current session is on a Valheim MP server (or if we are a Valheim MP server)
         /// </summary>
         public bool IsOnValheimMPServer { get; private set; } = true;
 
-        /// <summary>
-        /// Whether or not this is a dedicated server!
-        /// </summary>
-        public static bool IsDedicated { get; private set; }
+        public Dictionary<int, Dictionary<string, int>> ZDODebug { get; private set; } = new Dictionary<int, Dictionary<string, int>>();
+        #endregion
 
-        /// <summary>
-        /// DebugOutputZDO information
-        /// </summary>
-        public Dictionary<int, Dictionary<string, int>> ZDODebug { get; internal set; } = new Dictionary<int, Dictionary<string, int>>();
-
+        #region Events
         /// <summary>
         /// Fired when you connect to a Valheim MP server as Client
         /// 
@@ -51,8 +52,8 @@ namespace ValheimMP
         /// </summary>
         /// <param name="serverRpc">RPC of the server</param>
         /// <returns>False if we should abort. Only useful if you want to disconnect the user. Manual disconnect should still be called.</returns>
-        public OnClientConnectDel OnClientConnect { get; set; }
-        public delegate bool OnClientConnectDel(ZRpc serverRpc);
+        public OnClientConnectDelegate OnClientConnect { get; set; }
+        public delegate bool OnClientConnectDelegate(ZRpc serverRpc);
 
         /// <summary>
         /// Fired when someone joins the server.
@@ -61,28 +62,42 @@ namespace ValheimMP
         /// </summary>
         /// <param name="peer"></param>
         /// <returns>False if we should abort. Only useful if you want to disconnect the user. Manual disconnect should still be called.</returns>
-        public OnServerConnectDel OnServerConnect { get; set; }
-        public delegate bool OnServerConnectDel(ZNetPeer peer);
+        public OnServerConnectDelegate OnServerConnect { get; set; }
+        public delegate bool OnServerConnectDelegate(ZNetPeer peer);
 
         /// <summary>
         /// Fired when a chat message is received on the server.
         /// </summary>
-        /// <returns>False if we should supress the message from being send.</returns>
-        public OnChatMessageDel OnChatMessage { get; set; }
-        public delegate bool OnChatMessageDel(ZNetPeer peer, Player player, ref string playerName, ref Vector3 messageLocation, ref float messageDistance, ref string text, ref Talker.Type type);
+        /// <returns>False if we should suppress the message from being send.</returns>
+        public OnChatMessageDelegate OnChatMessage { get; set; }
+        public delegate bool OnChatMessageDelegate(ZNetPeer peer, Player player, ref string playerName, ref Vector3 messageLocation, ref float messageDistance, ref string text, ref Talker.Type type);
+
+        /// <summary>
+        /// Fired on clients after they successfully sold an item
+        /// </summary>
+        public OnTraderClientSoldItemDelegate OnTraderClientSoldItem { get; set; }
+        public delegate bool OnTraderClientSoldItemDelegate(Trader trader, int itemHash, int count);
+
+        /// <summary>
+        /// Fired on clients after they successfully bought an item
+        /// </summary>
+        public OnTraderClientBoughtItemDelegate OnTraderClientBoughtItem { get; set; }
+        public delegate bool OnTraderClientBoughtItemDelegate(Trader trader, int itemHash, int count);
 
         /// <summary>
         /// Fired when the plugin is patched into the game
         /// </summary>
-        public OnPluginActivateDel OnPluginActivate { get; set; }
-        public delegate void OnPluginActivateDel();
+        public OnPluginActivateDelegate OnPluginActivate { get; set; }
+        public delegate void OnPluginActivateDelegate();
 
         /// <summary>
         /// Fired when the plugin is unpatched from the game
         /// </summary>
-        public OnPluginDeactivateDel OnPluginDeactivate { get; set; }
-        public delegate void OnPluginDeactivateDel();
+        public OnPluginDeactivateDelegate OnPluginDeactivate { get; set; }
+        public delegate void OnPluginDeactivateDelegate();
+        #endregion
 
+        #region Configuration
         /// <summary>
         /// Path where characters are stored
         /// </summary>
@@ -180,6 +195,10 @@ namespace ValheimMP
         public ConfigEntry<float> ForcedPVPDistanceForBiomesOnly { get; internal set; }
         public Dictionary<Heightmap.Biome, ConfigEntry<bool>> ForcedPVPBiomes { get; internal set; }
 
+        public ConfigEntry<int> ServerObjectsCreatedPerFrame { get; internal set; }
+
+        #endregion
+
         // Awake is called once when both the game and the plug-in are loaded
         private void Awake()
         {
@@ -200,8 +219,19 @@ namespace ValheimMP
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(FejdStartup), "Awake"),
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "Awake")));
 
+            m_harmonyHandshake.Patch(AccessTools.Method(typeof(FejdStartup), "ShowCharacterSelection"),
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "SetupCharacterPreview")));
+
+            m_harmonyHandshake.Patch(AccessTools.Method(typeof(FejdStartup), "SetupCharacterPreview"),
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "SetupCharacterPreview")));
+
+            m_harmonyHandshake.Patch(AccessTools.Method(typeof(FejdStartup), "OnCharacterStart"),
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "SetupCharacterPreview")));
+
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(ZSteamSocket), "RegisterGlobalCallbacks"),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(ZSteamSocket_Patch), "RegisterGlobalCallbacks")));
+
+            
 
             m_harmony = new Harmony(HarmonyGUID);
             if (isDedicated())
@@ -217,6 +247,8 @@ namespace ValheimMP
             ArtificialPing = Config.Bind("Debug", "ArtificialPing", 0f, "Add this delay in ms to your incoming and outgoing packets.");
             RespawnDelay = Config.Bind("Server", "RespawnDelay", 10f, "Minimum time it takes to respawn.");
             DoNotHideCharacterWhenCameraClose = Config.Bind("Client", "DoNotHideCharacterWhenCameraClose", false, "");
+
+            ServerObjectsCreatedPerFrame = Config.Bind("Server", "ServerObjectsCreatedPerFrame", 100, "Number of objects per frame the server instantiates while loading sectors, too many will cause stutters, too few will make it so you see the world loading in slowly."); ;
 
             ClientAttackCompensationWindow = Config.Bind("Server", "ClientAttackCompensationWindow", 0.1f,
                 "Max amount of time window for hits to be compensated (towards client hit detection).");

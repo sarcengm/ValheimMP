@@ -22,7 +22,7 @@ namespace ValheimMP.Patches
             if (ZNet.instance != null && ZNet.instance.IsServer())
             {
                 SavePeer(__instance);
-                ValheimMPPlugin.Instance.InventoryManager.RemoveListenerFromAll(__instance.m_uid);
+                ValheimMP.Instance.InventoryManager.RemoveListenerFromAll(__instance.m_uid);
             }
         }
 
@@ -40,6 +40,8 @@ namespace ValheimMP.Patches
             }
 
             __instance.m_playerProfile.Save();
+
+            Game_Patch.WorldSave();
         }
     }
 

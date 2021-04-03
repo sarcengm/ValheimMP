@@ -7,7 +7,7 @@ namespace ValheimMP.Framework.Extensions
         public static float GetMaxSqrInteractRange(this Player player)
         {
             var range = player.m_maxInteractDistance;
-            if (ValheimMPPlugin.IsDedicated)
+            if (ValheimMP.IsDedicated)
                 range *= 1.1f;
             range *= range;
             return range;
