@@ -1,14 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace ValheimMP.Framework.Extensions
 {
     public static class ByteDictionaryExtension
     {
+        public static bool CustomDataExists(this Dictionary<int, byte[]> dic, string name)
+        {
+            return dic.ContainsKey(name.GetStableHashCode());
+        }
+
         public static void SetCustomData(this Dictionary<int, byte[]> dic, string name, byte[] data)
         {
             dic.SetCustomData(name.GetStableHashCode(), data);

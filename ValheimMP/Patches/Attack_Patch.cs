@@ -138,7 +138,7 @@ namespace ValheimMP.Patches
 
             if (attack.m_lastClientMeleeHits.Count > 10)
             {
-                ZLog.LogWarning($"Discarding client hits with more then 10 hits: {attack.m_lastClientMeleeHits.Count} {player.GetPlayerName()} {player.GetPlayerID()}");
+                ValheimMP.LogWarning($"Discarding client hits with more then 10 hits: {attack.m_lastClientMeleeHits.Count} {player.GetPlayerName()} {player.GetPlayerID()}");
 
                 // This is going to be one of those, I don't believe you! moments.
                 attack.m_lastClientMeleeHitTime = 0f;

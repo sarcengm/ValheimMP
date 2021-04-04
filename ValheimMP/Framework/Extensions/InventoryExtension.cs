@@ -1,10 +1,17 @@
-﻿namespace ValheimMP.Framework.Extensions
+﻿using System.Linq;
+
+namespace ValheimMP.Framework.Extensions
 {
     public static class InventoryExtension
     {
         public static ZDOID GetZDOID(this Inventory inventory)
         {
             return inventory.m_nview.m_zdo.m_uid;
+        }
+
+        public static ItemDrop.ItemData GetItemByID(this Inventory inventory, int itemId)
+        {
+            return inventory.m_inventory.SingleOrDefault(k => k.m_id == itemId);
         }
 
         /// <summary>

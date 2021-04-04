@@ -23,7 +23,6 @@ namespace ValheimMP.Patches
             {
                 return true;
             }
-
             __instance.UpdateRespawn(Time.fixedDeltaTime);
             return false;
         }
@@ -142,7 +141,7 @@ namespace ValheimMP.Patches
                 {
                     if (!ZoneSystem.instance.GetGroundHeight(logoutPoint, out var height))
                     {
-                        ZLog.Log("Invalid spawn point, no ground " + logoutPoint);
+                        ValheimMP.Log("Invalid spawn point, no ground " + logoutPoint);
                         peer.m_respawnWait = 0f;
                         peer.m_playerProfile.ClearLoguoutPoint();
                         point = Vector3.zero;
@@ -156,7 +155,7 @@ namespace ValheimMP.Patches
                     }
                     point.y += 0.25f;
                     usedLogoutPoint = true;
-                    ZLog.Log("Spawned after " + peer.m_respawnWait);
+                    ValheimMP.Log("Spawned after " + peer.m_respawnWait);
                     return true;
                 }
                 point = Vector3.zero;
@@ -187,7 +186,7 @@ namespace ValheimMP.Patches
 
         private static void SpawnPlayer(ref Game __instance, ZNetPeer peer, Vector3 spawnPoint)
         {
-            ZLog.Log($"Spawning player for peer: {peer.m_uid}");
+            ValheimMP.Log($"Spawning player for peer: {peer.m_uid}");
             Player player = UnityEngine.Object.Instantiate(__instance.m_playerPrefab, spawnPoint, Quaternion.identity).GetComponent<Player>();
 
             Player.m_localPlayer = null;

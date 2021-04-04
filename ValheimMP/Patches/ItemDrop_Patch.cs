@@ -6,7 +6,7 @@ namespace ValheimMP.Patches
     [HarmonyPatch]
     internal class ItemDrop_Patch
     {
-        private static int itemDataId = 0;
+        internal static int itemDataId = 0;
 
         [HarmonyPatch(typeof(ItemDrop.ItemData), MethodType.Constructor)]
         [HarmonyPostfix]

@@ -32,14 +32,14 @@ namespace ValheimMP.Patches
             var gameObj = netView.transform.Find(name);
             if(gameObj == null)
             {
-                ZLog.Log($"Missing Chair game object: {name} in {netView}");
+                ValheimMP.Log($"Missing Chair game object: {name} in {netView}");
                 return;
             }
 
             var chair = gameObj.GetComponent<Chair>();
             if (chair == null)
             {
-                ZLog.Log($"Missing Chair component: {name} in {netView}->{gameObj}");
+                ValheimMP.Log($"Missing Chair component: {name} in {netView}->{gameObj}");
                 return;
             }
 

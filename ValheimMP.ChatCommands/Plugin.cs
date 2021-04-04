@@ -1,7 +1,9 @@
 ﻿using BepInEx;
+using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using ValheimMP.Framework;
 using ValheimMP.Framework.Extensions;
@@ -17,8 +19,6 @@ namespace ValheimMP.ChatCommands
         public const string Version = "1.0.0";
         public const string BepInGUID = "BepIn." + Author + "." + Name;
 
-        public ChatCommandManager ChatCommandManager { get; private set; }
-
         public static ChatCommands Instance { get; private set; }
 
         public void Awake()
@@ -31,24 +31,56 @@ namespace ValheimMP.ChatCommands
 
             Instance = this;
 
-            ChatCommandManager = new ChatCommandManager();
-            ValheimMP.Instance.OnChatMessage += ChatCommandManager.OnChatMessage;
-
-            ChatCommandManager.RegisterAll(this);
-        }
-
-        /// <summary>
-        /// Register all chat commands in this object.
-        /// </summary>
-        /// <param name="obj"></param>
-        public void RegisterAll(object obj)
-        {
-            ChatCommandManager.RegisterAll(obj);
+            ValheimMP.Instance.ChatCommandManager.RegisterAll(this);
         }
 
         public static void Log(string message)
         {
             Instance.Logger.LogInfo(message);
+        }
+
+        [ChatCommand("Help", "List all available commands, or show more info about a certain command.", aliases: new[] { "H", "?" })]
+        private void Command_Help(ZNetPeer peer, string command = null)
+        {
+            if(string.IsNullOrWhiteSpace(command))
+            {
+                var sb = new StringBuilder();
+                IEnumerable<ChatCommandManager.CommandInfo> commands = ValheimMP.Instance.ChatCommandManager.GetCommands();
+
+                if (!peer.IsAdmin())
+                    commands = commands.Where(k => !k.Command.AdminRequired);
+
+                commands = commands.OrderBy(k => k.Command.AdminRequired).ThenBy(k => k.Command.Name);
+                foreach(var cmd in commands)
+                {
+                    sb.AppendLine(ChatCommandManager.GetCommandSyntax(cmd));
+                }
+
+                peer.SendServerMessage(sb.ToString());
+            }
+            else
+            {
+                IEnumerable<ChatCommandManager.CommandInfo> commands = ValheimMP.Instance.ChatCommandManager.GetCommands();
+
+                if (!peer.IsAdmin())
+                    commands = commands.Where(k => !k.Command.AdminRequired);
+
+                ChatCommandManager.CommandInfo foundCommand;
+                if((foundCommand = commands.SingleOrDefault(k=>k.Command.GetAliases().Contains(command, StringComparer.InvariantCultureIgnoreCase))) != null)
+                {
+                    var sb = new StringBuilder();
+                    sb.AppendLine(ChatCommandManager.GetCommandSyntax(foundCommand));
+                    sb.AppendLine($"<i>{foundCommand.Command.Description}</i>");
+                    var aliases = foundCommand.Command.GetAliases();
+                    if(aliases.Length > 1)
+                        sb.AppendLine($"Aliases: {aliases.Join()}");
+                    peer.SendServerMessage(ChatCommandManager.GetCommandSyntax(foundCommand));
+                }
+                else
+                {
+                    peer.SendServerMessage($"Chat command \"{command}\" not found.");
+                }
+            }
         }
 
         [ChatCommand("Claim", "Claim all wards in a nearby area.", requireAdmin: true)]

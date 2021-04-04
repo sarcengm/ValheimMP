@@ -1,5 +1,4 @@
 ﻿using HarmonyLib;
-using ValheimMP.Framework;
 using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches

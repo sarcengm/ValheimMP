@@ -42,7 +42,7 @@ namespace ValheimMP.Patches
 
             stablehashNames[__result] = str;
             stablehashLookup[str] = __result;
-            //ZLog.Log("StablehashCode: " + str + ": " + __result);
+            //ValheimMP.Log("StablehashCode: " + str + ": " + __result);
             return false;
         }
 

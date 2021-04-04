@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
-namespace ValheimMP.ChatCommands
+namespace ValheimMP.Framework
 {
     [AttributeUsage(AttributeTargets.Method)]
     public class ChatCommandAttribute : Attribute
@@ -10,6 +11,15 @@ namespace ValheimMP.ChatCommands
         internal HashSet<string> m_aliases;
         internal string m_description;
         internal bool m_requireAdmin;
+
+        public string Name { get { return m_name; } }
+        public string Description { get { return m_description; } }
+        public bool AdminRequired { get { return m_requireAdmin; } }
+        public string[] GetAliases()
+        { 
+            return m_aliases.ToArray(); 
+        }
+
 
         public ChatCommandAttribute(string name, string description, bool requireAdmin = false, string[] aliases = null)
         {

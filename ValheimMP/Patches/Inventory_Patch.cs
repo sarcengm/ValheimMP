@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using System.Linq;
-using ValheimMP.Framework;
 
 namespace ValheimMP.Patches
 {
@@ -62,19 +61,19 @@ namespace ValheimMP.Patches
             var toInv = ValheimMP.Instance.InventoryManager.GetInventory(toId);
             if (toInv == null)
             {
-                ZLog.Log($"Missing to inventory RPC_MoveItemToThis toId:{toId} fromId:{fromId} itemId:{itemId} ");
+                ValheimMP.Log($"Missing to inventory RPC_MoveItemToThis toId:{toId} fromId:{fromId} itemId:{itemId} ");
                 return;
             }
             var fromInv = ValheimMP.Instance.InventoryManager.GetInventory(fromId);
             if (fromInv == null)
             {
-                ZLog.Log($"Missing from inventory RPC_MoveItemToThis toId:{toId} fromId:{fromId} itemId:{itemId} ");
+                ValheimMP.Log($"Missing from inventory RPC_MoveItemToThis toId:{toId} fromId:{fromId} itemId:{itemId} ");
                 return;
             }
             var item = fromInv.m_inventory.SingleOrDefault(k => k.m_id == itemId);
             if (item == null)
             {
-                ZLog.Log($"Missing item RPC_MoveItemToThis toId:{toId} fromId:{fromId} itemId:{itemId} ");
+                ValheimMP.Log($"Missing item RPC_MoveItemToThis toId:{toId} fromId:{fromId} itemId:{itemId} ");
                 return;
             }
 
@@ -83,12 +82,12 @@ namespace ValheimMP.Patches
                 return;
             if (!ValheimMP.Instance.InventoryManager.IsListener(peer.m_uid, toInv))
             {
-                ZLog.Log($"RPC_MoveItemToThis without being listener on the source container");
+                ValheimMP.Log($"RPC_MoveItemToThis without being listener on the source container");
                 return;
             }
             if (!ValheimMP.Instance.InventoryManager.IsListener(peer.m_uid, fromInv))
             {
-                ZLog.Log($"RPC_MoveItemToThis without being listener on the target container");
+                ValheimMP.Log($"RPC_MoveItemToThis without being listener on the target container");
                 return;
             }
 

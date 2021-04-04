@@ -14,7 +14,7 @@ namespace ValheimMP.Patches
         //{
         //    if (ZNet.instance.IsServer() && __instance.IsPlayer())
         //    {
-        //        ZLog.Log("Post UpdateWalking Sleeping?: " + __instance.m_body.IsSleeping() + " velocity: " + __instance.m_body.velocity + " position: " + __instance.transform.position + " m_moveDir: " + __instance + ":" + __instance.m_moveDir);
+        //        ValheimMP.Log("Post UpdateWalking Sleeping?: " + __instance.m_body.IsSleeping() + " velocity: " + __instance.m_body.velocity + " position: " + __instance.transform.position + " m_moveDir: " + __instance + ":" + __instance.m_moveDir);
         //    }
         //}
 

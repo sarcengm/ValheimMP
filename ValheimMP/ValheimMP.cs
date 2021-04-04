@@ -7,6 +7,7 @@ using System.Linq;
 using ValheimMP.Patches;
 using BepInEx.Configuration;
 using ValheimMP.Framework;
+using BepInEx.Logging;
 
 namespace ValheimMP
 {
@@ -35,6 +36,8 @@ namespace ValheimMP
         public static bool IsDedicated { get; private set; }
 
         public InventoryManager InventoryManager { get; private set; }
+
+        public ChatCommandManager ChatCommandManager { get; private set; }
 
         /// <summary>
         /// If the current session is on a Valheim MP server (or if we are a Valheim MP server)
@@ -212,15 +215,13 @@ namespace ValheimMP
         public ConfigEntry<float> ForcedPVPDistanceForBiomesOnly { get; internal set; }
         public Dictionary<Heightmap.Biome, ConfigEntry<bool>> ForcedPVPBiomes { get; internal set; }
         public ConfigEntry<int> ServerObjectsCreatedPerFrame { get; internal set; }
-
+        public ConfigEntry<int> ChatMaxHistory { get; internal set; }
         #endregion
 
         // Awake is called once when both the game and the plug-in are loaded
         private void Awake()
         {
             Instance = this;
-
-            InventoryManager = new InventoryManager();
 
             m_harmonyHandshake = new Harmony(HarmonyGUID + ".hs");
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(ZNet), "SendPeerInfo"),
@@ -244,13 +245,14 @@ namespace ValheimMP
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(ZSteamSocket), "RegisterGlobalCallbacks"),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(ZSteamSocket_Patch), "RegisterGlobalCallbacks")));
 
-            
-
             m_harmony = new Harmony(HarmonyGUID);
             if (isDedicated())
             {
                 m_harmony.PatchAll();
             }
+
+            InventoryManager = new InventoryManager(this);
+            ChatCommandManager = new ChatCommandManager(this);
 
             CharacterPath = Config.Bind("Server", "CharacterPath", "vmp/", "Where it stores the server side characters.");
             UseZDOCompression = Config.Bind("Server", "UseZDOCompression", true, "Whether or not to compress ZDO data.");
@@ -277,8 +279,12 @@ namespace ValheimMP
 
             ForcedPVPBiomes = new Dictionary<Heightmap.Biome, ConfigEntry<bool>>();
 
+            ChatMaxHistory = Config.Bind("Client", "ChatMaxHistory", 30, "Amount of lines you can scroll back in the history of chat (with page up\\down)");
+
             foreach (Heightmap.Biome val in typeof(Heightmap.Biome).GetEnumValues())
             {
+                if (val == Heightmap.Biome.None || val == Heightmap.Biome.BiomesMax)
+                    continue;
                 ForcedPVPBiomes.Add(val, Config.Bind("ForcedPVP", val.ToString(), false, "Force PVP on in this biome."));
             }
 
@@ -314,6 +320,21 @@ namespace ValheimMP
                 "WardMonsterVPlayerReflectDamage", 0f,
                 "Monster attacks player (with access) in a ward.\n" +
                 "And receives this multiplier worth of his own damage in return.");
+        }
+
+        internal static void Log(object o)
+        {
+            Instance.Logger.LogInfo(o);
+        }
+
+        internal static void LogWarning(object o)
+        {
+            Instance.Logger.LogWarning(o);
+        }
+
+        internal static void LogError(object o)
+        {
+            Instance.Logger.LogError(o);
         }
 
         private static bool isDedicated()
@@ -447,11 +468,11 @@ namespace ValheimMP
             {
                 var current = ordererdList[i];
                 var obj = ZNetScene.instance.GetPrefab(current.Key);
-                Logger.LogInfo($"{obj?.name} ({current.Key})");
+                Log($"{obj?.name} ({current.Key})");
                 for (int j = 0; j < current.Value.Count; j++)
                 {
                     var currentsub = current.Value[j];
-                    Logger.LogInfo($"  {currentsub.Key}: {currentsub.Value}");
+                    Log($"  {currentsub.Key}: {currentsub.Value}");
                 }
             }
 #endif

@@ -30,6 +30,7 @@ namespace ValheimMP.Framework
         // special flag set only when the item has been crafted for the first time
         // for triggers related to crafted item completion
         m_crafted = 1 << 11,
+        m_craftedData = 1 << 12,
     }
 
     public class NetworkedItemData
@@ -72,11 +73,19 @@ namespace ValheimMP.Framework
             m_id = itemData.m_id;
             pkg.Write(itemData.m_id);
 
-            if(itemData.m_crafted)
+            if(itemData.m_crafted != 0)
             {
                 // this flag is useful only once, only the person who created it will first serialize it.
-                itemData.m_crafted = false;
+                pkg.Write(itemData.m_crafted);
+                itemData.m_crafted = 0;
                 flags |= NetworkedItemDataFlags.m_crafted;
+
+                if (itemData.m_craftedData != null)
+                {
+                    pkg.Write(itemData.m_craftedData);
+                    itemData.m_craftedData = null;
+                    flags |= NetworkedItemDataFlags.m_craftedData;
+                }
             }
             if (itemData.m_dropPrefab.name != m_dropPrefab)
             {
@@ -158,6 +167,28 @@ namespace ValheimMP.Framework
                 pkg.SetPos(customDataEndPos);
             }
 
+#if DEBUG_INVENTORY
+            if (flags != NetworkedItemDataFlags.none)
+            {
+                var sb = new List<string>();
+                sb.Add($"m_id:{m_id}");
+                if ((flags & NetworkedItemDataFlags.m_destroy) == NetworkedItemDataFlags.m_destroy) sb.Add($"m_destroy");
+                if ((flags & NetworkedItemDataFlags.m_dropPrefab) == NetworkedItemDataFlags.m_dropPrefab) sb.Add($"m_dropPrefab:{m_dropPrefab}");
+                if ((flags & NetworkedItemDataFlags.m_stack) == NetworkedItemDataFlags.m_stack) sb.Add($"m_stack:{m_stack}");
+                if ((flags & NetworkedItemDataFlags.m_quality) == NetworkedItemDataFlags.m_quality) sb.Add($"m_quality:{m_quality}");
+                if ((flags & NetworkedItemDataFlags.m_variant) == NetworkedItemDataFlags.m_variant) sb.Add($"m_variant:{m_variant}");
+                if ((flags & NetworkedItemDataFlags.m_crafterID) == NetworkedItemDataFlags.m_crafterID) sb.Add($"m_crafterID:{m_crafterID}");
+                if ((flags & NetworkedItemDataFlags.m_crafterName) == NetworkedItemDataFlags.m_crafterName) sb.Add($"m_crafterName:{m_crafterName}");
+                if ((flags & NetworkedItemDataFlags.m_durability) == NetworkedItemDataFlags.m_durability) sb.Add($"m_durability:{m_durability}");
+                if ((flags & NetworkedItemDataFlags.m_gridPos) == NetworkedItemDataFlags.m_gridPos) sb.Add($"m_gridPos:{m_gridPos}");
+                if ((flags & NetworkedItemDataFlags.m_equiped) == NetworkedItemDataFlags.m_equiped) sb.Add($"m_equiped:{m_equiped}");
+                if ((flags & NetworkedItemDataFlags.m_customData) == NetworkedItemDataFlags.m_customData) sb.Add($"m_customData");
+                if ((flags & NetworkedItemDataFlags.m_crafted) == NetworkedItemDataFlags.m_crafted) sb.Add($"m_crafted");
+                if ((flags & NetworkedItemDataFlags.m_craftedData) == NetworkedItemDataFlags.m_craftedData) sb.Add($"m_craftedData");
+                ValheimMP.Log($"Serialize item {sb.Join()} ");
+            }
+#endif
+
             var endPos = pkg.GetPos();
             pkg.SetPos(flagsPos);
             if (flags != NetworkedItemDataFlags.none)
@@ -183,8 +214,20 @@ namespace ValheimMP.Framework
             var flags = (NetworkedItemDataFlags)intFlags;
 
             var m_id = pkg.ReadInt();
+            var craftTrigger = 0;
+            byte[] triggerData = null;
 
             var itemData = targetInventory.m_inventory.SingleOrDefault(k => k.m_id == m_id);
+
+            if ((flags & NetworkedItemDataFlags.m_crafted) == NetworkedItemDataFlags.m_crafted)
+            {
+                // this flag is useful only once, only the person who created it will first serialize it.
+                craftTrigger = pkg.ReadInt();
+                if ((flags & NetworkedItemDataFlags.m_craftedData) == NetworkedItemDataFlags.m_craftedData)
+                {
+                    triggerData = pkg.ReadByteArray();
+                }
+            }
 
             if ((flags & NetworkedItemDataFlags.m_dropPrefab) == NetworkedItemDataFlags.m_dropPrefab)
             {
@@ -192,7 +235,7 @@ namespace ValheimMP.Framework
 
                 if (itemData != null)
                 {
-                    ZLog.Log("m_dropPrefab changed?");
+                    ValheimMP.Log("m_dropPrefab changed?");
                     // setting a name? :thinking:
                     // Like this maybe? I don't think item name changes should ever happen though
                     targetInventory.RemoveItem(itemData);
@@ -290,7 +333,9 @@ namespace ValheimMP.Framework
                 if ((flags & NetworkedItemDataFlags.m_gridPos) == NetworkedItemDataFlags.m_gridPos) sb.Add($"m_gridPos:{m_gridPos}");
                 if ((flags & NetworkedItemDataFlags.m_equiped) == NetworkedItemDataFlags.m_equiped) sb.Add($"m_equiped:{m_equiped}");
                 if ((flags & NetworkedItemDataFlags.m_customData) == NetworkedItemDataFlags.m_customData) sb.Add($"m_customData");
-                ZLog.Log($"Deserialize item {sb.Join()} ");
+                if ((flags & NetworkedItemDataFlags.m_crafted) == NetworkedItemDataFlags.m_crafted) sb.Add($"m_crafted");
+                if ((flags & NetworkedItemDataFlags.m_craftedData) == NetworkedItemDataFlags.m_craftedData) sb.Add($"m_craftedData");
+                ValheimMP.Log($"Deserialize item {sb.Join()} ");
             }
 #endif
 
@@ -349,7 +394,7 @@ namespace ValheimMP.Framework
 
             if(itemData != null && (flags & NetworkedItemDataFlags.m_crafted) == NetworkedItemDataFlags.m_crafted)
             {
-                m_inventoryManager.OnItemCrafted?.Invoke(targetInventory, itemData);
+                m_inventoryManager.OnItemCrafted?.Invoke(craftTrigger, targetInventory, itemData, triggerData);
             }
 
             if ((flags & NetworkedItemDataFlags.m_destroy) == NetworkedItemDataFlags.m_destroy)

@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -8,15 +7,16 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 using ValheimMP.Framework.Extensions;
 
-namespace ValheimMP.ChatCommands
+namespace ValheimMP.Framework
 {
     public class ChatCommandManager
     {
-        public struct CommandInfo
+        public class CommandInfo
         {
             internal object m_methodObj;
             internal MethodBase m_method;
             internal ChatCommandAttribute m_command;
+            public ChatCommandAttribute Command { get { return m_command; } }
         };
 
         internal List<CommandInfo> m_commands;
@@ -25,10 +25,15 @@ namespace ValheimMP.ChatCommands
 
         public static string CommandToken { get; } = "/";
 
-        public ChatCommandManager()
+        private ValheimMP m_valheimMP;
+
+        public ChatCommandManager(ValheimMP valheimMP)
         {
-            m_commands = new List<CommandInfo>();
             Instance = this;
+
+            m_commands = new List<CommandInfo>();
+            m_valheimMP = valheimMP;
+            m_valheimMP.OnChatMessage += OnChatMessage;
         }
 
         public void RegisterAll(object obj)
@@ -40,10 +45,15 @@ namespace ValheimMP.ChatCommands
                 if (command != null)
                 {
                     var cmd = new CommandInfo() { m_methodObj = methods[i].IsStatic ? null : obj, m_method = methods[i], m_command = command };
-                    ChatCommands.Log($"Registered ChatCommand: {GetCommandSyntax(cmd)}");
+                    ValheimMP.Log($"Registered ChatCommand: {GetCommandSyntax(cmd)}");
                     m_commands.Add(cmd);
                 }
             }
+        }
+
+        public List<CommandInfo> GetCommands()
+        {
+            return m_commands;
         }
 
         public void RegisterCommand(object obj, string methodName)
@@ -53,12 +63,12 @@ namespace ValheimMP.ChatCommands
 
         public void RegisterCommand(MethodBase method)
         {
-            if(!method.IsStatic)
+            if (!method.IsStatic)
             {
-                ChatCommands.Log($"RegisterCommand: Register non static method without instance.");
+                ValheimMP.Log($"RegisterCommand: Register non static method without instance.");
                 return;
             }
-            
+
             RegisterCommand(null, method);
         }
 
@@ -66,25 +76,25 @@ namespace ValheimMP.ChatCommands
         {
             if (Instance == null)
             {
-                ChatCommands.Log($"RegisterCommand: No command manager available.");
+                ValheimMP.Log($"RegisterCommand: No command manager available.");
                 return;
             }
 
             if (method == null)
             {
-                ChatCommands.Log($"RegisterCommand: Missing method.");
+                ValheimMP.Log($"RegisterCommand: Missing method.");
                 return;
             }
 
             var command = method.GetCustomAttribute<ChatCommandAttribute>();
             if (command == null)
             {
-                ChatCommands.Log($"RegisterCommand: {method.Name} Missing ChatCommandAttribute.");
+                ValheimMP.Log($"RegisterCommand: {method.Name} Missing ChatCommandAttribute.");
                 return;
             }
 
             var cmd = new CommandInfo() { m_methodObj = obj, m_method = method, m_command = command };
-            ChatCommands.Log($"Registered ChatCommand: {GetCommandSyntax(cmd)}");
+            ValheimMP.Log($"Registered ChatCommand: {GetCommandSyntax(cmd)}");
             m_commands.Add(cmd);
         }
 
@@ -106,7 +116,7 @@ namespace ValheimMP.ChatCommands
                 {
                     if (command.m_command.m_aliases.Contains(commandText))
                     {
-                        if(command.m_command.m_requireAdmin && !peer.IsAdmin())
+                        if (command.m_command.m_requireAdmin && !peer.IsAdmin())
                         {
                             peer.SendServerMessage($"Command {command.m_command.m_name} requires admin access.");
                             break;
@@ -123,7 +133,7 @@ namespace ValheimMP.ChatCommands
                         catch (Exception ex)
                         {
                             peer.SendServerMessage($"Error in {command.m_command.m_name}: {ex.Message}");
-                            ChatCommands.Log(ex.ToString());
+                            ValheimMP.Log(ex.ToString());
                         }
                         break;
                     }
@@ -137,12 +147,10 @@ namespace ValheimMP.ChatCommands
 
         private void SendCommandSyntax(ZNetPeer peer, Player player, CommandInfo command)
         {
-            string str = GetCommandSyntax(command);
-
-            peer.SendServerMessage(CommandToken + str);
+            peer.SendServerMessage(GetCommandSyntax(command));
         }
 
-        private static string GetCommandSyntax(CommandInfo command)
+        public static string GetCommandSyntax(CommandInfo command)
         {
             List<string> paramstr = new();
 
@@ -163,7 +171,7 @@ namespace ValheimMP.ChatCommands
                 paramstr.Add(argstr);
             }
 
-            var str = command.m_command.m_name + " " + paramstr.Join();
+            var str = CommandToken + command.m_command.m_name + " " + paramstr.Join();
             return str;
         }
 

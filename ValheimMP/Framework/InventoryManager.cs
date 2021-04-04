@@ -8,11 +8,17 @@ namespace ValheimMP.Framework
 {
     public class InventoryManager
     {
-        private float inventorySyncTimer = 0;
+        private float m_inventorySyncTimer = 0;
         private Dictionary<ZDOID, Dictionary<int, InventoryWrapper>> m_inventoryWrappers = new Dictionary<ZDOID, Dictionary<int, InventoryWrapper>>();
         private HashSet<InventoryWrapper> m_changedInventories = new HashSet<InventoryWrapper>();
+        private ValheimMP m_valheimMP;
 
-        public delegate void OnItemCraftedDelegate(Inventory inventory, ItemDrop.ItemData itemData);
+        public InventoryManager(ValheimMP valheimMP)
+        {
+            m_valheimMP = valheimMP;
+        }
+
+        public delegate void OnItemCraftedDelegate(int craftTrigger, Inventory inventory, ItemDrop.ItemData itemData, byte[] triggerData);
         public OnItemCraftedDelegate OnItemCrafted { get; set; }
 
         private class InventoryWrapper
@@ -60,7 +66,7 @@ namespace ValheimMP.Framework
                 if (!listenerItemData.ContainsKey(user))
                 {
 #if DEBUG_INVENTORY
-                    ZLog.Log($"AddListener {user} {Inventory} {Inventory?.m_nview} {Inventory?.m_nview?.m_zdo} ");
+                    ValheimMP.Log($"AddListener {user} {Inventory} {Inventory?.m_nview} {Inventory?.m_nview?.m_zdo} ");
 #endif
                     listenerItemData.Add(user, new Dictionary<int, NetworkedItemData>());
 
@@ -153,7 +159,7 @@ namespace ValheimMP.Framework
                     // Shrink the stream if needed, there may be two integers of the last package if it ended up with no flags.
                     pkg.m_stream.SetLength(endPos);
 
-                    peer.m_rpc.Invoke("InventoryData", pkg);
+                    peer.m_rpc.Invoke("InventoryData", pkg.Compress());
                 }
             }
 
@@ -163,8 +169,9 @@ namespace ValheimMP.Framework
             }
         }
 
-        internal void DeserializeRPC(ZPackage pkg)
+        internal void RPC_InventoryData(ZPackage pkg)
         {
+            pkg = pkg.Decompress();
             var uid = pkg.ReadZDOID();
             var index = pkg.ReadInt();
             var count = pkg.ReadInt();
@@ -173,7 +180,7 @@ namespace ValheimMP.Framework
 
             if (inventory == null)
             {
-                ZLog.Log($"Missing inventory for inventory deserialization: {uid} index: {index} count: {count}");
+                ValheimMP.Log($"Missing inventory for inventory deserialization: {uid} index: {index} count: {count}");
                 return;
             }
 
@@ -199,7 +206,7 @@ namespace ValheimMP.Framework
             var zdo = netview.GetZDO();
             if (zdo == null)
             {
-                ZLog.Log("Register Inventory, ZDO missing.");
+                ValheimMP.Log("Register Inventory, ZDO missing.");
                 return;
             }
 
@@ -296,7 +303,7 @@ namespace ValheimMP.Framework
                 return true;
             }
 
-            ZLog.Log($"Inventory AddListener, missing inventory wrapper, inventory not registered.");
+            ValheimMP.Log($"Inventory AddListener, missing inventory wrapper, inventory not registered.");
             return false;
         }
 
@@ -314,7 +321,7 @@ namespace ValheimMP.Framework
                 return wrapper.IsListener(user);
             }
 
-            ZLog.Log($"Inventory IsListener, missing inventory wrapper, inventory not registered.");
+            ValheimMP.Log($"Inventory IsListener, missing inventory wrapper, inventory not registered.");
             return false;
         }
 
@@ -333,7 +340,7 @@ namespace ValheimMP.Framework
                 return true;
             }
 
-            ZLog.Log($"Inventory RemoveListener, missing inventory wrapper, inventory not registered.");
+            ValheimMP.Log($"Inventory RemoveListener, missing inventory wrapper, inventory not registered.");
             return false;
         }
 
@@ -345,7 +352,7 @@ namespace ValheimMP.Framework
                 return wrapper.GetListeners();
             }
 
-            ZLog.Log($"Inventory GetListeners, missing inventory wrapper, inventory not registered.");
+            ValheimMP.Log($"Inventory GetListeners, missing inventory wrapper, inventory not registered.");
             return null;
         }
 
@@ -384,12 +391,12 @@ namespace ValheimMP.Framework
 
         public void SyncAll()
         {
-            if (Time.time - inventorySyncTimer < 0.05f)
+            if (Time.time - m_inventorySyncTimer < 0.05f)
             {
                 return;
             }
 
-            inventorySyncTimer = Time.time;
+            m_inventorySyncTimer = Time.time;
 
             var list = m_changedInventories.ToList();
             foreach (var item in list)

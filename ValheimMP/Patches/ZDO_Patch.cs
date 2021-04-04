@@ -36,8 +36,8 @@ namespace ValheimMP.Patches
         {
             if (!ZNet.instance.IsServer())
             {
-                ZLog.LogWarning("ZDO.SetOwner on client");
-                ZLog.Log(new System.Diagnostics.StackTrace().ToString());
+                ValheimMP.LogWarning("ZDO.SetOwner on client");
+                ValheimMP.Log(new System.Diagnostics.StackTrace().ToString());
                 return false;
             }
 
@@ -47,8 +47,8 @@ namespace ValheimMP.Patches
                 {
                     if (__instance.m_nview == null || __instance.m_nview.GetComponent<Player>() == null)
                     {
-                        ZLog.LogWarning("SetOwner to non server! " + uid + " mine: " + ZDOMan.instance.GetMyID());
-                        ZLog.Log(new System.Diagnostics.StackTrace().ToString());
+                        ValheimMP.LogWarning("SetOwner to non server! " + uid + " mine: " + ZDOMan.instance.GetMyID());
+                        ValheimMP.Log(new System.Diagnostics.StackTrace().ToString());
                     }
                 }
                 //uid = ZDOMan.instance.GetMyID();
@@ -104,27 +104,27 @@ namespace ValheimMP.Patches
         {
             foreach (var item in __instance.m_floats)
             {
-                ZLog.Log(StringExtensionMethods_Patch.GetStableHashName(item.Key) + ": " + item.Value);
+                ValheimMP.Log(StringExtensionMethods_Patch.GetStableHashName(item.Key) + ": " + item.Value);
             }
             foreach (var item in __instance.m_ints)
             {
-                ZLog.Log(StringExtensionMethods_Patch.GetStableHashName(item.Key) + ": " + item.Value);
+                ValheimMP.Log(StringExtensionMethods_Patch.GetStableHashName(item.Key) + ": " + item.Value);
             }
             foreach (var item in __instance.m_longs)
             {
-                ZLog.Log(StringExtensionMethods_Patch.GetStableHashName(item.Key) + ": " + item.Value);
+                ValheimMP.Log(StringExtensionMethods_Patch.GetStableHashName(item.Key) + ": " + item.Value);
             }
             foreach (var item in __instance.m_quats)
             {
-                ZLog.Log(StringExtensionMethods_Patch.GetStableHashName(item.Key) + ": " + item.Value);
+                ValheimMP.Log(StringExtensionMethods_Patch.GetStableHashName(item.Key) + ": " + item.Value);
             }
             foreach (var item in __instance.m_vec3)
             {
-                ZLog.Log(StringExtensionMethods_Patch.GetStableHashName(item.Key) + ": " + item.Value);
+                ValheimMP.Log(StringExtensionMethods_Patch.GetStableHashName(item.Key) + ": " + item.Value);
             }
             foreach (var item in __instance.m_strings)
             {
-                ZLog.Log(StringExtensionMethods_Patch.GetStableHashName(item.Key) + ": " + item.Value);
+                ValheimMP.Log(StringExtensionMethods_Patch.GetStableHashName(item.Key) + ": " + item.Value);
             }
             return false;
         }

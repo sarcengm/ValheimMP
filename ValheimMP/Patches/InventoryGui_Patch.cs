@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
 using UnityEngine;
+using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches
 {
@@ -11,6 +12,8 @@ namespace ValheimMP.Patches
     internal class InventoryGui_Patch
     {
         public static bool LocalMove { get; private set; }
+
+        public static readonly int DoCraftingTrigger = "DoCrafting".GetStableHashCode();
 
 
         [HarmonyPatch(typeof(InventoryGui), "Awake")]
@@ -27,9 +30,9 @@ namespace ValheimMP.Patches
             ValheimMP.Instance.InventoryManager.OnItemCrafted -= OnItemCrafted;
         }
 
-        private static void OnItemCrafted(Inventory inventory, ItemDrop.ItemData itemData)
+        private static void OnItemCrafted(int craftTrigger, Inventory inventory, ItemDrop.ItemData itemData, byte[] triggerData)
         {
-            ZLog.Log("ItemCrafted");
+            ValheimMP.Log("ItemCrafted");
             InventoryGui.instance.UpdateCraftingPanel();
         }
 
@@ -161,7 +164,7 @@ namespace ValheimMP.Patches
                     player.ConsumeResources(__instance.m_craftRecipe.m_resources, num);
                     // this is used as a trigger on the client side when the item is synchonized
                     // doing an RPC with the item id right now would arrive before the item exists
-                    craftedItem.m_crafted = true;
+                    craftedItem.SetCraftTrigger(DoCraftingTrigger);
                 }
             }
         }

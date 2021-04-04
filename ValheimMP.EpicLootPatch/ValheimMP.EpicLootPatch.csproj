@@ -26,6 +26,9 @@
     <ProjectReference Include="..\ValheimMP.ChatCommands\ValheimMP.ChatCommands.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="fastJSON">
+      <HintPath>..\..\ValheimMods\Libs\fastJSON.dll</HintPath>
+    </Reference>
     <Reference Include="System.Core" />
     <Reference Include="0Harmony">
       <HintPath>$(GameDir)\BepInEx\core\0Harmony.dll</HintPath>

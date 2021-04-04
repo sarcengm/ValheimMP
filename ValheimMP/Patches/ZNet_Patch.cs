@@ -1,10 +1,10 @@
 ﻿using HarmonyLib;
+using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
 using UnityEngine;
-using ValheimMP.Framework;
 using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches
@@ -159,7 +159,7 @@ namespace ValheimMP.Patches
         /// <param name="pkg"></param>
         private static void SendValheimMPPeerInfo(ZNet __instance, ZRpc rpc, ZPackage pkg)
         {
-            ZLog.Log("SendValheimMPPeerInfo");
+            ValheimMP.Log("SendValheimMPPeerInfo");
             pkg.Write(ValheimMP.ProtocolIdentifier);
             pkg.Write(ValheimMP.Version);
 
@@ -170,6 +170,15 @@ namespace ValheimMP.Patches
                 dic.SetCustomData("SteamID", (long)(rpc.GetSocket() as ZSteamSocket).GetPeerID().m_SteamID);
                 dic.SetCustomData("UseZDOCompression", ValheimMP.Instance.UseZDOCompression.Value);
                 dic.SetCustomData("RespawnDelay", ValheimMP.Instance.RespawnDelay.Value);
+                dic.SetCustomData("ForcedPVPDistanceForBiomesOnly", ValheimMP.Instance.ForcedPVPDistanceForBiomesOnly.Value);
+                dic.SetCustomData("ForcedPVPDistanceFromCenter", ValheimMP.Instance.ForcedPVPDistanceFromCenter.Value);
+                Heightmap.Biome pvpbiomes = Heightmap.Biome.None;
+                foreach (var item in ValheimMP.Instance.ForcedPVPBiomes)
+                {
+                    if (item.Value.Value)
+                        pvpbiomes |= item.Key;
+                }
+                dic.SetCustomData("ForcedPVPBiomes", pvpbiomes);
 
                 ValheimMP.Instance.OnServerSendPeerInfo?.Invoke(rpc, dic);
             }
@@ -195,14 +204,14 @@ namespace ValheimMP.Patches
             {
                 if (ZNet.m_isServer)
                 {
-                    ZLog.Log("Peer is Non-Valheim MP Client.");
+                    ValheimMP.Log("Peer is Non-Valheim MP Client.");
                     rpc.Invoke("Error", 3);
                     return false;
                 }
                 else
                 {
                     valheimMP.SetIsOnValheimMPServer(false);
-                    ZLog.Log("Connected to Non-Valheim MP Server");
+                    ValheimMP.Log("Connected to Non-Valheim MP Server");
                     return true;
                 }
             }
@@ -214,13 +223,13 @@ namespace ValheimMP.Patches
             }
             catch (Exception ex)
             {
-                ZLog.Log($"Exception trying to read ValheimMP Identifier: {ex}");
+                ValheimMP.Log($"Exception trying to read ValheimMP Identifier: {ex}");
             }
 
             var validIdentifier = string.Compare(valheimMPIdentifier, ValheimMP.ProtocolIdentifier) == 0;
             if (!validIdentifier)
             {
-                ZLog.LogError($"Valheim MP Identifier mismatch: {valheimMPIdentifier} vs. mine {ValheimMP.ProtocolIdentifier}");
+                ValheimMP.LogError($"Valheim MP Identifier mismatch: {valheimMPIdentifier} vs. mine {ValheimMP.ProtocolIdentifier}");
                 if (ZNet.m_isServer)
                 {
                     rpc.Invoke("Error", 3);
@@ -236,7 +245,7 @@ namespace ValheimMP.Patches
             var validVersion = string.Compare(valheimMPVersion, ValheimMP.Version) == 0;
             if (!validVersion)
             {
-                ZLog.LogError($"Valheim MP Version mismatch: {valheimMPVersion} vs. mine {ValheimMP.Version}");
+                ValheimMP.LogError($"Valheim MP Version mismatch: {valheimMPVersion} vs. mine {ValheimMP.Version}");
                 if (ZNet.m_isServer)
                 {
                     rpc.Invoke("Error", 3);
@@ -258,19 +267,28 @@ namespace ValheimMP.Patches
                 var userId = customData.GetCustomData<long>("SteamID");
                 ZDOMan.instance.m_myid = userId;
                 ZNet.instance.m_routedRpc.SetUID(userId);
-                ZLog.Log("UID=" + userId);
+                ValheimMP.Log($"SteamID: {userId}");
+                valheimMP.UseZDOCompression.Value = customData.GetCustomData<bool>("UseZDOCompression");
+                ValheimMP.Log($"UseZDOCompression: {valheimMP.UseZDOCompression.Value}");
+                valheimMP.RespawnDelay.Value = customData.GetCustomData<float>("RespawnDelay");
+                ValheimMP.Log($"RespawnDelay: {valheimMP.RespawnDelay.Value}");
+                valheimMP.ForcedPVPDistanceForBiomesOnly.Value = customData.GetCustomData<float>("ForcedPVPDistanceForBiomesOnly");
+                ValheimMP.Log($"ForcedPVPDistanceForBiomesOnly: {valheimMP.ForcedPVPDistanceForBiomesOnly.Value}");
+                valheimMP.ForcedPVPDistanceFromCenter.Value = customData.GetCustomData<float>("ForcedPVPDistanceFromCenter");
+                ValheimMP.Log($"ForcedPVPDistanceFromCenter: {valheimMP.ForcedPVPDistanceFromCenter.Value}");
+                var biomes = customData.GetCustomData<Heightmap.Biome>("ForcedPVPBiomes");
+                ValheimMP.Log($"ForcedPVPBiomes:");
+                foreach (var key in valheimMP.ForcedPVPBiomes.Keys.ToList()) 
+                {
+                    valheimMP.ForcedPVPBiomes[key].Value = (biomes & key) == key;
+                    ValheimMP.Log($" {key} = {(biomes & key) == key}");
+                }
 
-
-                var useZDOCompression = customData.GetCustomData<bool>("UseZDOCompression");
-                ZLog.Log("UseZDOCompression=" + useZDOCompression);
-                valheimMP.UseZDOCompression.Value = useZDOCompression;
-
-                var respawnDelay = customData.GetCustomData<float>("RespawnDelay");
-                valheimMP.RespawnDelay.Value = respawnDelay;
+                Minimap.instance.m_hasGenerated = false;
 
                 Game.instance.m_firstSpawn = true;
                 Game.instance.GetPlayerProfile().m_playerID = userId;
-                ZLog.Log("Connected to Valheim MP Server: " + valheimMPIdentifier + valheimMPVersion);
+                ValheimMP.Log("Connected to Valheim MP Server: " + valheimMPIdentifier + valheimMPVersion);
 
                 if (valheimMP.OnClientConnect != null)
                 {
@@ -304,7 +322,7 @@ namespace ValheimMP.Patches
                 peer.m_firstSpawn = true;
                 peer.m_requestRespawn = true;
 
-                ZLog.Log($"Client connected to Valheim MP Server: {valheimMPIdentifier}  {valheimMPVersion}");
+                ValheimMP.Log($"Client connected to Valheim MP Server: {valheimMPIdentifier}  {valheimMPVersion}");
 
                 if (valheimMP.OnServerConnect != null)
                 {
@@ -404,8 +422,23 @@ namespace ValheimMP.Patches
         {
             if (!ZNet.instance.IsServer() && rpc == ZNet.instance.GetServerRPC())
             {
-                ValheimMP.Instance.InventoryManager.DeserializeRPC(pkg);
+                ValheimMP.Instance.InventoryManager.RPC_InventoryData(pkg);
             }
+        }
+        [HarmonyPatch(typeof(ZNet), "LoadWorld")]
+        [HarmonyPrefix]
+        private static bool LoadWorld(ZNet __instance)
+        {
+            if(ValheimMP.IsDedicated && !ZSteamMatchmaking_Patch.HasConnected)
+            {
+                ValheimMP.Log($"!HasConnected SteamID: {(long)SteamGameServer.GetSteamID().m_SteamID} myid: {ZDOMan.instance.m_myid}");
+                __instance.Invoke("LoadWorld", 1);
+                return false;
+            }
+            ValheimMP.Log($"SteamID: {(long)SteamGameServer.GetSteamID().m_SteamID} myid: {ZDOMan.instance.m_myid}");
+            __instance.m_zdoMan.m_myid = (long)SteamGameServer.GetSteamID().m_SteamID;
+            __instance.m_routedRpc.SetUID(__instance.m_zdoMan.GetMyID());
+            return true;
         }
     }
 }

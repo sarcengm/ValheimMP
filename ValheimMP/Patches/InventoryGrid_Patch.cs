@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using System.Linq;
-using ValheimMP.Framework;
 
 namespace ValheimMP.Patches
 {
@@ -26,7 +25,7 @@ namespace ValheimMP.Patches
             pkg.Write(amount);
             pkg.Write(pos);
 
-            ZLog.Log($"Invoke InventoryGrid_DropItem ZPKG: fromId:{fromId} from item.m_id:{item.m_id} toId:{toId} to amount:{amount} to pos:{pos}");
+            ValheimMP.Log($"Invoke InventoryGrid_DropItem ZPKG: fromId:{fromId} from item.m_id:{item.m_id} toId:{toId} to amount:{amount} to pos:{pos}");
 
             ZNet.instance.GetServerRPC().Invoke("InventoryGrid_DropItem", pkg);
 
@@ -51,19 +50,19 @@ namespace ValheimMP.Patches
             var m_inventory = ValheimMP.Instance.InventoryManager.GetInventory(toId);
             if(m_inventory == null)
             {
-                ZLog.Log($"Missing to inventory RPC_DropItem toId:{toId} fromId:{fromId} itemId:{itemId} amount:{amount} pos:{pos}");
+                ValheimMP.Log($"Missing to inventory RPC_DropItem toId:{toId} fromId:{fromId} itemId:{itemId} amount:{amount} pos:{pos}");
                 return;
             }
             var fromInventory = ValheimMP.Instance.InventoryManager.GetInventory(fromId);
             if (fromInventory == null)
             {
-                ZLog.Log($"Missing from inventory RPC_DropItem toId:{toId} fromId:{fromId} itemId:{itemId} amount:{amount} pos:{pos}");
+                ValheimMP.Log($"Missing from inventory RPC_DropItem toId:{toId} fromId:{fromId} itemId:{itemId} amount:{amount} pos:{pos}");
                 return;
             }
             var item = fromInventory.m_inventory.SingleOrDefault(k => k.m_id == itemId);
             if (item == null)
             {
-                ZLog.Log($"Missing item RPC_DropItem toId:{toId} fromId:{fromId} itemId:{itemId} amount:{amount} pos:{pos}");
+                ValheimMP.Log($"Missing item RPC_DropItem toId:{toId} fromId:{fromId} itemId:{itemId} amount:{amount} pos:{pos}");
                 return;
             }
 
@@ -72,12 +71,12 @@ namespace ValheimMP.Patches
                 return;
             if (!ValheimMP.Instance.InventoryManager.IsListener(peer.m_uid, m_inventory))
             {
-                ZLog.Log($"RPC_DropItem without being listener on the source container");
+                ValheimMP.Log($"RPC_DropItem without being listener on the source container");
                 return;
             }
             if (!ValheimMP.Instance.InventoryManager.IsListener(peer.m_uid, fromInventory))
             {
-                ZLog.Log($"RPC_DropItem without being listener on the target container");
+                ValheimMP.Log($"RPC_DropItem without being listener on the target container");
                 return;
             }
 

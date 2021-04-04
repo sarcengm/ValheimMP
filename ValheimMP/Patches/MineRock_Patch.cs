@@ -18,13 +18,13 @@ namespace ValheimMP.Patches
                 }
                 if (hit.m_hitCollider == null)
                 {
-                    ZLog.Log("Minerock hit has no collider");
+                    ValheimMP.Log("Minerock hit has no collider");
                     return false;
                 }
                 int areaIndex = __instance.GetAreaIndex(hit.m_hitCollider);
                 if (areaIndex == -1)
                 {
-                    ZLog.Log("Invalid hit area on " + __instance.gameObject.name);
+                    ValheimMP.Log("Invalid hit area on " + __instance.gameObject.name);
                     return false;
                 }
 

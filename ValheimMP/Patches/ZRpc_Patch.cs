@@ -12,7 +12,7 @@ namespace ValheimMP.Patches
         private static void Invoke(ZRpc __instance, string method, params object[] parameters)
         {
             if(ValheimMP.Instance.DebugRPC.Value)
-                ZLog.Log("RPC Invoking " + method + " " + method.GetStableHashCode());
+                ValheimMP.Log("RPC Invoking " + method + " " + method.GetStableHashCode());
         }
 
         [HarmonyPatch(typeof(ZRpc), "UpdatePing")]
@@ -31,7 +31,7 @@ namespace ValheimMP.Patches
             __instance.m_timeSinceLastPing += dt;
             if (__instance.m_timeSinceLastPing > ZRpc.m_timeout)
             {
-                ZLog.LogWarning("ZRpc timeout detected");
+                ValheimMP.LogWarning("ZRpc timeout detected");
                 __instance.m_socket.Close();
             }
 

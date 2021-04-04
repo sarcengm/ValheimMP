@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using System.Collections.Generic;
-using ValheimMP.Framework;
 
 namespace ValheimMP.Patches
 {
@@ -28,7 +27,7 @@ namespace ValheimMP.Patches
 
         public static void SavePeer(ZNetPeer __instance, bool setLogoutPoint=true)
         {
-            ZLog.Log($"Saving {__instance.m_playerName} {__instance.m_player}");
+            ValheimMP.Log($"Saving {__instance.m_playerName} {__instance.m_player}");
             if (__instance.m_player != null)
             {
                 __instance.m_playerProfile.SavePlayerData(__instance.m_player);
@@ -37,9 +36,9 @@ namespace ValheimMP.Patches
                 {
                     __instance.m_playerProfile.SetLogoutPoint(__instance.m_player.transform.position);
                 }
+                
+                __instance.m_playerProfile.Save();
             }
-
-            __instance.m_playerProfile.Save();
 
             Game_Patch.WorldSave();
         }

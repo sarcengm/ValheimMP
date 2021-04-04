@@ -47,7 +47,7 @@ namespace ValheimMP.Framework
             if (zdo.m_nview == null)
                 return;
 
-            //ZLog.Log("Add to sector " + zdo.m_sector);
+            //ValheimMP.Log("Add to sector " + zdo.m_sector);
 
             Dictionary<int, LivingSectorObjects> ydic;
 
@@ -79,8 +79,8 @@ namespace ValheimMP.Framework
                     break;
             }
 
-            //ZLog.Log("Added object zdo.m_type: " + zdo.m_type + " name: " + zdo.m_netView + " sector: " + zdo.m_sector);
-            //ZLog.Log(" SolidObjects:" + obj.SolidObjects.Count + " PriorityObjects:" + obj.PriorityObjects.Count + " DefaultObjects:" + obj.DefaultObjects.Count);
+            //ValheimMP.Log("Added object zdo.m_type: " + zdo.m_type + " name: " + zdo.m_netView + " sector: " + zdo.m_sector);
+            //ValheimMP.Log(" SolidObjects:" + obj.SolidObjects.Count + " PriorityObjects:" + obj.PriorityObjects.Count + " DefaultObjects:" + obj.DefaultObjects.Count);
         }
 
 

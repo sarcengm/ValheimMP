@@ -134,7 +134,7 @@ namespace ValheimMP.Patches
             }
 
 
-            //ZLog.Log("Managing " + sectorObjects.Count.ToString() + ":" + distantSectorObjects.Count.ToString() + " objects for " + peers.Count.ToString() + " peer(s) ");
+            //ValheimMP.Log("Managing " + sectorObjects.Count.ToString() + ":" + distantSectorObjects.Count.ToString() + " objects for " + peers.Count.ToString() + " peer(s) ");
         }
 
         [HarmonyPatch(typeof(ZNetScene), "OutsideActiveArea", new Type[] { typeof(Vector3) })]

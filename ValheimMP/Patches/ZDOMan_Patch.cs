@@ -276,7 +276,7 @@ namespace ValheimMP.Patches
         //{
         //    sw.Stop();
         //    long microseconds = sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
-        //    ZLog.Log("SendZDOs in " + (float)microseconds / 1000f + "ms");
+        //    ValheimMP.Log("SendZDOs in " + (float)microseconds / 1000f + "ms");
         //}
 
         [HarmonyPatch(typeof(ZDOMan), "SendZDOs")]
@@ -293,7 +293,7 @@ namespace ValheimMP.Patches
             __instance.CreateSyncList(peer, __instance.m_tempToSync);
 
             //long microseconds = sw.ElapsedTicks / (Stopwatch.Frequency / (1000L * 1000L));
-            //ZLog.Log("CreateSyncList " + __instance.m_tempToSync.Count + " candidates (" + peer.m_peer?.m_solidObjectQueue?.Count + " solid) in " + (float)microseconds / 1000f + "ms");
+            //ValheimMP.Log("CreateSyncList " + __instance.m_tempToSync.Count + " candidates (" + peer.m_peer?.m_solidObjectQueue?.Count + " solid) in " + (float)microseconds / 1000f + "ms");
             //sw.Restart();
 
             if (__instance.m_tempToSync.Count <= 0)
@@ -803,7 +803,7 @@ namespace ValheimMP.Patches
                 var peer = ZNet.instance.GetPeer(rpc);
                 if (peer != null)
                 {
-                    ZLog.LogWarning($"Disconnecting client {peer.m_playerName} ({peer.m_uid}).");
+                    ValheimMP.LogWarning($"Disconnecting client {peer.m_playerName} ({peer.m_uid}).");
                     ZNet.instance.Disconnect(peer);
                 }
                 return false;
@@ -812,7 +812,7 @@ namespace ValheimMP.Patches
             ZDOMan.ZDOPeer zDOPeer = __instance.FindPeer(rpc);
             if (zDOPeer == null)
             {
-                ZLog.Log("ZDO data from unkown host, ignoring");
+                ValheimMP.Log("ZDO data from unkown host, ignoring");
                 return false;
             }
 
@@ -821,7 +821,7 @@ namespace ValheimMP.Patches
 
             var count = pkg.ReadInt();
 
-            //ZLog.Log("Receiving collection with " + count + " items (" + pkg.Size() + " bytes)");
+            //ValheimMP.Log("Receiving collection with " + count + " items (" + pkg.Size() + " bytes)");
             ZPackage zdoPkg = new ZPackage();
 
             for (int i = 0; i < count; i++)
@@ -878,11 +878,11 @@ namespace ValheimMP.Patches
 
             var flags = (ZDOFlags)intFlags;
 
-            //ZLog.Log("Recv ZDO " + zdoid + " (" + pkg.Size() + " bytes) flags: "+ flags);
+            //ValheimMP.Log("Recv ZDO " + zdoid + " (" + pkg.Size() + " bytes) flags: "+ flags);
 
             if (((int)ZDOFlags.invalid & intFlags) != 0)
             {
-                ZLog.LogError("Invalid flags in package!");
+                ValheimMP.LogError("Invalid flags in package!");
                 return;
             }
 

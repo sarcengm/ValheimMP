@@ -69,7 +69,7 @@ namespace ValheimMP.Patches
 
             ZPackage pkg = zPackage.Compress();
 
-            ZLog.Log("Serialized package for " + __instance.m_playerName);
+            ValheimMP.Log("Serialized package for " + __instance.m_playerName);
             return pkg;
         }
 
@@ -80,7 +80,7 @@ namespace ValheimMP.Patches
             int num = zPackage.ReadInt();
             if (!Version.IsPlayerVersionCompatible(num))
             {
-                ZLog.Log("Player data is not compatible, ignoring");
+                ValheimMP.Log("Player data is not compatible, ignoring");
                 return;
             }
 

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
 using UnityEngine;
-using ValheimMP.Framework;
 using ValheimMP.Framework.Extensions;
 using static Player;
 
@@ -271,19 +270,19 @@ namespace ValheimMP.Patches
 
             if (beard != "" && !m_beards.Contains(beard))
             {
-                ZLog.Log($"Player {player.GetPlayerName()} ({player.GetPlayerID()}) selected invalid beard: {beard} ");
+                ValheimMP.Log($"Player {player.GetPlayerName()} ({player.GetPlayerID()}) selected invalid beard: {beard} ");
                 return;
             }
 
             if (hair != "" && !m_hairs.Contains(hair))
             {
-                ZLog.Log($"Player {player.GetPlayerName()} ({player.GetPlayerID()}) selected invalid hair: {hair} ");
+                ValheimMP.Log($"Player {player.GetPlayerName()} ({player.GetPlayerID()}) selected invalid hair: {hair} ");
                 return;
             }
 
             if (modelIndex != -1 && !m_models.Contains(modelIndex))
             {
-                ZLog.Log($"Player {player.GetPlayerName()} ({player.GetPlayerID()}) selected invalid hair: {hair} ");
+                ValheimMP.Log($"Player {player.GetPlayerName()} ({player.GetPlayerID()}) selected invalid hair: {hair} ");
                 return;
             }
 
@@ -404,7 +403,7 @@ namespace ValheimMP.Patches
                 var itemPrefab = ObjectDB.instance.GetItemPrefab(food.m_name);
                 if (itemPrefab == null)
                 {
-                    ZLog.LogWarning("Failed to find food item " + food.m_name);
+                    ValheimMP.LogWarning("Failed to find food item " + food.m_name);
                     continue;
                 }
                 food.m_item = itemPrefab.GetComponent<ItemDrop>().m_itemData;
@@ -676,7 +675,7 @@ namespace ValheimMP.Patches
             var obj = GetPieceFromHash(__instance, pieceHash);
             if (obj == null)
             {
-                ZLog.Log($"RPC_PlacePiece from {sender} missing obj {pieceHash}");
+                ValheimMP.Log($"RPC_PlacePiece from {sender} missing obj {pieceHash}");
                 return;
             }
 
@@ -1364,7 +1363,7 @@ namespace ValheimMP.Patches
 
             if (inventory == null)
             {
-                ZLog.Log($"RPC_ConsumeItem itemId: {itemId} inventoryId: {inventoryId} Inventory not found.");
+                ValheimMP.Log($"RPC_ConsumeItem itemId: {itemId} inventoryId: {inventoryId} Inventory not found.");
                 return;
             }
 
@@ -1534,7 +1533,7 @@ namespace ValheimMP.Patches
 
                 if (peer == null)
                 {
-                    ZLog.Log("No peer?");
+                    ValheimMP.Log("No peer?");
                     __instance.m_teleporting = false;
                     return false;
                 }
@@ -1935,7 +1934,7 @@ namespace ValheimMP.Patches
             if (!string.IsNullOrWhiteSpace(attachPoint) && attachObject != null)
             {
                 var attachTransform = attachObject.transform.Find(attachPoint);
-                ZLog.Log($"Find {attachPoint} == {attachTransform}");
+                ValheimMP.Log($"Find {attachPoint} == {attachTransform}");
                 if (attachTransform != null)
                 {
                     __instance.m_attached = true;

@@ -31,14 +31,14 @@ namespace ValheimMP.Patches
             var gameObj = netView.transform.Find(name);
             if (gameObj == null)
             {
-                ZLog.Log($"Missing Ladder game object: {name} in {netView}");
+                ValheimMP.Log($"Missing Ladder game object: {name} in {netView}");
                 return;
             }
 
             var ladder = gameObj.GetComponent<Ladder>();
             if (ladder == null)
             {
-                ZLog.Log($"Missing Ladder component: {name} in {netView}->{gameObj}");
+                ValheimMP.Log($"Missing Ladder component: {name} in {netView}->{gameObj}");
                 return;
             }
 

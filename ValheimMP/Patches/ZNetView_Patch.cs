@@ -104,7 +104,7 @@ namespace ValheimMP.Patches
             }
             else
             {
-                ZLog.LogWarning("Failed to find rpc method " + StringExtensionMethods_Patch.GetStableHashName(rpcData.m_methodHash));
+                ValheimMP.LogWarning("Failed to find rpc method " + StringExtensionMethods_Patch.GetStableHashName(rpcData.m_methodHash));
             }
             return false;
         }

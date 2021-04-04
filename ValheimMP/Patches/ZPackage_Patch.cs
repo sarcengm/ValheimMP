@@ -18,7 +18,7 @@ namespace ValheimMP.Patches
         private static bool Write(ref ZPackage __instance, ZDOID id)
         {
             if (id.userID != ZNet_Patch.GetServerID())
-                ZLog.Log($"Write ZDOID with id.userId: {id.userID}");
+                ValheimMP.Log($"Write ZDOID with id.userId: {id.userID}");
             __instance.m_writer.Write(id.id);
             return false;
         }
@@ -34,7 +34,7 @@ namespace ValheimMP.Patches
 
             if ((uint)count > max_array_size)
             {
-                ZLog.LogError("ZPackage::ReadPackage() count too large: " + count);
+                ValheimMP.LogError("ZPackage::ReadPackage() count too large: " + count);
                 return false;
             }
 
@@ -50,7 +50,7 @@ namespace ValheimMP.Patches
 
             if ((uint)count > max_array_size)
             {
-                ZLog.LogError("ZPackage::ReadPackage() count too large: " + count);
+                ValheimMP.LogError("ZPackage::ReadPackage() count too large: " + count);
                 return false;
             }
 
@@ -69,7 +69,7 @@ namespace ValheimMP.Patches
 
             if ((uint)count > max_array_size)
             {
-                ZLog.LogError("ZPackage::ReadByteArray() count too large: " + count);
+                ValheimMP.LogError("ZPackage::ReadByteArray() count too large: " + count);
                 return false;
             }
 

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
-using System.Text;
+﻿using ValheimMP.Patches;
 
 namespace ValheimMP.Framework.Extensions
 {
@@ -15,9 +13,35 @@ namespace ValheimMP.Framework.Extensions
         /// </summary>
         /// <param name="itemData"></param>
         /// <returns></returns>
-        public static int GetID(this ItemDrop.ItemData itemData)
+        public static int GetNetworkID(this ItemDrop.ItemData itemData)
         {
             return itemData.m_id;
+        }
+
+        /// <summary>
+        /// Assigns a new id to this item data. Why? because some mods *looks ExtendedItemData's way* don't like playing nice when you just modify certain members
+        /// Like this it will destroy the old item and recreate the item in a way that the mod accepts.
+        /// </summary>
+        /// <param name="itemData"></param>
+        /// <returns></returns>
+        public static int AssignNewId(this ItemDrop.ItemData itemData)
+        {
+            itemData.m_id = ++ItemDrop_Patch.itemDataId;
+            return itemData.m_id;
+        }
+
+        /// <summary>
+        /// Set the CraftTrigger
+        /// 
+        /// if the craft trigger > 0 then the item will generate an InventoryManager.OnCraftedItem event after it replicates to the client
+        /// </summary>
+        /// <param name="itemData"></param>
+        /// <param name="trigger"></param>
+        /// <param name="triggerData">Additional data included.</param>
+        public static void SetCraftTrigger(this ItemDrop.ItemData itemData, int trigger, byte[] triggerData = null)
+        {
+            itemData.m_crafted = trigger;
+            itemData.m_craftedData = triggerData;
         }
 
         /// <summary>

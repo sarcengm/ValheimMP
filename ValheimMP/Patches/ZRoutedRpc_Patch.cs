@@ -17,7 +17,7 @@ namespace ValheimMP.Patches
         private static void InvokeRoutedRPC(ref ZRoutedRpc __instance, long targetPeerID, ZDOID targetZDO, string methodName, params object[] parameters)
         {
             if (ValheimMP.Instance.DebugRPC.Value)
-                ZLog.Log("RoutedRPC Invoking " + methodName + " " + methodName.GetStableHashCode());
+                ValheimMP.Log("RoutedRPC Invoking " + methodName + " " + methodName.GetStableHashCode());
         }
 #endif
 
@@ -33,7 +33,7 @@ namespace ValheimMP.Patches
             if (__instance.m_server && routedRPCData.m_senderPeerID != senderId)
             {
                 var me = ZDOMan.instance.GetMyID();
-                ZLog.LogWarning($"RPC_RoutedRPC from: {senderId} does not match routedRPCData.m_senderPeerID: {routedRPCData.m_senderPeerID}. server: {me}");
+                ValheimMP.LogWarning($"RPC_RoutedRPC from: {senderId} does not match routedRPCData.m_senderPeerID: {routedRPCData.m_senderPeerID}. server: {me}");
                 return false;
             }
 
@@ -55,7 +55,7 @@ namespace ValheimMP.Patches
 #else
                     var hashName = routedRPCData.m_methodHash;
 #endif
-                    ZLog.LogWarning($"Discarding routed RPC from {routedRPCData.m_senderPeerID} to {routedRPCData.m_targetPeerID}: Method: {hashName}");
+                    ValheimMP.LogWarning($"Discarding routed RPC from {routedRPCData.m_senderPeerID} to {routedRPCData.m_targetPeerID}, me: {__instance.m_id}: Method: {hashName}");
                 }
             }
 

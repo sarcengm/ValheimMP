@@ -75,7 +75,7 @@ namespace ValheimMP.Patches
         private static void AttachTo_Post(Vagon __instance, GameObject go)
         {
             var nv = go.GetComponent<ZNetView>();
-            ZLog.Log($"AttachTo_Post {nv} {nv?.m_zdo.m_uid}");
+            ValheimMP.Log($"AttachTo_Post {nv} {nv?.m_zdo.m_uid}");
             if (nv?.m_zdo != null)
             {
                 __instance.m_nview.m_zdo.Set(m_attachToHash, nv.m_zdo.m_uid);
