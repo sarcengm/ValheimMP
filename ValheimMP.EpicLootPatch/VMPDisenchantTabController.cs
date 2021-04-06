@@ -57,17 +57,19 @@ namespace ValheimMP.EpicLootPatch
             var didntAdd = new List<KeyValuePair<ItemDrop.ItemData, int>>();
             foreach (var product in products)
             {
+                var addSuccess = false;
                 var canAdd = player.GetInventory().CanAddItem(product.Key.m_itemData, product.Value);
                 if (canAdd)
                 {
                     var itemData = player.GetInventory().AddItem(product.Key.name, product.Value, 1, 0, 0, "");
-                    if (itemData.IsMagicCraftingMaterial())
+                    addSuccess = itemData != null;
+                    if (itemData != null && itemData.IsMagicCraftingMaterial())
                     {
                         itemData.m_variant = EpicLoot.EpicLoot.GetRarityIconIndex(itemData.GetRarity());
-                        itemData.SetCraftTrigger(DisenchantTrigger);
                     }
                 }
-                else
+
+                if (!addSuccess)
                 {
                     var newItem = product.Key.m_itemData.Clone();
                     newItem.m_dropPrefab = ObjectDB.instance.GetItemPrefab(product.Key.GetPrefabName(product.Key.gameObject.name));

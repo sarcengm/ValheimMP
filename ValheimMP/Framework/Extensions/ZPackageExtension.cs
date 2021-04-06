@@ -70,5 +70,79 @@ namespace ValheimMP.Framework.Extensions
                 dictionary[key] = val;
             }
         }
+
+        /// <summary>
+        /// Write a counter at a certain position, then jump back to the end of the stream.
+        /// 
+        /// optionally truncate the stream if the counter was 0, so anything after the counter is truncated
+        /// 
+        /// Useful when writing things but you don't know how many items there are initially, so you write a placerholder first
+        /// then fill it in later, and if its 0 remove any of the things you may have written that are of no use;
+        /// e.g. I write an item ID first, check all changes, then find out nothing changed, so the item ID was useless and can be truncated.
+        /// </summary>
+        /// <param name="pkg"></param>
+        /// <param name="at"></param>
+        /// <param name="count"></param>
+        /// <param name="truncate"></param>
+        public static void WriteCounter(this ZPackage pkg, int at, int count, bool truncate, bool truncateCounterAswell = false)
+        {
+            var endPos = pkg.GetPos();
+            pkg.SetPos(at);
+
+            if(count != 0 || !truncateCounterAswell)
+                pkg.Write(count);
+
+            if (count == 0)
+            {
+                if (truncate)
+                {
+                    pkg.m_stream.SetLength(pkg.GetPos());
+                }
+            }
+            else
+            {
+                pkg.SetPos(endPos);
+            }
+        }
+
+
+        /// <summary>
+        /// Reads a long and resets the position
+        /// </summary>
+        /// <param name="pkg"></param>
+        /// <returns></returns>
+        public static long PeekLong(this ZPackage pkg)
+        {
+            var pos = pkg.GetPos();
+            var peek = pkg.ReadLong();
+            pkg.SetPos(pos);
+            return peek;
+        }
+
+        /// <summary>
+        /// Reads an integer and resets the position
+        /// </summary>
+        /// <param name="pkg"></param>
+        /// <returns></returns>
+        public static int PeekInt(this ZPackage pkg)
+        {
+            var pos = pkg.GetPos();
+            var peek = pkg.ReadInt();
+            pkg.SetPos(pos);
+            return peek;
+        }
+
+        /// <summary>
+        /// Reads a ZDOID and resets the position
+        /// </summary>
+        /// <param name="pkg"></param>
+        /// <returns></returns>
+        public static ZDOID PeekZDOID(this ZPackage pkg)
+        {
+            var pos = pkg.GetPos();
+            var peek = pkg.ReadZDOID();
+            pkg.SetPos(pos);
+            return peek;
+        }
     }
 }

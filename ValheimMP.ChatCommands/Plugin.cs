@@ -7,6 +7,7 @@ using System.Text;
 using UnityEngine;
 using ValheimMP.Framework;
 using ValheimMP.Framework.Extensions;
+using Object = UnityEngine.Object;
 
 namespace ValheimMP.ChatCommands
 {
@@ -32,6 +33,38 @@ namespace ValheimMP.ChatCommands
             Instance = this;
 
             ValheimMP.Instance.ChatCommandManager.RegisterAll(this);
+
+            var man = ValheimMP.Instance.PlayerGroupManager;
+            man.OnPlayerAcceptInvite += PlayerGroupManager_OnPlayerAcceptInvite;
+            man.OnPlayerInviteGroup += PlayerGroupManager_OnPlayerInviteGroup;
+            man.OnPlayerJoinGroup += PlayerGroupManager_OnPlayerJoinGroup;
+            man.OnPlayerKickGroup += PlayerGroupManager_OnPlayerKickGroup;
+            man.OnPlayerLeaveGroup += PlayerGroupManager_OnPlayerLeaveGroup;
+        }
+
+        private void PlayerGroupManager_OnPlayerLeaveGroup(PlayerGroup group, PlayerGroupMember member)
+        {
+            group.SendServerMessage($"{member.Name} left your {group.GroupType}");
+        }
+
+        private void PlayerGroupManager_OnPlayerKickGroup(PlayerGroup group, PlayerGroupMember member)
+        {
+            group.SendServerMessage($"{member.Name} was kicked from your {group.GroupType}");
+        }
+
+        private void PlayerGroupManager_OnPlayerJoinGroup(PlayerGroup group, PlayerGroupMember member)
+        {
+            group.SendServerMessage($"{member.Name} joined your {group.GroupType}");
+        }
+
+        private void PlayerGroupManager_OnPlayerInviteGroup(PlayerGroup group, ZNetPeer peer)
+        {
+            group.SendServerMessage($"{peer.m_playerName} was invited to join your {group.GroupType}");
+        }
+
+        private void PlayerGroupManager_OnPlayerAcceptInvite(PlayerGroup group, PlayerGroupMember member)
+        {
+            member.Peer.SendServerMessage($"You accepted and joined {group.Name}");
         }
 
         public static void Log(string message)
@@ -42,7 +75,7 @@ namespace ValheimMP.ChatCommands
         [ChatCommand("Help", "List all available commands, or show more info about a certain command.", aliases: new[] { "H", "?" })]
         private void Command_Help(ZNetPeer peer, string command = null)
         {
-            if(string.IsNullOrWhiteSpace(command))
+            if (string.IsNullOrWhiteSpace(command))
             {
                 var sb = new StringBuilder();
                 IEnumerable<ChatCommandManager.CommandInfo> commands = ValheimMP.Instance.ChatCommandManager.GetCommands();
@@ -51,7 +84,7 @@ namespace ValheimMP.ChatCommands
                     commands = commands.Where(k => !k.Command.AdminRequired);
 
                 commands = commands.OrderBy(k => k.Command.AdminRequired).ThenBy(k => k.Command.Name);
-                foreach(var cmd in commands)
+                foreach (var cmd in commands)
                 {
                     sb.AppendLine(ChatCommandManager.GetCommandSyntax(cmd));
                 }
@@ -66,13 +99,13 @@ namespace ValheimMP.ChatCommands
                     commands = commands.Where(k => !k.Command.AdminRequired);
 
                 ChatCommandManager.CommandInfo foundCommand;
-                if((foundCommand = commands.SingleOrDefault(k=>k.Command.GetAliases().Contains(command, StringComparer.InvariantCultureIgnoreCase))) != null)
+                if ((foundCommand = commands.SingleOrDefault(k => k.Command.GetAliases().Contains(command, StringComparer.InvariantCultureIgnoreCase))) != null)
                 {
                     var sb = new StringBuilder();
                     sb.AppendLine(ChatCommandManager.GetCommandSyntax(foundCommand));
                     sb.AppendLine($"<i>{foundCommand.Command.Description}</i>");
                     var aliases = foundCommand.Command.GetAliases();
-                    if(aliases.Length > 1)
+                    if (aliases.Length > 1)
                         sb.AppendLine($"Aliases: {aliases.Join()}");
                     peer.SendServerMessage(ChatCommandManager.GetCommandSyntax(foundCommand));
                 }
@@ -210,5 +243,225 @@ namespace ValheimMP.ChatCommands
                 target.SendServerMessage($"<color=white><color=green><b>{peer.m_playerName}</b></color> set your beard to <color=green><b>{beard}</b></color>.</color>");
             }
         }
+
+        [ChatCommand("AdminList", "Get a list of all admins", requireAdmin: true, aliases: new[] { "ListAdmins", "Admins" })]
+        private void Command_AdminList(ZNetPeer peer)
+        {
+            var sb = new StringBuilder();
+            foreach (var admin in ValheimMP.Instance.AdminManager.Admins.Values.OrderBy(k => k.Rank).ThenBy(k => k.LastOnline))
+            {
+                sb.AppendLine($"Rank: {admin.Rank,-3} Name: {admin.Name,10} Id: {admin.Id} Last Online: {admin.LastOnline}");
+            }
+
+            peer.SendServerMessage(sb.ToString());
+        }
+
+        [ChatCommand("AdminRemove", "Removes an admin", requireAdmin: true, aliases: new[] { "RemoveAdmin" })]
+        private void Command_AdminRemove(ZNetPeer peer, ZNetPeer target)
+        {
+            var man = ValheimMP.Instance.AdminManager;
+            var admin1 = man.GetAdmin(peer);
+            var admin2 = man.GetAdmin(target);
+
+            if (admin1 == null)
+                return;
+
+            if (admin2 == null)
+            {
+                peer.SendServerMessage($"{target.m_playerName} is not an admin.");
+                return;
+            }
+
+            if (admin1.Rank < admin2.Rank)
+            {
+                peer.SendServerMessage($"{target.m_playerName} is of a higher rank and can not be removed.");
+                return;
+            }
+
+            man.RemoveAdmin(admin2);
+        }
+
+        [ChatCommand("AdminAdd", "Adds an admin", requireAdmin: true, aliases: new[] { "AddAdmin" })]
+        private void Command_AdminAdd(ZNetPeer peer, ZNetPeer target)
+        {
+            var man = ValheimMP.Instance.AdminManager;
+            var admin1 = man.GetAdmin(peer);
+            var admin2 = man.GetAdmin(target);
+
+            if (admin1 == null)
+                return;
+
+            if (admin2 != null)
+            {
+                peer.SendServerMessage($"{target.m_playerName} is already an admin.");
+                return;
+            }
+
+            if (man.AddAdmin(target, peer) != null)
+            {
+                peer.SendServerMessage($"{target.m_playerName} added as admin.");
+            }
+        }
+
+        [ChatCommand("PartyInvite", "Invite someone to your party", aliases: new[] { "Invite", "PI" })]
+        private void Command_PartyInvite(ZNetPeer peer, ZNetPeer target)
+        {
+            var man = ValheimMP.Instance.PlayerGroupManager;
+            var party = man.GetGroupByType(peer.m_uid, PlayerGroupType.Party);
+            if (party == null) party = man.CreateGroup(peer, PlayerGroupType.Party);
+            party.Invite(target);
+        }
+
+        [ChatCommand("PartyAcceptInvite", "Accept an invite to a party invitation of the target", aliases: new[] { "Accept", "PA", "PartyAccept" })]
+        private void Command_PartyAcceptInvite(ZNetPeer peer, ZNetPeer target)
+        {
+            var man = ValheimMP.Instance.PlayerGroupManager;
+            var party = man.GetGroupByType(target.m_uid, PlayerGroupType.Party);
+            if (party == null) return;
+            party.AcceptInvite(peer);
+        }
+
+        [ChatCommand("PartyLeave", "Leave a party", aliases: new[] { "Leave", "PL" })]
+        private void Command_PartyLeave(ZNetPeer peer)
+        {
+            var man = ValheimMP.Instance.PlayerGroupManager;
+            var party = man.GetGroupByType(peer.m_uid, PlayerGroupType.Party);
+            if (party == null)
+                return;
+            party.LeaveGroup(peer);
+            peer.SendServerMessage($"You have left the party.");
+        }
+
+        [ChatCommand("PartyKick", "Kick someone from the party", aliases: new[] { "Kick", "PK" })]
+        private void Command_PartyKick(ZNetPeer peer, ZNetPeer target)
+        {
+            var man = ValheimMP.Instance.PlayerGroupManager;
+            var party = man.GetGroupByType(peer.m_uid, PlayerGroupType.Party);
+            if (party == null)
+            {
+                peer.SendServerMessage($"You are not in a party.");
+                return;
+            }
+
+            if (!party.Members.TryGetValue(peer.m_uid, out PlayerGroupMember member))
+            {
+                peer.SendServerMessage($"You are not in a party.");
+                return;
+            }
+
+            if (!party.Members.TryGetValue(target.m_uid, out PlayerGroupMember targetMember))
+            {
+                peer.SendServerMessage($"{target.m_playerName} is not in a party.");
+                return;
+            }
+
+            if (member.Rank >= targetMember.Rank)
+            {
+                peer.SendServerMessage($"Your rank is not high enough to kick {target.m_playerName}.");
+                return;
+            }
+
+            party.KickGroup(target);
+        }
+
+        [ChatCommand("PartyChat", "Send a message to your party", aliases: new[] { "P", "Party" })]
+        private void Command_PartyChat(ZNetPeer peer, string message)
+        {
+            var man = ValheimMP.Instance.PlayerGroupManager;
+            var party = man.GetGroupByType(peer.m_uid, PlayerGroupType.Party);
+            if (party == null)
+                return;
+
+            party.SendGroupMessage(peer, message);
+        }
+
+        /// COPY PASTA & RENAME FOR CLAN
+
+
+        [ChatCommand("ClanInvite", "Invite someone to your clan", aliases: new[] { "CI" })]
+        private void Command_ClanInvite(ZNetPeer peer, ZNetPeer target)
+        {
+            var man = ValheimMP.Instance.PlayerGroupManager;
+            var clan = man.GetGroupByType(peer.m_uid, PlayerGroupType.Clan);
+            if (clan == null)
+                return;
+            clan.Invite(target);
+        }
+
+        [ChatCommand("ClanCreate", "Create a clan")]
+        private void Command_ClanCreate(ZNetPeer peer, string clanName)
+        {
+            var man = ValheimMP.Instance.PlayerGroupManager;
+            var clan = man.GetGroupByType(peer.m_uid, PlayerGroupType.Clan);
+            if (clan != null)
+                return;
+            man.CreateGroup(peer, PlayerGroupType.Clan, clanName);
+        }
+
+        
+
+        [ChatCommand("ClanAcceptInvite", "Accept an invite to a clan invitation of the target", aliases: new[] { "CA", "ClanAccept" })]
+        private void Command_ClanAcceptInvite(ZNetPeer peer, ZNetPeer target)
+        {
+            var man = ValheimMP.Instance.PlayerGroupManager;
+            var clan = man.GetGroupByType(target.m_uid, PlayerGroupType.Clan);
+            if (clan == null) return;
+            clan.AcceptInvite(peer);
+        }
+
+        [ChatCommand("ClanLeave", "Leave a clan", aliases: new[] { "CL" })]
+        private void Command_ClanLeave(ZNetPeer peer)
+        {
+            var man = ValheimMP.Instance.PlayerGroupManager;
+            var clan = man.GetGroupByType(peer.m_uid, PlayerGroupType.Clan);
+            if (clan == null)
+                return;
+            clan.LeaveGroup(peer);
+            peer.SendServerMessage($"You have left the clan.");
+        }
+
+        [ChatCommand("ClanKick", "Kick someone from the clan", aliases: new[] { "CK" })]
+        private void Command_ClanKick(ZNetPeer peer, ZNetPeer target)
+        {
+            var man = ValheimMP.Instance.PlayerGroupManager;
+            var clan = man.GetGroupByType(peer.m_uid, PlayerGroupType.Clan);
+            if (clan == null)
+            {
+                peer.SendServerMessage($"You are not in a clan.");
+                return;
+            }
+
+            if (!clan.Members.TryGetValue(peer.m_uid, out PlayerGroupMember member))
+            {
+                peer.SendServerMessage($"You are not in a clan.");
+                return;
+            }
+
+            if (!clan.Members.TryGetValue(target.m_uid, out PlayerGroupMember targetMember))
+            {
+                peer.SendServerMessage($"{target.m_playerName} is not in a clan.");
+                return;
+            }
+
+            if (member.Rank >= targetMember.Rank)
+            {
+                peer.SendServerMessage($"Your rank is not high enough to kick {target.m_playerName}.");
+                return;
+            }
+
+            clan.KickGroup(target);
+        }
+
+        [ChatCommand("ClanChat", "Send a message to your clan", aliases: new[] { "C", "Clan" })]
+        private void Command_ClanChat(ZNetPeer peer, string message)
+        {
+            var man = ValheimMP.Instance.PlayerGroupManager;
+            var clan = man.GetGroupByType(peer.m_uid, PlayerGroupType.Clan);
+            if (clan == null)
+                return;
+
+            clan.SendGroupMessage(peer, message);
+        }
+
     }
 }

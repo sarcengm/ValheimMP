@@ -1,6 +1,8 @@
 ﻿using HarmonyLib;
 using System.Collections.Generic;
 using UnityEngine;
+using ValheimMP.Framework;
+using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches
 {
@@ -27,6 +29,12 @@ namespace ValheimMP.Patches
 
             if (__instance is Player player)
             {
+                if(!player.m_pvp && hit.m_attackerCharacter && hit.m_attackerCharacter is Player player2)
+                {
+                    if (ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(player2.GetPlayerID(), player.GetPlayerID()))
+                        return false;
+                }
+
                 player.m_delayedDamage.Enqueue(new KeyValuePair<float, HitData>(Time.time, hit));
             }
             else

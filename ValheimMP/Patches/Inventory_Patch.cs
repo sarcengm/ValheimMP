@@ -21,19 +21,6 @@ namespace ValheimMP.Patches
             ValheimMP.Instance.InventoryManager.UnregisterAll(__instance);
         }
 
-        [HarmonyPatch(typeof(Game), "Update")]
-        [HarmonyPrefix]
-        private static void Update(ref Game __instance)
-        {
-            if (ZNet.instance != null && ZNet.instance.IsServer())
-            {
-                ValheimMP.Instance.InventoryManager.SyncAll();
-            }
-        }
-
-
-
-
         /// <summary>
         /// Yes, I actually patch Inventory in Inventory_Patch.cs
         /// </summary>

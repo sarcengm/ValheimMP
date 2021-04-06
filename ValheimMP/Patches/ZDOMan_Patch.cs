@@ -36,13 +36,25 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool DestroyZDO(ref ZDOMan __instance, ZDO zdo)
         {
-            if (ZNet.instance == null || ZNet.instance.IsServer())
-                return true;
+            if (zdo == null)
+                return false;
 
+            if (ValheimMP.IsDedicated)
+            {
+                __instance.m_destroySendList.Add(zdo.m_uid);
+            }
             // if we are owner of an object just destroy it right away, this is only a local action.
-            // 
             if (zdo.IsOwner())
+            {
                 __instance.HandleDestroyedZDO(zdo.m_uid);
+            }
+            return false;
+        }
+
+        [HarmonyPatch(typeof(ZDOMan), "SendDestroyed")]
+        [HarmonyPrefix]
+        private static bool SendDestroyed()
+        {
             return false;
         }
 
@@ -231,6 +243,75 @@ namespace ValheimMP.Patches
             }
         }
 
+        [HarmonyPatch(typeof(ZDOMan), "SendZDOToPeers")]
+        [HarmonyPrefix]
+        private static bool SendZDOToPeers(ZDOMan __instance, float dt)
+        {
+            if (!ValheimMP.IsDedicated)
+                return false;
+
+            __instance.m_sendTimer += dt;
+            if (__instance.m_sendTimer < 0.05f)
+            {
+                return false;
+            }
+
+            __instance.m_sendTimer = 0f;
+            foreach (ZDOMan.ZDOPeer peer in __instance.m_peers)
+            {
+                SendUpdateZDO(__instance, peer);
+                SendDestroyZDO(__instance, peer);
+            }
+
+            __instance.m_destroySendList.Clear();
+            return false;
+        }
+
+        [HarmonyPatch(typeof(ZDOMan), "RemovePeer")]
+        [HarmonyPrefix]
+        private static void RemovePeer(ZDOMan __instance, ZNetPeer netPeer)
+        {
+            ZDOMan.ZDOPeer zDOPeer = __instance.FindPeer(netPeer);
+            if (zDOPeer != null)
+            {
+                __instance.m_peers.Remove(zDOPeer);
+                if (ZNet.instance.IsServer())
+                {
+                    __instance.DestroyZDO(netPeer.m_player?.m_nview?.m_zdo);
+                }
+            }
+        }
+
+        private static void SendDestroyZDO(ZDOMan __instance, ZDOMan.ZDOPeer peer)
+        {
+            if (__instance.m_destroySendList.Count > 0)
+            {
+                var pkg = new ZPackage();
+                for (int i = 0; i < __instance.m_destroySendList.Count; i++)
+                {
+                    var zdoid = __instance.m_destroySendList[i];
+                    if (peer.m_zdoImage.Remove(zdoid))
+                    {
+                        pkg.Write(zdoid);
+                    }
+                }
+
+                if (pkg.Size() > 0)
+                {
+                    peer.m_peer.m_rpc.Invoke("ZDODestroy", pkg);
+                }
+            }
+        }
+        internal static void RPC_ZDODestroy(ZPackage pkg)
+        {
+            ZDOMan man = ZDOMan.instance;
+            while (pkg.GetPos() < pkg.Size())
+            {
+                man.HandleDestroyedZDO(pkg.ReadZDOID());
+            }
+        }
+
+
         [Flags]
         public enum ZDOFlags : int
         {
@@ -279,16 +360,9 @@ namespace ValheimMP.Patches
         //    ValheimMP.Log("SendZDOs in " + (float)microseconds / 1000f + "ms");
         //}
 
-        [HarmonyPatch(typeof(ZDOMan), "SendZDOs")]
-        [HarmonyPrefix]
-        private static bool SendZDOs(ref ZDOMan __instance, ref bool __result, ZDOMan.ZDOPeer peer, bool flush)
+        private static void SendUpdateZDO(ZDOMan __instance, ZDOMan.ZDOPeer peer)
         {
-            __result = false;
             __instance.m_clientChangeQueue.Clear();
-
-            if (flush)
-                return false;
-
             __instance.m_tempToSync.Clear();
             __instance.CreateSyncList(peer, __instance.m_tempToSync);
 
@@ -298,7 +372,7 @@ namespace ValheimMP.Patches
 
             if (__instance.m_tempToSync.Count <= 0)
             {
-                return false;
+                return;
             }
 
             if (peer.m_zdoImage == null)
@@ -405,7 +479,7 @@ namespace ValheimMP.Patches
                 zdoCollectionCount++;
                 zdoCollectionPkg.Write(zdoPkg);
 
-                if (!flush && totalBytes > maxDataPerTick)
+                if (totalBytes > maxDataPerTick)
                 {
                     break;
                 }
@@ -420,7 +494,6 @@ namespace ValheimMP.Patches
                 peer.m_peer.m_rpc.Invoke("ZDOData", valheimMP.UseZDOCompression.Value ? zdoCollectionPkg.Compress() : zdoCollectionPkg);
                 totalCollections++;
             }
-            return false;
         }
 
         public static bool SerializeZDOFor(ZDOMan.ZDOPeer peer, ref ZPackage zdoPkg, ref ZDO zDO, ref ZDO clientZDO)

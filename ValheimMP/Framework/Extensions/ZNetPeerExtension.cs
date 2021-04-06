@@ -28,8 +28,7 @@
 
         public static bool IsAdmin(this ZNetPeer peer)
         {
-            // TODO: This is not exactly an optimal way, it should be stored somewhere.
-            return ZNet.instance.m_adminList.Contains(peer.m_uid.ToString());
+            return ValheimMP.Instance.AdminManager.IsAdmin(peer.m_uid);
         }
     }
 }

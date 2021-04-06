@@ -167,15 +167,15 @@ namespace ValheimMP.Patches
                 foreach (var item in attack.m_lastClientMeleeHits)
                 {
                     var obj = ZNetScene.instance.FindInstance(item);
-                    if (obj == null) continue;
+                    if (!obj) continue;
                     var nv = obj.GetComponent<ZNetView>();
-                    if (nv == null) continue;
+                    if (!nv) continue;
                     var destr = obj.GetComponent<IDestructible>();
                     if (destr == null) continue;
                     var collider = obj.GetComponentInChildren<Collider>();
-                    if (collider == null) continue;
+                    if (!collider) continue;
 
-                    if (attack.m_lastMeleeHits.SingleOrDefault(k => k.m_hitCollider?.gameObject?.GetComponentInParent<ZNetView>() == nv) == null)
+                    if (attack.m_lastMeleeHits.SingleOrDefault(k => k.m_hitCollider && k.m_hitCollider.gameObject && k.m_hitCollider.gameObject.GetComponentInParent<ZNetView>() == nv) == null)
                     {
                         if((collider.transform.position - attack.m_character.transform.position).sqrMagnitude < maxHitDistance)
                         {
@@ -225,10 +225,10 @@ namespace ValheimMP.Patches
 
                 __result = true;
                 __instance.m_ammoItem = itemData;
-                return true;
+                return false;
             }
             __result = true;
-            return true;
+            return false;
         }
 
         [HarmonyPatch(typeof(Attack), "ProjectileAttackTriggered")]

@@ -113,7 +113,9 @@ namespace ValheimMP.Patches
              __instance.m_output.text = text;
             return false;
         }
-        
+
+        [HarmonyPatch(typeof(Chat), "Update")]
+        [HarmonyPostfix]
         private static void Update(Chat __instance)
         {
             if (__instance.m_wasFocused)

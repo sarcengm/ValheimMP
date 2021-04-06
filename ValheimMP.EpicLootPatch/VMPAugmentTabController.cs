@@ -21,6 +21,9 @@ namespace ValheimMP.EpicLootPatch
 
         public override void TryInitialize(InventoryGui inventoryGui, int tabIndex, System.Action<TabController> onTabPressed)
         {
+            // This is entirely a copy pasta of the original except that it creates my extended dialog
+            // Because I entirely copied the dialog function and added a parameter
+            // I'm seeing two entire copies here because of a single parameter *sigh*
             if (ChoiceDialog == null || ChoiceDialog is not VMPAugmentChoiceDialog)
             {
                 if (ChoiceDialog != null)
@@ -38,7 +41,7 @@ namespace ValheimMP.EpicLootPatch
 
                 ChoiceDialog.NameText = Object.Instantiate(inventoryGui.m_recipeName, background);
                 ChoiceDialog.Description = Object.Instantiate(inventoryGui.m_recipeDecription, background);
-                ChoiceDialog.Description.rectTransform.anchoredPosition += new Vector2(0, -55);
+                ChoiceDialog.Description.rectTransform.anchoredPosition += new Vector2(0, -47);
                 ChoiceDialog.Description.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, 350);
                 ChoiceDialog.Icon = Object.Instantiate(inventoryGui.m_recipeIcon, background);
 

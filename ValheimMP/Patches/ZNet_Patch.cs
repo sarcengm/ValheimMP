@@ -367,6 +367,10 @@ namespace ValheimMP.Patches
                 {
                     RPC_InventoryData(rpc, pkg);
                 });
+                rpc.Register("ZDODestroy", (ZRpc rpc, ZPackage pkg) =>
+                {
+                    ZDOMan_Patch.RPC_ZDODestroy(pkg);
+                });
             }
 
             return true;
@@ -439,6 +443,13 @@ namespace ValheimMP.Patches
             __instance.m_zdoMan.m_myid = (long)SteamGameServer.GetSteamID().m_SteamID;
             __instance.m_routedRpc.SetUID(__instance.m_zdoMan.GetMyID());
             return true;
+        }
+
+        [HarmonyPatch(typeof(ZNet), "SaveWorld")]
+        [HarmonyPrefix]
+        private static void SaveWorld()
+        {
+            ValheimMP.Instance.OnWorldSave?.Invoke();
         }
     }
 }

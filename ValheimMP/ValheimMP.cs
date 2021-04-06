@@ -8,6 +8,7 @@ using ValheimMP.Patches;
 using BepInEx.Configuration;
 using ValheimMP.Framework;
 using BepInEx.Logging;
+using System.IO;
 
 namespace ValheimMP
 {
@@ -38,6 +39,10 @@ namespace ValheimMP
         public InventoryManager InventoryManager { get; private set; }
 
         public ChatCommandManager ChatCommandManager { get; private set; }
+
+        public PlayerGroupManager PlayerGroupManager { get; private set; }
+
+        public AdminManager AdminManager { get; private set; }
 
         /// <summary>
         /// If the current session is on a Valheim MP server (or if we are a Valheim MP server)
@@ -117,6 +122,9 @@ namespace ValheimMP
         /// </summary>
         public OnPluginDeactivateDelegate OnPluginDeactivate { get; set; }
         public delegate void OnPluginDeactivateDelegate();
+
+        public OnWorldSaveDelegate OnWorldSave { get; set; }
+        public delegate void OnWorldSaveDelegate();
         #endregion
 
         #region Configuration
@@ -234,7 +242,9 @@ namespace ValheimMP
                 prefix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "IsPublicPasswordValid")));
 
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(FejdStartup), "Awake"),
-                prefix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "Awake")));
+                prefix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "Awake")),
+                postfix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "AwakePost")));
+
 
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(FejdStartup), "ShowCharacterSelection"),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(FejdStartup_Patch), "SetupCharacterPreview")));
@@ -251,8 +261,29 @@ namespace ValheimMP
                 m_harmony.PatchAll();
             }
 
+            if (IsDedicated)
+            {
+                AdminManager = AdminManager.Load(Path.Combine(Paths.PluginPath, PluginName, "admins.json"));
+                OnServerConnect += AdminManager.OnServerConnect;
+                PlayerGroupManager = PlayerGroupManager.Load(Path.Combine(Paths.PluginPath, PluginName, "groups.json"));
+
+                OnWorldSave += () => {
+                    PlayerGroupManager.Save(Path.Combine(Paths.PluginPath, PluginName, "groups.json"));
+                    AdminManager.Save(Path.Combine(Paths.PluginPath, PluginName, "admins.json"));
+                };
+
+                PlayerGroupManager.Save(Path.Combine(Paths.PluginPath, PluginName, "groups.json"));
+                AdminManager.Save(Path.Combine(Paths.PluginPath, PluginName, "admins.json"));
+            }
+            else
+            {
+                PlayerGroupManager = new PlayerGroupManager();
+            }
+
             InventoryManager = new InventoryManager(this);
             ChatCommandManager = new ChatCommandManager(this);
+
+
 
             CharacterPath = Config.Bind("Server", "CharacterPath", "vmp/", "Where it stores the server side characters.");
             UseZDOCompression = Config.Bind("Server", "UseZDOCompression", true, "Whether or not to compress ZDO data.");
@@ -372,6 +403,12 @@ namespace ValheimMP
                     OnPluginDeactivate?.Invoke();
                 }
             }
+        }
+
+        private void Update()
+        {
+            InventoryManager.Update();
+            PlayerGroupManager.Update();
         }
 
         /// <summary>

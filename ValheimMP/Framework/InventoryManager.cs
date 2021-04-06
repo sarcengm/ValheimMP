@@ -389,7 +389,7 @@ namespace ValheimMP.Framework
             return null;
         }
 
-        public void SyncAll()
+        internal void Update()
         {
             if (Time.time - m_inventorySyncTimer < 0.05f)
             {

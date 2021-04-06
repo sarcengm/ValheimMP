@@ -67,13 +67,13 @@ namespace ValheimMP.Patches
             RequestRespawn(player, peer);
         }
 
-        public static void WorldSave(bool force = false)
+        public static void SaveWorld(bool force = false)
         {
             if (Game.instance.m_saveTimer > 120f || force)
             {
                 Game.instance.m_saveTimer = 0f;
-                Game.instance.SavePlayerProfile(setLogoutPoint: false);
                 ZNet.instance.Save(sync: false);
+                
             }
         }
 
@@ -222,7 +222,7 @@ namespace ValheimMP.Patches
         private static bool SavePlayerProfile(ref Game __instance, bool setLogoutPoint)
         {
             if (!ZNet.instance.IsServer())
-                return false;
+                return true;
 
             foreach (var peer in ZNet.instance.GetPeers())
             {

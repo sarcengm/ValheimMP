@@ -198,7 +198,7 @@ namespace ValheimMP.Framework
                     // string as last parameter takes in the rest of the string
                     if (i == parameterInfo.Length - 1 && param.ParameterType == typeof(string))
                     {
-                        parameterObjects.Add(commandParameters.GetRemainingParameter());
+                        parameterObjects.Add(commandParameters.GetRemainingParameter().TrimStart(' '));
                     }
                     else
                     {

@@ -20,7 +20,7 @@ namespace ValheimMP.Patches
 
         private static GameObject m_debugZdoPlayerLocationObject;
         private static float m_lastSyncTime;
-        private static float m_playerTickRate = 0.01f;
+        private static float m_playerTickRate = 1.0f / 60f;
         private static bool m_isBlocking;
         private static HashSet<string> m_hairs;
         private static HashSet<int> m_models;
@@ -1960,6 +1960,12 @@ namespace ValheimMP.Patches
             }
 
             return true;
+        }
+        [HarmonyPatch(typeof(Player), "CanSwitchPVP")]
+        [HarmonyPrefix]
+        private static bool SetPVP(Player __instance)
+        {
+            return ValheimMP.IsDedicated || __instance.CanSwitchPVP();
         }
 
         [HarmonyPatch(typeof(Player), "CanSwitchPVP")]

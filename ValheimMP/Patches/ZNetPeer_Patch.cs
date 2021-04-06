@@ -40,7 +40,7 @@ namespace ValheimMP.Patches
                 __instance.m_playerProfile.Save();
             }
 
-            Game_Patch.WorldSave();
+            Game_Patch.SaveWorld();
         }
     }
 

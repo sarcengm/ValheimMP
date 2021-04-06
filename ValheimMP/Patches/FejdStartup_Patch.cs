@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using System.Linq;
 using UnityEngine;
 
 namespace ValheimMP.Patches
@@ -18,9 +19,17 @@ namespace ValheimMP.Patches
             return false;
         }
 
-        internal static void Awake(FejdStartup __instance)
+        internal static void Awake()
         {
             ValheimMP.Instance.SetIsOnValheimMPServer(false);
+        }
+
+        internal static void AwakePost()
+        {
+            if (ValheimMP.IsDedicated)
+            {
+
+            }
         }
 
         internal static void SetupCharacterPreview(FejdStartup __instance)
