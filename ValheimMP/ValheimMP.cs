@@ -407,8 +407,11 @@ namespace ValheimMP
 
         private void Update()
         {
-            InventoryManager.Update();
-            PlayerGroupManager.Update();
+            if (IsDedicated)
+            {
+                InventoryManager.Update();
+                PlayerGroupManager.Update();
+            }
         }
 
         /// <summary>

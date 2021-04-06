@@ -114,8 +114,8 @@ namespace ValheimMP.Patches
             return false;
         }
 
-        [HarmonyPatch(typeof(Chat), "Update")]
-        [HarmonyPostfix]
+       // [HarmonyPatch(typeof(Chat), "Update")]
+        //[HarmonyPostfix]
         private static void Update(Chat __instance)
         {
             if (__instance.m_wasFocused)
@@ -130,7 +130,13 @@ namespace ValheimMP.Patches
                     m_chatScrollOffset -= 1;
                 }
 
+                var lastOffset = m_chatScrollOffset;
+
                 m_chatScrollOffset = Mathf.Clamp(m_chatScrollOffset, 0, m_chatMaxChatHistory - 1);
+                if(m_chatScrollOffset != lastOffset)
+                {
+                    __instance.UpdateChat();
+                }
             }
         }
 

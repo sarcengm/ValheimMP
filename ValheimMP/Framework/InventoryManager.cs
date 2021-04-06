@@ -198,7 +198,7 @@ namespace ValheimMP.Framework
         /// <param name="netview">netview, usually the one from the parent object, e.g. character or chest.</param>
         public void Register(Inventory inventory, ZNetView netview)
         {
-            if (netview == null)
+            if (netview == null || inventory == null || netview.m_zdo == null)
                 return;
 
             inventory.m_nview = netview;

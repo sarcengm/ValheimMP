@@ -319,6 +319,11 @@ namespace ValheimMP.Patches
                     peer.m_playerProfile.SetName(peer.m_playerName);
                     peer.m_playerProfile.m_playerID = (long)steamId.m_SteamID;
                 }
+                else
+                {
+                    peer.m_playerName = peer.m_playerProfile.m_playerName;
+                }
+
                 peer.m_firstSpawn = true;
                 peer.m_requestRespawn = true;
 
@@ -359,6 +364,16 @@ namespace ValheimMP.Patches
                 rpc.Register("SyncPlayerMovement", (ZRpc rpc, ZPackage pkg) =>
                 {
                     Player_Patch.RPC_SyncPlayerMovement(rpc, pkg);
+                });
+
+                rpc.Register("PlayerGroupUpdate", (ZRpc rpc, ZPackage pkg) =>
+                {
+                    ValheimMP.Instance.PlayerGroupManager.RPC_PlayerGroupUpdate(rpc, pkg);
+                });
+
+                rpc.Register("PlayerGroupRemovePlayer", (ZRpc rpc, int groupId, long playerId) =>
+                {
+                    ValheimMP.Instance.PlayerGroupManager.RPC_PlayerGroupRemovePlayer(rpc, groupId, playerId);
                 });
             }
             else if (ValheimMP.Instance.IsOnValheimMPServer)
@@ -435,11 +450,10 @@ namespace ValheimMP.Patches
         {
             if(ValheimMP.IsDedicated && !ZSteamMatchmaking_Patch.HasConnected)
             {
-                ValheimMP.Log($"!HasConnected SteamID: {(long)SteamGameServer.GetSteamID().m_SteamID} myid: {ZDOMan.instance.m_myid}");
+                ValheimMP.Log($"SteamGameServer still not yet connected delaying LoadWorld...");
                 __instance.Invoke("LoadWorld", 1);
                 return false;
             }
-            ValheimMP.Log($"SteamID: {(long)SteamGameServer.GetSteamID().m_SteamID} myid: {ZDOMan.instance.m_myid}");
             __instance.m_zdoMan.m_myid = (long)SteamGameServer.GetSteamID().m_SteamID;
             __instance.m_routedRpc.SetUID(__instance.m_zdoMan.GetMyID());
             return true;

@@ -277,6 +277,9 @@ namespace ValheimMP.Framework
 
             m_lastUpdateTime = Time.time;
 
+            if (ZNet.instance == null)
+                return;
+
             var peers = ZNet.instance.GetConnectedPeers();
 
             for (int i = 0; i < peers.Count; i++)

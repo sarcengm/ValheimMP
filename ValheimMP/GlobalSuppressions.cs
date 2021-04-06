@@ -278,3 +278,6 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.Patches.Player_Patch.SetPVP(Player)~System.Boolean")]
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.Patches.Game_Patch.SaveWorld")]
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.Patches.ZNet_Patch.SaveWorld")]
+[assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.ValheimMP.Update")]
+[assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.Patches.TombStone_Patch.GetHoverText(TombStone,System.String@)~System.Boolean")]
+[assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.Patches.TombStone_Patch.Interact(TombStone,System.Boolean@,Humanoid,System.Boolean)~System.Boolean")]

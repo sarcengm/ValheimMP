@@ -221,8 +221,38 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool SavePlayerProfile(ref Game __instance, bool setLogoutPoint)
         {
-            if (!ZNet.instance.IsServer())
-                return true;
+            if (!ValheimMP.IsDedicated)
+            {
+                
+
+                if ((bool)Player.m_localPlayer)
+                {
+                    __instance.m_playerProfile.SavePlayerData(Player.m_localPlayer);
+                    Minimap.instance.SaveMapData();
+                    if (setLogoutPoint)
+                    {
+                        __instance.m_playerProfile.SaveLogoutPoint();
+                    }
+                }
+
+                string serverIdentifier;
+
+                if (ZNet.m_serverSteamID == 0) 
+                {
+                    ZNet.m_serverIPAddr.ToString(out serverIdentifier, bWithPort: true);
+                }
+                else 
+                {
+                    serverIdentifier = ZNet.m_serverSteamID.ToString();
+                }
+
+                //var serverName = ZNet.m_ServerName;
+                __instance.m_playerProfile.m_playerName = serverIdentifier;
+                __instance.m_playerProfile.m_filename = serverIdentifier.Replace(":","_");
+                __instance.m_playerProfile.Save();
+
+                return false;
+            }
 
             foreach (var peer in ZNet.instance.GetPeers())
             {
@@ -236,7 +266,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static void OnApplicationQuit()
         {
-            ValheimMP.Instance.WriteDebugData();
+            ValheimMP.Instance?.WriteDebugData();
         }
     }
 }

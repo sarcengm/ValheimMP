@@ -87,8 +87,11 @@ namespace ValheimMP.Patches
         {
             if (ZNet.instance != null && ZNet.instance.IsServer())
             {
-                // The client does not know what inventories contain unless they are listeners on it
-                __instance.m_nview.m_zdo.Set("Inventory_NrOfItems" + __instance.m_inventoryIndex, __instance.m_inventory.Count);
+                if (__instance != null && __instance.m_nview && __instance.m_nview.m_zdo != null)
+                {
+                    // The client does not know what inventories contain unless they are listeners on it
+                    __instance.m_nview.m_zdo.Set("Inventory_NrOfItems" + __instance.m_inventoryIndex, __instance.m_inventory.Count);
+                }
             }
         }
 

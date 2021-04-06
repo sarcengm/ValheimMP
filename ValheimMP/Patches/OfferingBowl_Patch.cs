@@ -40,7 +40,11 @@ namespace ValheimMP.Patches
                 return false;
             }
 
-            __instance.GetComponent<ZNetView>().InvokeRPC("Interact");
+            var nv = __instance.GetComponentInParent<ZNetView>();
+            if (nv)
+            {
+                nv.InvokeRPC("Interact");
+            }
             return false;
         }
 

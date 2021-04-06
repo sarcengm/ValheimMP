@@ -369,9 +369,10 @@ namespace ValheimMP.Patches
             player.m_nview.InvokeRPC(ZNet.instance.GetServerPeer().m_uid, "PlayerReady");
             player.m_firstSpawn = false;
 
-            if (Game.instance.m_firstSpawn)
+            var game = Game.instance;
+            if (game.m_firstSpawn)
             {
-                Game.instance.m_firstSpawn = false;
+                game.m_firstSpawn = false;
                 Chat.instance.SendText(Talker.Type.Shout, "Have I arrived!?!");
             }
         }

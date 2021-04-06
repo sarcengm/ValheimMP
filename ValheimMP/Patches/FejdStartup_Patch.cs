@@ -34,14 +34,17 @@ namespace ValheimMP.Patches
 
         internal static void SetupCharacterPreview(FejdStartup __instance)
         {
-            var player = __instance.m_playerInstance.GetComponent<VisEquipment>();
-            if (player != null)
+            if (__instance && __instance.m_playerInstance)
             {
-                m_beardItem = player.m_beardItem;
-                m_hairItem = player.m_hairItem;
-                m_hairColor = player.m_hairColor;
-                m_skinColor = player.m_skinColor;
-                m_modelIndex = player.m_modelIndex;
+                var player = __instance.m_playerInstance.GetComponent<VisEquipment>();
+                if (player)
+                {
+                    m_beardItem = player.m_beardItem;
+                    m_hairItem = player.m_hairItem;
+                    m_hairColor = player.m_hairColor;
+                    m_skinColor = player.m_skinColor;
+                    m_modelIndex = player.m_modelIndex;
+                }
             }
         }
     }
