@@ -462,6 +462,5 @@ namespace ValheimMP.ChatCommands
 
             clan.SendGroupMessage(peer, message);
         }
-
     }
 }

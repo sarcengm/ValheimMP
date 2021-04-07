@@ -394,7 +394,7 @@ namespace ValheimMP.Framework
 
             if(itemData != null && (flags & NetworkedItemDataFlags.m_crafted) == NetworkedItemDataFlags.m_crafted)
             {
-                m_inventoryManager.OnItemCrafted?.Invoke(craftTrigger, targetInventory, itemData, triggerData);
+                m_inventoryManager.Internal_OnItemCrafted(craftTrigger, targetInventory, itemData, triggerData);
             }
 
             if ((flags & NetworkedItemDataFlags.m_destroy) == NetworkedItemDataFlags.m_destroy)

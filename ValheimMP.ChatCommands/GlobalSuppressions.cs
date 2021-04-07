@@ -30,3 +30,4 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.ChatCommands.ChatCommands.Command_ClanChat(ZNetPeer,System.String)")]
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.ChatCommands.ChatCommands.Command_ClanCreate(ZNetPeer,System.String)")]
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.ChatCommands.ChatCommands.Command_PartyChat(ZNetPeer,System.String)")]
+[assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.ChatCommands.ChatCommands.Command_Revive(ZNetPeer)")]

@@ -362,7 +362,6 @@ namespace ValheimMP.Patches
 
         private static void SendUpdateZDO(ZDOMan __instance, ZDOMan.ZDOPeer peer)
         {
-            __instance.m_clientChangeQueue.Clear();
             __instance.m_tempToSync.Clear();
             __instance.CreateSyncList(peer, __instance.m_tempToSync);
 
@@ -1055,5 +1054,11 @@ namespace ValheimMP.Patches
             }
         }
 
+        [HarmonyPatch(typeof(ZDOMan), "ClientChanged")]
+        [HarmonyPrefix]
+        private static bool ClientChanged(ZDOID id)
+        {
+            return false;
+        }
     }
 }

@@ -4,16 +4,31 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using ValheimMP.Framework.Events;
 
 namespace ValheimMP.Framework
 {
     public class Admin
     {
-        public long Id { get; internal set; }
-        public string Name { get; internal set; }
+        private long m_id;
+        [JsonProperty]
+        public long Id { 
+            get { return Peer == null ? m_id : Peer.m_uid; }
+            internal set { m_id = value; }
+        }
+
+        private string m_name;
+        [JsonProperty]
+        public string Name {
+            get { return Peer == null ? m_name : Peer.m_playerName; }
+            internal set { m_name = value; }
+        }
+
+        [JsonProperty]
         public int Rank { get; internal set; }
 
         private DateTime m_lastOnline;
+        [JsonProperty]
         public DateTime LastOnline
         {
             get { return Peer == null ? m_lastOnline : DateTime.Now; }
@@ -26,6 +41,7 @@ namespace ValheimMP.Framework
 
     public class AdminManager
     {
+        [JsonProperty]
         public Dictionary<long, Admin> Admins { get; private set; } = new();
 
         public event OnAdminOnlineDelegate OnAdminOnline; 
@@ -36,20 +52,18 @@ namespace ValheimMP.Framework
 
         }
 
-        internal bool OnServerConnect(ZRpc rpc, ZNetPeer peer, Dictionary<int, byte[]> customData)
+        internal void OnServerConnect(OnServerConnectArgs args)
         {
-            if(Admins.TryGetValue(peer.m_uid, out var admin))
+            if(Admins.TryGetValue(args.Peer.m_uid, out var admin))
             {
-                admin.Peer = peer;
+                admin.Peer = args.Peer;
                 OnAdminOnline?.Invoke(admin);
             }
-            else if(ZNet.instance.m_adminList.Contains(peer.m_socket.GetHostName()))
+            else if(ZNet.instance.m_adminList.Contains(args.Peer.m_socket.GetHostName()))
             {
-                var importedAdmin = AddAdmin(peer);
+                var importedAdmin = AddAdmin(args.Peer);
                 OnAdminOnline?.Invoke(importedAdmin);
             }
-
-            return true;
         }
 
         public Admin AddAdmin(ZNetPeer peer, ZNetPeer addedBy = null)
@@ -100,6 +114,7 @@ namespace ValheimMP.Framework
             catch (Exception ex)
             {
                 ValheimMP.LogError($"Error while trying to load AdminManager: {ex}");
+                manager = new AdminManager();
             }
             return manager;
         }

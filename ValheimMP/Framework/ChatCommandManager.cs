@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using UnityEngine;
+using ValheimMP.Framework.Events;
 using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Framework
@@ -98,51 +99,49 @@ namespace ValheimMP.Framework
             m_commands.Add(cmd);
         }
 
-        internal bool OnChatMessage(ZNetPeer peer, Player player, ref string playerName, ref Vector3 messageLocation, ref float messageDistance, ref string text, ref Talker.Type type)
+        internal void OnChatMessage(OnChatMessageArgs args)
         {
             // This normally happens on the client but we supress it here so we can still send marked up text ourselves!
-            text = text.Replace('<', ' ');
-            text = text.Replace('>', ' ');
+            args.Text = args.Text.Replace('<', ' ').Replace('>', ' ');
 
-            if (text.StartsWith(CommandToken))
+            if (args.Text.StartsWith(CommandToken))
             {
-                text = text.Substring(CommandToken.Length);
-                var commandEnd = text.IndexOf(" ");
-                if (commandEnd < 0) commandEnd = text.Length;
+                //suppress by default but commands can turn it back on
+                args.SuppressMessage = true;
 
-                var commandText = text.Substring(0, commandEnd);
+                args.Text = args.Text.Substring(CommandToken.Length);
+                var commandEnd = args.Text.IndexOf(" ");
+                if (commandEnd < 0) commandEnd = args.Text.Length;
+
+                var commandText = args.Text.Substring(0, commandEnd);
 
                 foreach (var command in m_commands)
                 {
                     if (command.m_command.m_aliases.Contains(commandText))
                     {
-                        if (command.m_command.m_requireAdmin && !peer.IsAdmin())
+                        if (command.m_command.m_requireAdmin && !args.Peer.IsAdmin())
                         {
-                            peer.SendServerMessage($"Command {command.m_command.m_name} requires admin access.");
+                            args.Peer.SendServerMessage($"Command {command.m_command.m_name} requires admin access.");
                             break;
                         }
 
                         try
                         {
-                            ExecuteCommand(peer, player, command, text.Substring(commandEnd));
+                            ExecuteCommand(args, command, args.Text.Substring(commandEnd));
                         }
                         catch (TargetParameterCountException)
                         {
-                            SendCommandSyntax(peer, player, command);
+                            SendCommandSyntax(args.Peer, args.Player, command);
                         }
                         catch (Exception ex)
                         {
-                            peer.SendServerMessage($"Error in {command.m_command.m_name}: {ex.Message}");
+                            args.Peer.SendServerMessage($"Error in {command.m_command.m_name}: {ex.Message}");
                             ValheimMP.Log(ex.ToString());
                         }
                         break;
                     }
                 }
-
-                return false;
             }
-
-            return true;
         }
 
         private void SendCommandSyntax(ZNetPeer peer, Player player, CommandInfo command)
@@ -175,7 +174,7 @@ namespace ValheimMP.Framework
             return str;
         }
 
-        public void ExecuteCommand(ZNetPeer peer, Player player, CommandInfo command, string parameters)
+        public void ExecuteCommand(OnChatMessageArgs args, CommandInfo command, string parameters)
         {
             var parameterObjects = new List<object>();
             var parameterInfo = command.m_method.GetParameters();
@@ -187,11 +186,15 @@ namespace ValheimMP.Framework
 
                 if (param.Name == "peer" && param.ParameterType == typeof(ZNetPeer))
                 {
-                    parameterObjects.Add(peer);
+                    parameterObjects.Add(args.Peer);
                 }
                 else if (param.Name == "player" && param.ParameterType == typeof(Player))
                 {
-                    parameterObjects.Add(player);
+                    parameterObjects.Add(args.Player);
+                }
+                else if(param.Name =="chatargs" && param.ParameterType == typeof(OnChatMessageArgs))
+                {
+                    parameterObjects.Add(args);
                 }
                 else
                 {

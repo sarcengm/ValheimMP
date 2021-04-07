@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using System.Text;
 using UnityEngine;
+using ValheimMP.Framework.Events;
 using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches
@@ -50,6 +51,13 @@ namespace ValheimMP.Patches
             {
                 type = Talker.Type.Whisper;
                 text = text.Substring(3);
+            }
+
+            // This exists until I can get an dialog for this.. (so maybe forever)
+            if(text.StartsWith("/revive", System.StringComparison.InvariantCultureIgnoreCase))
+            {
+                TombStone_Patch.AcceptRevivalRequest();
+                return false;
             }
 
             SendText(type, text);
@@ -173,17 +181,24 @@ namespace ValheimMP.Patches
                     break;
             }
 
-            if (ValheimMP.Instance.OnChatMessage != null)
+            var args = new OnChatMessageArgs()
             {
-                foreach (ValheimMP.OnChatMessageDelegate del in ValheimMP.Instance.OnChatMessage.GetInvocationList())
-                {
-                    if (!del(peer, player, ref playerName, ref messageLocation, ref messageDistance, ref text, ref type))
-                        return;
-                }
-            }
+                Peer = peer,
+                Player = player,
+                PlayerName = playerName,
+                MessageLocation = messageLocation,
+                MessageDistance = messageDistance,
+                Text = text,
+                MessageType = type,
+                SuppressMessage = false,
+            };
 
-            ZRoutedRpc.instance.InvokeProximityRoutedRPC(messageLocation, messageDistance,
-                ZRoutedRpc.Everybody, ZDOID.None, "ChatMessage", messageLocation, (int)type, playerName, text);
+            ValheimMP.Instance.Internal_OnChatMessage(args);
+            if (args.SuppressMessage)
+                return;
+
+            ZRoutedRpc.instance.InvokeProximityRoutedRPC(args.MessageLocation, args.MessageDistance,
+                ZRoutedRpc.Everybody, ZDOID.None, "ChatMessage", args.MessageLocation, (int)args.MessageType, args.PlayerName, args.Text);
         }
     }
 }

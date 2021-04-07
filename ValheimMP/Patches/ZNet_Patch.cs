@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
 using UnityEngine;
+using ValheimMP.Framework.Events;
 using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches
@@ -180,11 +181,11 @@ namespace ValheimMP.Patches
                 }
                 dic.SetCustomData("ForcedPVPBiomes", pvpbiomes);
 
-                ValheimMP.Instance.OnServerSendPeerInfo?.Invoke(rpc, dic);
+                ValheimMP.Instance.Internal_OnServerSendPeerInfo(rpc, dic);
             }
             else
             {
-                ValheimMP.Instance.OnClientSendPeerInfo?.Invoke(rpc, dic);
+                ValheimMP.Instance.Internal_OnClientSendPeerInfo(rpc, dic);
             }
 
             pkg.Write(dic);
@@ -290,25 +291,33 @@ namespace ValheimMP.Patches
                 Game.instance.GetPlayerProfile().m_playerID = userId;
                 ValheimMP.Log("Connected to Valheim MP Server: " + valheimMPIdentifier + valheimMPVersion);
 
-                if (valheimMP.OnClientConnect != null)
+                var args = new OnClientConnectArgs()
                 {
-                    foreach (ValheimMP.OnClientConnectDelegate del in valheimMP.OnClientConnect.GetInvocationList())
-                    {
-                        if (!del(rpc, peer, customData))
-                            return false;
-                    }
-                }
+                    Rpc = rpc,
+                    Peer = peer,
+                    CustomData = customData,
+                    AbortConnect = false,
+                };
+
+                valheimMP.Internal_OnClientConnect(args);
+
+                if (args.AbortConnect)
+                    return false;
             }
             else
             {
-                if (valheimMP.OnServerConnectBeforeProfileLoad != null)
+                var args = new OnServerConnectArgs()
                 {
-                    foreach (ValheimMP.OnServerConnectBeforeProfileLoadDelegate del in valheimMP.OnServerConnectBeforeProfileLoad.GetInvocationList())
-                    {
-                        if (!del(rpc, peer, customData))
-                            return false;
-                    }
-                }
+                    Rpc = rpc,
+                    Peer = peer,
+                    CustomData = customData,
+                    AbortConnect = false,
+                };
+
+                valheimMP.Internal_OnServerConnectBeforeProfileLoad(args);
+
+                if (args.AbortConnect)
+                    return false;
 
                 var steamId = (peer.m_socket as ZSteamSocket).GetPeerID();
                 peer.m_playerProfile = new PlayerProfile(System.IO.Path.Combine(valheimMP.CharacterPath.Value, steamId.ToString()));
@@ -329,14 +338,10 @@ namespace ValheimMP.Patches
 
                 ValheimMP.Log($"Client connected to Valheim MP Server: {valheimMPIdentifier}  {valheimMPVersion}");
 
-                if (valheimMP.OnServerConnect != null)
-                {
-                    foreach (ValheimMP.OnServerConnectDelegate del in valheimMP.OnServerConnect.GetInvocationList())
-                    {
-                        if (!del(rpc, peer, customData))
-                            return false;
-                    }
-                }
+                valheimMP.Internal_OnServerConnect(args);
+
+                if (args.AbortConnect)
+                    return false;
             }
 
             if (ValheimMP.IsDedicated)
@@ -365,16 +370,11 @@ namespace ValheimMP.Patches
                 {
                     Player_Patch.RPC_SyncPlayerMovement(rpc, pkg);
                 });
-
-                rpc.Register("PlayerGroupUpdate", (ZRpc rpc, ZPackage pkg) =>
+                rpc.Register("ReviveRequestAccept", (ZRpc rpc, ZDOID id) =>
                 {
-                    ValheimMP.Instance.PlayerGroupManager.RPC_PlayerGroupUpdate(rpc, pkg);
+                    TombStone_Patch.RPC_ReviveRequestAccept(rpc, id);
                 });
 
-                rpc.Register("PlayerGroupRemovePlayer", (ZRpc rpc, int groupId, long playerId) =>
-                {
-                    ValheimMP.Instance.PlayerGroupManager.RPC_PlayerGroupRemovePlayer(rpc, groupId, playerId);
-                });
             }
             else if (ValheimMP.Instance.IsOnValheimMPServer)
             {
@@ -385,6 +385,18 @@ namespace ValheimMP.Patches
                 rpc.Register("ZDODestroy", (ZRpc rpc, ZPackage pkg) =>
                 {
                     ZDOMan_Patch.RPC_ZDODestroy(pkg);
+                });
+                rpc.Register("PlayerGroupUpdate", (ZRpc rpc, ZPackage pkg) =>
+                {
+                    ValheimMP.Instance.PlayerGroupManager.RPC_PlayerGroupUpdate(rpc, pkg);
+                });
+                rpc.Register("PlayerGroupRemovePlayer", (ZRpc rpc, int groupId, long playerId) =>
+                {
+                    ValheimMP.Instance.PlayerGroupManager.RPC_PlayerGroupRemovePlayer(rpc, groupId, playerId);
+                });
+                rpc.Register("ReviveRequest", (ZRpc rpc, ZDOID id, string playerName, long playerId) =>
+                {
+                    TombStone_Patch.RPC_ReviveRequest(rpc, id, playerName, playerId);
                 });
             }
 
@@ -463,7 +475,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static void SaveWorld()
         {
-            ValheimMP.Instance.OnWorldSave?.Invoke();
+            ValheimMP.Instance.Internal_OnWorldSave();
         }
     }
 }

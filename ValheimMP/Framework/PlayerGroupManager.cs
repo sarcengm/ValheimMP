@@ -11,6 +11,7 @@ namespace ValheimMP.Framework
     {
         internal int m_groupCounter;
 
+        [JsonProperty]
         public Dictionary<int, PlayerGroup> Groups { get; private set; } = new();
 
         [JsonIgnore]
@@ -38,12 +39,14 @@ namespace ValheimMP.Framework
 
         private void addToGroupsByPlayer(PlayerGroup group, PlayerGroupMember member)
         {
-            if (!GroupsByPlayerID.ContainsKey(member.Id))
+            List<PlayerGroup> list;
+            if (!GroupsByPlayerID.TryGetValue(member.Id, out list))
             {
-                GroupsByPlayerID.Add(member.Id, new List<PlayerGroup>());
+                list = new List<PlayerGroup>();
+                GroupsByPlayerID.Add(member.Id, list);
             }
 
-            GroupsByPlayerID[member.Id].Add(group);
+            list.Add(group);
         }
 
         private void removeFromGroupsByPlayer(PlayerGroup group, PlayerGroupMember member)
@@ -64,7 +67,7 @@ namespace ValheimMP.Framework
 
         internal static PlayerGroupManager Load(string jsonFile)
         {
-            PlayerGroupManager manager = null;
+            PlayerGroupManager manager;
             try
             {
                 var jsonStr = System.IO.File.ReadAllText(jsonFile);
@@ -80,23 +83,10 @@ namespace ValheimMP.Framework
             catch (Exception ex)
             {
                 ValheimMP.LogError($"Error while trying to load PlayerGroupManager: {ex}");
+                manager = new PlayerGroupManager();
             }
             return manager;
         }
-
-        private void UpdateGroupsByPlayerID()
-        {
-            GroupsByPlayerID.Clear();
-
-            foreach (var group in Groups.Values)
-            {
-                foreach (var member in group.Members.Values)
-                {
-                    removeFromGroupsByPlayer(group, member);
-                }
-            }
-        }
-
         internal void Save(string jsonFile)
         {
             try
@@ -111,6 +101,20 @@ namespace ValheimMP.Framework
             }
         }
 
+        private void UpdateGroupsByPlayerID()
+        {
+            GroupsByPlayerID.Clear();
+
+            foreach (var group in Groups.Values)
+            {
+                foreach (var member in group.Members.Values)
+                {
+                    addToGroupsByPlayer(group, member);
+                }
+            }
+        }
+
+
         /// <summary>
         /// If the two players belong to the same group, this can be the same clan, or the same party
         /// </summary>
@@ -122,17 +126,17 @@ namespace ValheimMP.Framework
             var clan = GetGroupByType(playerId1, PlayerGroupType.Clan);
             if (clan != null)
             {
-                if (GetGroupByType(playerId2, PlayerGroupType.Clan) == clan)
+                if (clan.Members.ContainsKey(playerId2))
                     return true;
             }
 
             var party = GetGroupByType(playerId1, PlayerGroupType.Party);
             if (party != null)
             {
-                if (GetGroupByType(playerId2, PlayerGroupType.Party) == party)
+                if (party.Members.ContainsKey(playerId2))
                     return true;
             }
-
+            ValheimMP.Log($"Nope! {party} {clan} {playerId1} {playerId2} ");
             return false;
         }
 
@@ -173,7 +177,7 @@ namespace ValheimMP.Framework
                 Name = groupName,
                 Id = GetNewGroupID(),
                 CreationDate = DateTime.Now,
-                GroupTextColor = groupType == PlayerGroupType.Party ? "AAAAFF" : "40FF40",
+                GroupTextColor = groupType == PlayerGroupType.Party ? "#AAAAFFFF" : "#40FF40FF",
             };
             Groups.Add(newGroup.Id, newGroup);
 
@@ -226,15 +230,15 @@ namespace ValheimMP.Framework
 
             var members = playerGroup.Members.Values.ToList();
 
-            for (int i=0; i<members.Count; i++)
+            for (int i = 0; i < members.Count; i++)
             {
-                if(members[i].Peer != null)
+                if (members[i].Peer != null)
                 {
                     members[i].Peer.m_rpc.Invoke("PlayerGroupRemovePlayer", playerGroup.Id, member.Id);
                 }
             }
 
-            if(member.Peer != null)
+            if (member.Peer != null)
             {
                 member.Peer.m_rpc.Invoke("PlayerGroupRemovePlayer", playerGroup.Id, member.Id);
             }
@@ -244,7 +248,7 @@ namespace ValheimMP.Framework
         {
             addToGroupsByPlayer(playerGroup, member);
 
-            if(member.Peer != null)
+            if (member.Peer != null)
             {
                 SendPlayerGroupUpdate(member.Peer, false);
             }
@@ -252,13 +256,13 @@ namespace ValheimMP.Framework
 
         public void RPC_PlayerGroupRemovePlayer(ZRpc rpc, int groupId, long playerId)
         {
-            if(Groups.TryGetValue(groupId, out var group))
+            if (Groups.TryGetValue(groupId, out var group))
             {
                 group.Members.Remove(playerId);
-                if(group.Members.Count == 0 || playerId == ZNet.instance.GetUID())
+                if (group.Members.Count == 0 || playerId == ZNet.instance.GetUID())
                 {
                     Groups.Remove(groupId);
-                    if(GroupsByPlayerID.TryGetValue(playerId, out var glist))
+                    if (GroupsByPlayerID.TryGetValue(playerId, out var glist))
                     {
                         glist.Remove(group);
                     }
@@ -292,8 +296,7 @@ namespace ValheimMP.Framework
         {
             var pkg = new ZPackage();
             var groupCount = SerializeGroupsFor(peer, pkg, periodic);
-
-            if(groupCount > 0)
+            if (groupCount > 0)
             {
                 peer.m_rpc.Invoke("PlayerGroupUpdate", pkg);
             }
@@ -312,7 +315,7 @@ namespace ValheimMP.Framework
                     var group = groups[i];
                     var flags = group.Serialize(peer, pkg, periodic);
 
-                    if(flags != GroupUpdateFlags.None)
+                    if (flags != GroupUpdateFlags.None)
                     {
                         groupCount++;
                     }
@@ -327,17 +330,31 @@ namespace ValheimMP.Framework
         public void RPC_PlayerGroupUpdate(ZRpc rpc, ZPackage pkg)
         {
             var count = pkg.ReadInt();
-            for(int i =0; i<count; i++)
+            for (int i = 0; i < count; i++)
             {
                 var id = pkg.PeekInt();
-
-                if(!Groups.TryGetValue(id, out var group))
+                var newGroup = false;
+                if (!Groups.TryGetValue(id, out var group))
                 {
                     group = new PlayerGroup(this);
                     Groups.Add(id, group);
+                    newGroup = true;
                 }
 
                 group.Deserialize(pkg);
+
+                if (newGroup)
+                {
+                    foreach (var member in group.Members)
+                    {
+                        if (!GroupsByPlayerID.TryGetValue(member.Key, out var playerGroups))
+                        {
+                            playerGroups = new List<PlayerGroup>();
+                            GroupsByPlayerID.Add(member.Key, playerGroups);
+                        }
+                        playerGroups.Add(group);
+                    }
+                }
             }
         }
     }
@@ -370,10 +387,11 @@ namespace ValheimMP.Framework
 
     public class PlayerGroupMember
     {
+        [JsonProperty]
         public long Id { get; internal set; }
-
+        [JsonProperty]
         public string Name { get; internal set; }
-
+        [JsonProperty]
         public int Rank { get; internal set; }
 
         private Player m_player;
@@ -397,11 +415,11 @@ namespace ValheimMP.Framework
 
         [JsonIgnore]
         public ZNetPeer Peer { get; internal set; }
-
+        [JsonProperty]
         public DateTime MemberSince { get; internal set; }
 
         private DateTime m_lastOnline;
-
+        [JsonProperty]
         public DateTime LastOnline
         {
             get { return Peer == null ? m_lastOnline : DateTime.Now; }
@@ -522,17 +540,17 @@ namespace ValheimMP.Framework
     public class PlayerGroup
     {
         private PlayerGroupManager m_manager;
-
+        [JsonProperty]
         public int Id { get; internal set; }
-
+        [JsonProperty]
         public string Name { get; internal set; }
-
+        [JsonProperty]
         public PlayerGroupType GroupType { get; internal set; }
-
+        [JsonProperty]
         public string GroupTextColor { get; internal set; }
-
+        [JsonProperty]
         public Dictionary<long, PlayerGroupMember> Members { get; private set; } = new();
-
+        [JsonProperty]
         public DateTime CreationDate { get; internal set; }
 
         [JsonIgnore]
@@ -708,12 +726,12 @@ namespace ValheimMP.Framework
         private void DeserializeMembers(ZPackage pkg)
         {
             var count = pkg.ReadInt();
-            for(int i=0; i<count; i++)
+            for (int i = 0; i < count; i++)
             {
                 var flags = (MemberUpdateFlags)pkg.ReadInt();
                 var id = pkg.PeekLong();
 
-                if(!Members.TryGetValue(id, out var member))
+                if (!Members.TryGetValue(id, out var member))
                 {
                     member = new PlayerGroupMember();
                     Members.Add(id, member);

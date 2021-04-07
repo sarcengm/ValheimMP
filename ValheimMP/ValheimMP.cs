@@ -9,6 +9,7 @@ using BepInEx.Configuration;
 using ValheimMP.Framework;
 using BepInEx.Logging;
 using System.IO;
+using ValheimMP.Framework.Events;
 
 namespace ValheimMP
 {
@@ -58,10 +59,7 @@ namespace ValheimMP
         /// 
         /// Only fired on the client that connects
         /// </summary>
-        /// <param name="serverRpc">RPC of the server</param>
-        /// <returns>False if we should abort. Only useful if you want to disconnect the user. Manual disconnect should still be called.</returns>
-        public OnClientConnectDelegate OnClientConnect { get; set; }
-        public delegate bool OnClientConnectDelegate(ZRpc rpc, ZNetPeer peer, Dictionary<int, byte[]> customData);
+        public event OnClientConnectDelegate OnClientConnect; 
 
         /// <summary>
         /// Fired when someone joins the server. (After their profile is loaded)
@@ -70,60 +68,55 @@ namespace ValheimMP
         /// </summary>
         /// <param name="peer"></param>
         /// <returns>False if we should abort. Only useful if you want to disconnect the user. Manual disconnect should still be called.</returns>
-        public OnServerConnectDelegate OnServerConnect { get; set; }
-        public delegate bool OnServerConnectDelegate(ZRpc rpc, ZNetPeer peer, Dictionary<int, byte[]> customData);
+        public event OnServerConnectDelegate OnServerConnect;
 
         /// <summary>
         /// Fired when someone joins the server, but it is fired before their profile is loaded.
         /// </summary>
         /// <returns>False if we should abort. Only useful if you want to disconnect the user. Manual disconnect should still be called.</returns>
-        public OnServerConnectBeforeProfileLoadDelegate OnServerConnectBeforeProfileLoad { get; set; }
-        public delegate bool OnServerConnectBeforeProfileLoadDelegate(ZRpc rpc, ZNetPeer peer, Dictionary<int, byte[]> customData);
-        
+        public event OnServerConnectBeforeProfileLoadDelegate OnServerConnectBeforeProfileLoad; 
+
         /// <summary>
         /// Triggered when the server sends their peer info
         /// </summary>
-        public OnServerSendPeerInfoDelegate OnServerSendPeerInfo { get; set; }
-        public delegate void OnServerSendPeerInfoDelegate(ZRpc rpc, Dictionary<int, byte[]> customData);
+        public event OnServerSendPeerInfoDelegate OnServerSendPeerInfo; 
 
         /// <summary>
         /// Triggered when the client sends their peer info. 
         /// </summary>
-        public OnClientSendPeerInfoDelegate OnClientSendPeerInfo { get; set; }
-        public delegate void OnClientSendPeerInfoDelegate(ZRpc rpc, Dictionary<int, byte[]> customData);
+        public event OnClientSendPeerInfoDelegate OnClientSendPeerInfo; 
 
         /// <summary>
         /// Fired when a chat message is received on the server.
         /// </summary>
         /// <returns>False if we should suppress the message from being send.</returns>
-        public OnChatMessageDelegate OnChatMessage { get; set; }
-        public delegate bool OnChatMessageDelegate(ZNetPeer peer, Player player, ref string playerName, ref Vector3 messageLocation, ref float messageDistance, ref string text, ref Talker.Type type);
+        public event OnChatMessageDelegate OnChatMessage;
 
         /// <summary>
         /// Fired on clients after they successfully sold an item
         /// </summary>
-        public OnTraderClientSoldItemDelegate OnTraderClientSoldItem { get; set; }
-        public delegate bool OnTraderClientSoldItemDelegate(Trader trader, int itemHash, int count);
+        public event OnTraderClientSoldItemDelegate OnTraderClientSoldItem;
 
         /// <summary>
         /// Fired on clients after they successfully bought an item
         /// </summary>
-        public OnTraderClientBoughtItemDelegate OnTraderClientBoughtItem { get; set; }
-        public delegate bool OnTraderClientBoughtItemDelegate(Trader trader, int itemHash, int count);
+        public event OnTraderClientBoughtItemDelegate OnTraderClientBoughtItem; 
+
 
         /// <summary>
         /// Fired when the plugin is patched into the game
         /// </summary>
-        public OnPluginActivateDelegate OnPluginActivate { get; set; }
+        public event OnPluginActivateDelegate OnPluginActivate; 
         public delegate void OnPluginActivateDelegate();
 
         /// <summary>
         /// Fired when the plugin is unpatched from the game
         /// </summary>
-        public OnPluginDeactivateDelegate OnPluginDeactivate { get; set; }
+        public event OnPluginDeactivateDelegate OnPluginDeactivate; 
         public delegate void OnPluginDeactivateDelegate();
 
-        public OnWorldSaveDelegate OnWorldSave { get; set; }
+        public event OnWorldSaveDelegate OnWorldSave;
+
         public delegate void OnWorldSaveDelegate();
         #endregion
 
@@ -224,6 +217,17 @@ namespace ValheimMP
         public Dictionary<Heightmap.Biome, ConfigEntry<bool>> ForcedPVPBiomes { get; internal set; }
         public ConfigEntry<int> ServerObjectsCreatedPerFrame { get; internal set; }
         public ConfigEntry<int> ChatMaxHistory { get; internal set; }
+        #endregion
+
+        #region delegates
+        public delegate void OnClientConnectDelegate(OnClientConnectArgs args);
+        public delegate void OnServerConnectDelegate(OnServerConnectArgs args);
+        public delegate void OnServerConnectBeforeProfileLoadDelegate(OnServerConnectArgs args);
+        public delegate void OnServerSendPeerInfoDelegate(ZRpc rpc, Dictionary<int, byte[]> customData);
+        public delegate void OnClientSendPeerInfoDelegate(ZRpc rpc, Dictionary<int, byte[]> customData);
+        public delegate void OnChatMessageDelegate(OnChatMessageArgs args);
+        public delegate void OnTraderClientSoldItemDelegate(OnTraderClientSoldItemArgs args);
+        public delegate void OnTraderClientBoughtItemDelegate(OnTraderClientBoughtItemArgs args);
         #endregion
 
         // Awake is called once when both the game and the plug-in are loaded
@@ -412,6 +416,52 @@ namespace ValheimMP
                 InventoryManager.Update();
                 PlayerGroupManager.Update();
             }
+        }
+
+        internal void Internal_OnServerSendPeerInfo(ZRpc rpc, Dictionary<int, byte[]> dic)
+        {
+            OnServerSendPeerInfo?.Invoke(rpc, dic);
+        }
+
+        internal void Internal_OnClientSendPeerInfo(ZRpc rpc, Dictionary<int, byte[]> dic)
+        {
+            OnClientSendPeerInfo?.Invoke(rpc, dic);
+        }
+
+        internal void Internal_OnWorldSave()
+        {
+            OnWorldSave?.Invoke();
+        }
+
+        internal void Internal_OnChatMessage(OnChatMessageArgs args)
+        {
+            OnChatMessage?.Invoke(args);
+        }
+
+        internal void Internal_OnClientConnect(OnClientConnectArgs args)
+        {
+            OnClientConnect?.Invoke(args);
+        }
+
+
+        internal void Internal_OnServerConnect(OnServerConnectArgs args)
+        {
+            OnServerConnect?.Invoke(args);
+        }
+
+        internal void Internal_OnServerConnectBeforeProfileLoad(OnServerConnectArgs args)
+        {
+            OnServerConnectBeforeProfileLoad?.Invoke(args);
+        }
+
+        internal void Internal_OnTraderClientBoughtItem(OnTraderClientBoughtItemArgs args)
+        {
+            OnTraderClientBoughtItem?.Invoke(args);
+        }
+
+        internal void Internal_OnTraderClientSoldItem(OnTraderClientSoldItemArgs args)
+        {
+            OnTraderClientSoldItem?.Invoke(args);
         }
 
         /// <summary>

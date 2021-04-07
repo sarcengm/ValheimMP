@@ -7,6 +7,7 @@ using EpicLoot.GatedItemType;
 using HarmonyLib;
 using System.Collections.Generic;
 using ValheimMP.Framework;
+using ValheimMP.Framework.Events;
 using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.EpicLootPatch
@@ -113,9 +114,9 @@ namespace ValheimMP.EpicLootPatch
             customData.SetCustomData("EpicLootConfig", m_epicLootConfig);
         }
 
-        public static bool OnClientConnect(ZRpc rpc, ZNetPeer peer, Dictionary<int, byte[]> customData)
+        public static void OnClientConnect(OnClientConnectArgs args)
         {
-            var config = customData.GetCustomData("EpicLootConfig");
+            var config = args.CustomData.GetCustomData("EpicLootConfig");
             if (config != null)
             {
                 var pkg = new ZPackage(config);
@@ -136,43 +137,40 @@ namespace ValheimMP.EpicLootPatch
                 if (!string.IsNullOrWhiteSpace(magicItemNames)) MagicItemNames.Initialize(EpicLoot.EpicLoot.JsonToObject<ItemNameConfig>(magicItemNames));
                 if (!string.IsNullOrWhiteSpace(adventureDataManager)) AdventureDataManager.Initialize(EpicLoot.EpicLoot.JsonToObject<AdventureDataConfig>(adventureDataManager));
             }
-            return true;
         }
 
-        public static bool OnServerConnect(ZRpc rpc, ZNetPeer peer, Dictionary<int, byte[]> customData)
+        public static void OnServerConnect(OnServerConnectArgs args)
         {
-            var clientVersion = customData.GetCustomData<string>("EpicLootVersion");
+            var clientVersion = args.CustomData.GetCustomData<string>("EpicLootVersion");
 
             Log($"Client is running {clientVersion}, server is {EpicLootVersion}");
 
             if (EpicLootVersion != clientVersion)
             {
-                rpc.SendErrorMessage($"Version mismatch for EpicLoot you have {clientVersion} while the server has {EpicLootVersion}");
-                return false;
+                args.Rpc.SendErrorMessage($"Version mismatch for EpicLoot you have {clientVersion} while the server has {EpicLootVersion}");
+                args.AbortConnect = true;
+                return;
             }
 
-            rpc.Register("EpicLoot_Disenchant", (ZRpc rpc, int itemId) =>
+            args.Rpc.Register("EpicLoot_Disenchant", (ZRpc rpc, int itemId) =>
             {
                 VMPDisenchantTabController.RPC_Disenchant(rpc, itemId);
             });
 
-            rpc.Register("EpicLoot_Enchant", (ZRpc rpc, int itemId, int rarity) =>
+            args.Rpc.Register("EpicLoot_Enchant", (ZRpc rpc, int itemId, int rarity) =>
             {
                 VMPEnchantTabController.RPC_Enchant(rpc, itemId, rarity);
             });
 
-            rpc.Register("EpicLoot_Augment", (ZRpc rpc, int itemId, int effectIndex) =>
+            args.Rpc.Register("EpicLoot_Augment", (ZRpc rpc, int itemId, int effectIndex) =>
             {
                 VMPAugmentTabController.RPC_Augment(rpc, itemId, effectIndex);
             });
 
-            rpc.Register("EpicLoot_AugmentComplete", (ZRpc rpc, int itemId, int effectIndex, string effectJson) =>
+            args.Rpc.Register("EpicLoot_AugmentComplete", (ZRpc rpc, int itemId, int effectIndex, string effectJson) =>
             {
                 VMPAugmentTabController.RPC_AugmentComplete(rpc, itemId, effectIndex, effectJson);
             });
-            
-
-            return true;
         }
 
         public static void Log(string message)

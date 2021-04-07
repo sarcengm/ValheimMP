@@ -9,9 +9,9 @@ using System.Threading.Tasks;
 namespace ValheimMP.Patches
 {
     [HarmonyPatch]
-    public class ZSteamMatchmaking_Patch
+    internal class ZSteamMatchmaking_Patch
     {
-        public static bool HasConnected { get; internal set; }
+        internal static bool HasConnected { get; set; }
 
         [HarmonyPatch(typeof(ZSteamMatchmaking), "OnSteamServersConnected")]
         [HarmonyPrefix]

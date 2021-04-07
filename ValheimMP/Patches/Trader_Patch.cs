@@ -2,6 +2,7 @@
 using System.Linq;
 using UnityEngine;
 using ValheimMP.Framework;
+using ValheimMP.Framework.Events;
 using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches
@@ -120,16 +121,20 @@ namespace ValheimMP.Patches
             if (item == null)
                 return;
 
-            if (ValheimMP.Instance.OnTraderClientSoldItem != null)
+            var args = new OnTraderClientSoldItemArgs()
             {
-                foreach (ValheimMP.OnTraderClientSoldItemDelegate del in ValheimMP.Instance.OnTraderClientSoldItem.GetInvocationList())
-                {
-                    if (!del(trader, itemHash, count))
-                        return;
-                }
-            }
+                Trader = trader,
+                ItemHash = itemHash,
+                Count = count,
+                SuppressDefaultEvent = false,
+            };
 
-            StoreGui_Patch.SoldItem(StoreGui.instance, item, count);
+            ValheimMP.Instance.Internal_OnTraderClientSoldItem(args);
+
+            if (!args.SuppressDefaultEvent)
+            {
+                StoreGui_Patch.SoldItem(StoreGui.instance, item, count);
+            }
         }
 
         private static void RPC_BoughtItem(Trader trader, long sender, int itemHash, int count)
@@ -141,17 +146,20 @@ namespace ValheimMP.Patches
             if (item == null)
                 return;
 
-
-            if (ValheimMP.Instance.OnTraderClientBoughtItem != null)
+            var args = new OnTraderClientBoughtItemArgs()
             {
-                foreach (ValheimMP.OnTraderClientBoughtItemDelegate del in ValheimMP.Instance.OnTraderClientBoughtItem.GetInvocationList())
-                {
-                    if (!del(trader, itemHash, count))
-                        return;
-                }
-            }
+                Trader = trader,
+                ItemHash = itemHash,
+                Count = count,
+                SuppressDefaultEvent = false,
+            };
 
-            StoreGui_Patch.BoughtItem(StoreGui.instance, item, count);
+            ValheimMP.Instance.Internal_OnTraderClientBoughtItem(args);
+
+            if (!args.SuppressDefaultEvent)
+            {
+                StoreGui_Patch.BoughtItem(StoreGui.instance, item, count);
+            }
         }
 
         private static void RPC_SellItem(Trader trader, long sender, int itemId, int count)

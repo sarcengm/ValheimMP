@@ -19,7 +19,7 @@ namespace ValheimMP.Framework
         }
 
         public delegate void OnItemCraftedDelegate(int craftTrigger, Inventory inventory, ItemDrop.ItemData itemData, byte[] triggerData);
-        public OnItemCraftedDelegate OnItemCrafted { get; set; }
+        public event OnItemCraftedDelegate OnItemCrafted;
 
         private class InventoryWrapper
         {
@@ -202,13 +202,7 @@ namespace ValheimMP.Framework
                 return;
 
             inventory.m_nview = netview;
-
-            var zdo = netview.GetZDO();
-            if (zdo == null)
-            {
-                ValheimMP.Log("Register Inventory, ZDO missing.");
-                return;
-            }
+            var zdo = netview.m_zdo;
 
             if (!m_inventoryWrappers.ContainsKey(zdo.m_uid))
             {
@@ -405,6 +399,11 @@ namespace ValheimMP.Framework
             }
 
             m_changedInventories.Clear();
+        }
+
+        internal void Internal_OnItemCrafted(int craftTrigger, Inventory targetInventory, ItemDrop.ItemData itemData, byte[] triggerData)
+        {
+            OnItemCrafted?.Invoke(craftTrigger, targetInventory, itemData, triggerData);
         }
     }
 }

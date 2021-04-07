@@ -37,6 +37,15 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Awake(Player __instance)
         {
+            if (m_beards == null)
+            {
+                m_beards = new HashSet<string>(ObjectDB.instance.GetAllItems(ItemDrop.ItemData.ItemType.Customization, "Beard").Select(k => k.name));
+                m_hairs = new HashSet<string>(ObjectDB.instance.GetAllItems(ItemDrop.ItemData.ItemType.Customization, "Hair").Select(k => k.name));
+                m_models = new HashSet<int> { 0, 1 };
+                m_beards.Add("BeardNone");
+                m_hairs.Add("HairNone");
+            }
+
             __instance.m_delayedDamage = new Queue<KeyValuePair<float, HitData>>();
             var zdo = __instance.m_nview.m_zdo;
 
@@ -201,6 +210,13 @@ namespace ValheimMP.Patches
                 __instance.SetLocalPlayer();
                 __instance.m_isLoading = true;
                 CheckPlayerReady();
+
+                // Update all appearance fields so the client side profile gets it right.
+                ZDOEvent_BeardItemChanged(__instance);
+                ZDOEvent_HairItemChanged(__instance);
+                ZDOEvent_PlayerModelChanged(__instance);
+                ZDOEvent_SkinColorChanged(__instance);
+                ZDOEvent_HairColorChanged(__instance);
             }
 
             if (zdo != null)
@@ -212,29 +228,54 @@ namespace ValheimMP.Patches
             }
         }
 
+        private static string GetHair(int hash)
+        {
+            foreach (var hair in m_hairs)
+            {
+                if (hair.GetStableHashCode() == hash)
+                {
+                    return hair;
+                }
+            }
+            return "HairNone";
+        }
+
+        private static string GetBeard(int hash)
+        {
+            foreach (var beard in m_beards)
+            {
+                if (beard.GetStableHashCode() == hash)
+                {
+                    return beard;
+                }
+            }
+            return "BeardNone";
+        }
+
         private static void ZDOEvent_HairColorChanged(Player player)
         {
-            player.SetHairColor(player.m_nview.m_zdo.GetVec3("HairColor", player.m_hairColor));
+            player.m_hairColor = player.m_nview.m_zdo.GetVec3("HairColor", player.m_hairColor);
         }
 
         private static void ZDOEvent_HairItemChanged(Player player)
         {
-            player.SetHair(player.m_nview.m_zdo.GetString("HairItem", player.m_hairItem));
+            player.m_hairItem = GetHair(player.m_nview.m_zdo.GetInt("HairItem", player.m_hairItem.GetStableHashCode()));
         }
+
 
         private static void ZDOEvent_BeardItemChanged(Player player)
         {
-            player.SetBeard(player.m_nview.m_zdo.GetString("BeardItem", player.m_beardItem));
+            player.m_beardItem = GetBeard(player.m_nview.m_zdo.GetInt("BeardItem", player.m_beardItem.GetStableHashCode()));
         }
 
         private static void ZDOEvent_SkinColorChanged(Player player)
         {
-            player.SetHairColor(player.m_nview.m_zdo.GetVec3("SkinColor", player.m_skinColor));
+            player.m_skinColor = player.m_nview.m_zdo.GetVec3("SkinColor", player.m_skinColor);
         }
 
         private static void ZDOEvent_PlayerModelChanged(Player player)
         {
-            player.SetPlayerModel(player.m_nview.m_zdo.GetInt("ModelIndex", 0));
+            player.m_modelIndex = player.m_nview.m_zdo.GetInt("ModelIndex", player.m_modelIndex);
         }
 
         private static void ZDOEvent_NoPlacementCostChanged(Player player)
@@ -258,15 +299,6 @@ namespace ValheimMP.Patches
             var hairColor = pkg.ReadVector3();
             var skinColor = pkg.ReadVector3();
             var modelIndex = pkg.ReadInt();
-
-            if (m_beards == null)
-            {
-                m_beards = new HashSet<string>(ObjectDB.instance.GetAllItems(ItemDrop.ItemData.ItemType.Customization, "Beard").Select(k => k.name));
-                m_hairs = new HashSet<string>(ObjectDB.instance.GetAllItems(ItemDrop.ItemData.ItemType.Customization, "Hair").Select(k => k.name));
-                m_models = new HashSet<int> { 0, 1 };
-                m_beards.Add("BeardNone");
-                m_hairs.Add("HairNone");
-            }
 
             if (beard != "" && !m_beards.Contains(beard))
             {
@@ -1962,7 +1994,7 @@ namespace ValheimMP.Patches
 
             return true;
         }
-        [HarmonyPatch(typeof(Player), "CanSwitchPVP")]
+        [HarmonyPatch(typeof(Player), "SetPVP")]
         [HarmonyPrefix]
         private static bool SetPVP(Player __instance)
         {
@@ -2006,7 +2038,10 @@ namespace ValheimMP.Patches
                 (vmp.ForcedPVPBiomes.TryGetValue(__instance.m_currentBiome, out var configEntry)
                 && configEntry.Value && playerDistance > biomeDistance);
 
-            __instance.m_nview?.m_zdo?.Set("forcedpvp", forcedpvp);
+            if (__instance.m_nview)
+            {
+                __instance.m_nview.m_zdo?.Set("forcedpvp", forcedpvp);
+            }
         }
     }
 

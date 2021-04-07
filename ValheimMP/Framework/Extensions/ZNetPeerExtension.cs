@@ -1,4 +1,6 @@
-﻿namespace ValheimMP.Framework.Extensions
+﻿using ValheimMP.Patches;
+
+namespace ValheimMP.Framework.Extensions
 {
     public static class ZNetPeerExtension
     {

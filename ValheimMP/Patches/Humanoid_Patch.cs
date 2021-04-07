@@ -344,5 +344,12 @@ namespace ValheimMP.Patches
             }
             return list;
         }
+
+        [HarmonyPatch(typeof(Humanoid), "DrainEquipedItemDurability")]
+        [HarmonyPrefix]
+        private static bool DrainEquipedItemDurability(ItemDrop.ItemData item, float dt)
+        {
+            return ValheimMP.IsDedicated;
+        }
     }
 }

@@ -37,5 +37,35 @@ namespace ValheimMP.Patches
             }
             return list;
         }
+
+        [HarmonyPatch(typeof(StatusEffect), "TriggerStartEffects")]
+        [HarmonyTranspiler]
+        private static IEnumerable<CodeInstruction> CreateNonOriginatorStatusEffects(IEnumerable<CodeInstruction> instructions)
+        {
+            var list = instructions.ToList();
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].Calls(AccessTools.Method(typeof(EffectList), "Create", new[] { typeof(Vector3), typeof(Quaternion), typeof(Transform), typeof(float) })))
+                {
+                    list[i] = new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(EffectListExtension), "CreateNonOriginator", new[] { typeof(EffectList), typeof(Vector3), typeof(Quaternion), typeof(Transform), typeof(float), typeof(long) }));
+                    list.InsertRange(i, new[]
+                    {
+                        new CodeInstruction(OpCodes.Ldarg_0),
+                        new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(StatusEffect), "m_character")),
+                        new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(EffectList_Patch),"GetPlayerID")),
+                    });
+                    break;
+                }
+            }
+            return list;
+        }
+
+        private static long GetPlayerID(Character character)
+        {
+            if (character is Player player)
+                return player.GetPlayerID();
+            return 0;
+        }
+
     }
 }
