@@ -114,6 +114,8 @@ namespace ValheimMP.Patches
                             peer.m_firstSpawn = false;
                             //peer.m_rpc.Invoke("PlayerProfile", PlayerProfile_Patch.Serialize(peer.m_playerProfile));
                             peer.m_rpc.Invoke("CharacterID", peer.m_player.GetZDOID());
+
+                            ValheimMP.Instance.Internal_OnPlayerOnline(peer);
                         }
                         else
                         {

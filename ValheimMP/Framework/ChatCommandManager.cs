@@ -106,8 +106,8 @@ namespace ValheimMP.Framework
 
             if (args.Text.StartsWith(CommandToken))
             {
-                //suppress by default but commands can turn it back on
-                args.SuppressMessage = true;
+                // server side suppress by default but commands can turn it back on
+                args.SuppressMessage = ValheimMP.IsDedicated;
 
                 args.Text = args.Text.Substring(CommandToken.Length);
                 var commandEnd = args.Text.IndexOf(" ");

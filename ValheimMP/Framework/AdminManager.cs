@@ -25,7 +25,7 @@ namespace ValheimMP.Framework
         }
 
         [JsonProperty]
-        public int Rank { get; internal set; }
+        public int Rank { get; set; }
 
         private DateTime m_lastOnline;
         [JsonProperty]
@@ -44,8 +44,8 @@ namespace ValheimMP.Framework
         [JsonProperty]
         public Dictionary<long, Admin> Admins { get; private set; } = new();
 
-        public event OnAdminOnlineDelegate OnAdminOnline; 
-        public delegate void OnAdminOnlineDelegate(Admin admin);
+        public event OnAdminOnlineHandler OnAdminOnline; 
+        public delegate void OnAdminOnlineHandler(Admin admin);
 
         public AdminManager()
         {

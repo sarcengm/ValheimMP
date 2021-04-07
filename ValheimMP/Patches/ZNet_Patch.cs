@@ -302,7 +302,10 @@ namespace ValheimMP.Patches
                 valheimMP.Internal_OnClientConnect(args);
 
                 if (args.AbortConnect)
+                {
+                    ValheimMP.Log($"OnClientConnect AbortConnect");
                     return false;
+                }
             }
             else
             {
@@ -317,7 +320,10 @@ namespace ValheimMP.Patches
                 valheimMP.Internal_OnServerConnectBeforeProfileLoad(args);
 
                 if (args.AbortConnect)
+                {
+                    ValheimMP.Log($"OnServerConnectBeforeProfileLoad AbortConnect");
                     return false;
+                }
 
                 var steamId = (peer.m_socket as ZSteamSocket).GetPeerID();
                 peer.m_playerProfile = new PlayerProfile(System.IO.Path.Combine(valheimMP.CharacterPath.Value, steamId.ToString()));
@@ -341,7 +347,10 @@ namespace ValheimMP.Patches
                 valheimMP.Internal_OnServerConnect(args);
 
                 if (args.AbortConnect)
+                {
+                    ValheimMP.Log($"OnServerConnect AbortConnect");
                     return false;
+                }
             }
 
             if (ValheimMP.IsDedicated)
@@ -456,12 +465,14 @@ namespace ValheimMP.Patches
                 ValheimMP.Instance.InventoryManager.RPC_InventoryData(pkg);
             }
         }
+
         [HarmonyPatch(typeof(ZNet), "LoadWorld")]
         [HarmonyPrefix]
         private static bool LoadWorld(ZNet __instance)
         {
             if(ValheimMP.IsDedicated && !ZSteamMatchmaking_Patch.HasConnected)
             {
+                ZoneSystem.instance.m_locationsGenerated = true;
                 ValheimMP.Log($"SteamGameServer still not yet connected delaying LoadWorld...");
                 __instance.Invoke("LoadWorld", 1);
                 return false;

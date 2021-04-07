@@ -17,7 +17,7 @@ namespace ValheimMP.Patches
 
             if (ZNet.instance.IsServer())
             {
-                maxCreatedPerFrame = ValheimMP.Instance.ServerObjectsCreatedPerFrame.Value;
+                maxCreatedPerFrame = Mathf.Clamp(ValheimMP.Instance.ServerObjectsCreatedPerFrame.Value, 10, 1000);
             }
 
             else if(Player.m_localPlayer == null || 

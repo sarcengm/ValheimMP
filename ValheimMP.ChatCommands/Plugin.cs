@@ -244,6 +244,76 @@ namespace ValheimMP.ChatCommands
             }
         }
 
+        [ChatCommand("SetName", "Sets Character Name", requireAdmin: true)]
+        private void Command_SetName(ZNetPeer peer, string name, ZNetPeer target = null)
+        {
+            if (target == null)
+                target = peer;
+
+            var player = target.GetPlayer();
+
+            var profile = target.GetPlayerProfile();
+            profile.m_playerName = name;
+            if (player && player.m_nview && player.m_nview.m_zdo != null)
+            {
+                player.m_nview.m_zdo.Set("playerName", name);
+            }
+            peer.SendServerMessage($"<color=white>Name for <color=green><b>{target.m_uid}</b></color> to <color=green><b>{name}</b></color>.</color>");
+
+            if (peer != target)
+            {
+                target.SendServerMessage($"<color=white><color=green><b>{peer.m_playerName}</b></color> set your beard to <color=green><b>{name}</b></color>.</color>");
+            }
+        }
+
+        [ChatCommand("ServerKick", "Kicks a player", requireAdmin: true)]
+        private void Command_ServerKick(ZNetPeer peer, ZNetPeer target)
+        {
+            var man = ValheimMP.Instance.AdminManager;
+            var admin1 = man.GetAdmin(peer);
+            var admin2 = man.GetAdmin(target);
+
+            if (admin1 == null)
+                return;
+
+            if (admin1.Rank < admin2.Rank)
+            {
+                peer.SendServerMessage($"{target.m_playerName} is of a higher rank and can not be kicked.");
+                return;
+            }
+
+            peer.SendServerMessage($"Kicked {target.m_playerName}");
+            ZNet.instance.InternalKick(target);
+        }
+
+        [ChatCommand("ServerBan", "Bans a player", requireAdmin: true)]
+        private void Command_ServerBan(ZNetPeer peer, ZNetPeer target)
+        {
+            var man = ValheimMP.Instance.AdminManager;
+            var admin1 = man.GetAdmin(peer);
+            var admin2 = man.GetAdmin(target);
+
+            if (admin1 == null)
+                return;
+
+            if (admin1.Rank < admin2.Rank)
+            {
+                peer.SendServerMessage($"{target.m_playerName} is of a higher rank and can not be banned.");
+                return;
+            }
+
+            peer.SendServerMessage($"Banned {target.m_playerName}");
+            ZNet.instance.m_bannedList.Add(target.m_uid.ToString());
+            ZNet.instance.InternalKick(target);
+        }
+
+        [ChatCommand("ServerUnban", "Unbans a player", requireAdmin: true)]
+        private void Command_ServerUnban(ZNetPeer peer, string banned)
+        {
+            ZNet.instance.m_bannedList.Remove(banned);
+            peer.SendServerMessage($"Maybe unbanned {banned}, maybe wasn't banned to begin with.");
+        }
+
         [ChatCommand("AdminList", "Get a list of all admins", requireAdmin: true, aliases: new[] { "ListAdmins", "Admins" })]
         private void Command_AdminList(ZNetPeer peer)
         {
@@ -293,6 +363,13 @@ namespace ValheimMP.ChatCommands
 
             if (admin2 != null)
             {
+                if (admin1.Rank + 1 < admin2.Rank)
+                {
+                    admin2.Rank = admin1.Rank + 1;
+                    peer.SendServerMessage($"{target.m_playerName} is already an admin. Rank was promoted instead.");
+                    return;
+                }
+
                 peer.SendServerMessage($"{target.m_playerName} is already an admin.");
                 return;
             }

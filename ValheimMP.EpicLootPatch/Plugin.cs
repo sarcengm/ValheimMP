@@ -181,7 +181,7 @@ namespace ValheimMP.EpicLootPatch
         [ChatCommand("EpicLoot", "Shows the current EpicLoot version and EpicLootPatch version.")]
         private void Command_EpicLoot(ZNetPeer peer)
         {
-            var message = $"Server running <color=green>EpicLoot</color> ({EpicLoot.EpicLoot.PluginId}) version <color=green>{EpicLootVersion}</color> <color=green>EpicLootPatch</color> version <color=green>{Version}</color>.";
+            var message = $"Server running <color=green>EpicLoot</color> version <color=green>{EpicLootVersion}</color> and\n <color=green>EpicLootPatch</color> version <color=green>{Version}</color>.";
             if (EpicLootVersion != EpicLoot.EpicLoot.Version)
             {
                 message += $"\n <color=yellow>(Warning: <color=green>EpicLootPatch</color> was compiled against version {EpicLoot.EpicLoot.Version}, and may be incompatible with {EpicLootVersion})</color>";

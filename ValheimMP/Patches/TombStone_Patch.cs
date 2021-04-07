@@ -74,7 +74,7 @@ namespace ValheimMP.Patches
                 {
                     if (peer != null && peer.m_player)
                     {
-                        peer.m_player.Message(MessageHud.MessageType.Center, "$revival_interupted");
+                        peer.m_player.Message(MessageHud.MessageType.Center, "$vmp_revival_interupted");
                     }
 
                     if (m_revivalRoutines.TryGetValue(routineId, out var val2) && val2.Item1 == routineZDOID)
@@ -84,7 +84,9 @@ namespace ValheimMP.Patches
                     yield break;
                 }
 
-                peer.m_player.Message(MessageHud.MessageType.Center, $"$reviving_in {secondsWaitTime}");
+                peer.m_player.Message(MessageHud.MessageType.Center,
+                    Localization.instance.Localize("$vmp_reviving_in")
+                        .Replace("{secondsWaitTime}", $"{secondsWaitTime}"));
                 yield return new WaitForSeconds(1f);
                 secondsWaitTime--;
                 
@@ -109,6 +111,10 @@ namespace ValheimMP.Patches
                 return;
             }
 
+            peer.m_player.Message(MessageHud.MessageType.Center,
+                Localization.instance.Localize("$vmp_reviving")
+                    .Replace("{playerName}", $"{ownerPeer.m_playerName}"));
+
             m_revivalRequests.Add(zdo.m_uid);
             ownerPeer.m_rpc.Invoke("ReviveRequest", zdo.m_uid, peer.m_playerName, peer.m_uid);
         }
@@ -117,7 +123,10 @@ namespace ValheimMP.Patches
         {
             // temp until I can be bothered enough to make a simple UI, which I'm incapable of atm, or at least not bothered enough to figure out.
 
-            Chat.instance.AddInworldText(null, playerId, Player.m_localPlayer.transform.position, Talker.Type.Normal, "", $"<color=green>{playerName}</color> wishes to revive you type <color=green>/revive</color> to accept.");
+            ValheimMP.Log("RPC_ReviveRequest");
+            Chat.instance.AddInworldText(null, playerId, Player.m_localPlayer.transform.position, Talker.Type.Normal, "", 
+                Localization.instance.Localize("$vmp_revival_request")
+                .Replace("{playerName}",$"{playerName}"));
 
             m_lastRevive = id;
         }
@@ -197,7 +206,7 @@ namespace ValheimMP.Patches
             if (owner != 0 && ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(owner, Player.m_localPlayer.GetPlayerID()))
             {
                 __result = Localization.instance.Localize(text + "\n" +
-                    "[<color=yellow><b>$KEY_Use</b></color>] $revive_player\n" +
+                    "[<color=yellow><b>$KEY_Use</b></color>] $vmp_revive\n" +
                     "[<color=yellow><b>Shift+$KEY_Use</b></color>] $piece_container_open");
                 return false;
             }

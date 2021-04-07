@@ -10,6 +10,7 @@ using ValheimMP.Framework;
 using BepInEx.Logging;
 using System.IO;
 using ValheimMP.Framework.Events;
+using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP
 {
@@ -59,63 +60,72 @@ namespace ValheimMP
         /// 
         /// Only fired on the client that connects
         /// </summary>
-        public event OnClientConnectDelegate OnClientConnect; 
+        public event OnClientConnectHandler OnClientConnect; 
 
         /// <summary>
         /// Fired when someone joins the server. (After their profile is loaded)
         /// 
         /// Only fired on the server.
         /// </summary>
-        /// <param name="peer"></param>
-        /// <returns>False if we should abort. Only useful if you want to disconnect the user. Manual disconnect should still be called.</returns>
-        public event OnServerConnectDelegate OnServerConnect;
+        public event OnServerConnectHandler OnServerConnect;
 
         /// <summary>
         /// Fired when someone joins the server, but it is fired before their profile is loaded.
         /// </summary>
-        /// <returns>False if we should abort. Only useful if you want to disconnect the user. Manual disconnect should still be called.</returns>
-        public event OnServerConnectBeforeProfileLoadDelegate OnServerConnectBeforeProfileLoad; 
+        public event OnServerConnectBeforeProfileLoadHandler OnServerConnectBeforeProfileLoad;
 
         /// <summary>
-        /// Triggered when the server sends their peer info
+        /// Fired when the server sends their peer info
         /// </summary>
-        public event OnServerSendPeerInfoDelegate OnServerSendPeerInfo; 
+        public event OnServerSendPeerInfoHandler OnServerSendPeerInfo;
 
         /// <summary>
-        /// Triggered when the client sends their peer info. 
+        /// Fired when the client sends their peer info. 
         /// </summary>
-        public event OnClientSendPeerInfoDelegate OnClientSendPeerInfo; 
+        public event OnClientSendPeerInfoHandler OnClientSendPeerInfo; 
 
         /// <summary>
         /// Fired when a chat message is received on the server.
+        /// 
+        /// Also fired on clients when they send a chat message.
         /// </summary>
-        /// <returns>False if we should suppress the message from being send.</returns>
-        public event OnChatMessageDelegate OnChatMessage;
+        public event OnChatMessageHandler OnChatMessage;
 
         /// <summary>
         /// Fired on clients after they successfully sold an item
         /// </summary>
-        public event OnTraderClientSoldItemDelegate OnTraderClientSoldItem;
+        public event OnTraderClientSoldItemHandler OnTraderClientSoldItem;
 
         /// <summary>
         /// Fired on clients after they successfully bought an item
         /// </summary>
-        public event OnTraderClientBoughtItemDelegate OnTraderClientBoughtItem; 
+        public event OnTraderClientBoughtItemHandler OnTraderClientBoughtItem; 
 
 
         /// <summary>
         /// Fired when the plugin is patched into the game
         /// </summary>
-        public event OnPluginActivateDelegate OnPluginActivate; 
-        public delegate void OnPluginActivateDelegate();
+        public event OnPluginActivateHandler OnPluginActivate; 
 
         /// <summary>
         /// Fired when the plugin is unpatched from the game
         /// </summary>
-        public event OnPluginDeactivateDelegate OnPluginDeactivate; 
-        public delegate void OnPluginDeactivateDelegate();
+        public event OnPluginDeactivateHandler OnPluginDeactivate; 
 
+        /// <summary>
+        /// Fired when the world is being saved
+        /// </summary>
         public event OnWorldSaveDelegate OnWorldSave;
+
+        /// <summary>
+        /// Fired when a player is online (and their player character has spawned for the first time)
+        /// </summary>
+        public event OnPlayerOnlineHandler OnPlayerOnline;
+
+        /// <summary>
+        /// Fired when a player has disconnected from the server
+        /// </summary>
+        public event OnPlayerOfflineHandler OnPlayerOffline;
 
         public delegate void OnWorldSaveDelegate();
         #endregion
@@ -124,110 +134,123 @@ namespace ValheimMP
         /// <summary>
         /// Path where characters are stored
         /// </summary>
-        public ConfigEntry<string> CharacterPath { get; internal set; }
+        public ConfigEntry<string> CharacterPath { get; private set; }
 
         /// <summary>
         /// Does the current server use compression?
         /// </summary>
-        public ConfigEntry<bool> UseZDOCompression { get; internal set; }
+        public ConfigEntry<bool> UseZDOCompression { get; private set; }
 
         /// <summary>
         /// Whether to store and output the ZDO traffic usage
         /// </summary>
-        public ConfigEntry<bool> DebugOutputZDO { get; internal set; }
+        public ConfigEntry<bool> DebugOutputZDO { get; private set; }
 
         /// <summary>
         /// Outputs all RPC invokes to log
         /// </summary>
-        public ConfigEntry<bool> DebugRPC { get; internal set; }
+        public ConfigEntry<bool> DebugRPC { get; private set; }
 
         /// <summary>
         /// 
         /// </summary>
-        public ConfigEntry<bool> DoNotHideCharacterWhenCameraClose { get; internal set; }
+        public ConfigEntry<bool> DoNotHideCharacterWhenCameraClose { get; private set; }
 
         /// <summary>
         /// Show an ingame marker where the server thinks your character is
         /// </summary>
-        public ConfigEntry<bool> DebugShowZDOPlayerLocation { get; internal set; }
+        public ConfigEntry<bool> DebugShowZDOPlayerLocation { get; private set; }
 
         /// <summary>
         /// Additional delay on both sending and receiving of packets.
         /// </summary>
-        public ConfigEntry<float> ArtificialPing { get; internal set; }
+        public ConfigEntry<float> ArtificialPing { get; private set; }
 
         /// <summary>
         /// Minimal time it takes to respawn, it may be slightly longer if it still needs to load
         /// </summary>
-        public ConfigEntry<float> RespawnDelay { get; internal set; }
+        public ConfigEntry<float> RespawnDelay { get; private set; }
 
         /// <summary>
         /// Player Attacks something (other then a player) in a ward where they have no access
         /// </summary>
-        public ConfigEntry<float> WardPlayerDamageMultiplier { get; internal set; }
+        public ConfigEntry<float> WardPlayerDamageMultiplier { get; private set; }
 
         /// <summary>
         /// Monster attacks something (other then a player) in a ward where they have no access
         /// </summary>
-        public ConfigEntry<float> WardMonsterDamageMultiplier { get; internal set; }
+        public ConfigEntry<float> WardMonsterDamageMultiplier { get; private set; }
 
         /// <summary>
         /// Monster attacks something (other then a player) in a ward where they have no access
         /// 
         /// And receives this multiplier worth of his own damage in return
         /// </summary>
-        public ConfigEntry<float> WardMonsterReflectDamage { get; internal set; }
+        public ConfigEntry<float> WardMonsterReflectDamage { get; private set; }
 
         /// <summary>
         /// Player attacks something (other then a player) in a ward where they have no access
         /// 
         /// And receives this multiplier worth of his own damage in return
         /// </summary>
-        public ConfigEntry<float> WardPlayerReflectDamage { get; internal set; }
+        public ConfigEntry<float> WardPlayerReflectDamage { get; private set; }
 
         /// <summary>
         /// Monster attacks player in a ward where they have no access
         /// </summary>
-        public ConfigEntry<float> WardMonsterVPlayerDamageMultiplier { get; internal set; }
+        public ConfigEntry<float> WardMonsterVPlayerDamageMultiplier { get; private set; }
 
         /// <summary>
         /// Player attacks player in a ward where they have no access
         /// </summary>
-        public ConfigEntry<float> WardPlayerVPlayerDamageMultiplier { get; internal set; }
+        public ConfigEntry<float> WardPlayerVPlayerDamageMultiplier { get; private set; }
 
         /// <summary>
         /// Player attacks player in a ward where they have no access
         /// 
         /// And receives this multiplier worth of his own damage in return
         /// </summary>
-        public ConfigEntry<float> WardPlayerVPlayerReflectDamage { get; internal set; }
+        public ConfigEntry<float> WardPlayerVPlayerReflectDamage { get; private set; }
 
         /// <summary>
         /// Monster attacks player in a ward where they have no access
         /// 
         /// And receives this multiplier worth of his own damage in return
         /// </summary>
-        public ConfigEntry<float> WardMonsterVPlayerReflectDamage { get; internal set; }
-        public ConfigEntry<float> ClientAttackCompensationWindow { get; internal set; }
-        public ConfigEntry<float> ClientAttackCompensationDistance { get; internal set; }
-        public ConfigEntry<float> ClientAttackCompensationDistanceMin { get; internal set; }
-        public ConfigEntry<float> ClientAttackCompensationDistanceMax { get; internal set; }
-        public ConfigEntry<float> ForcedPVPDistanceFromCenter { get; internal set; }
-        public ConfigEntry<float> ForcedPVPDistanceForBiomesOnly { get; internal set; }
-        public Dictionary<Heightmap.Biome, ConfigEntry<bool>> ForcedPVPBiomes { get; internal set; }
-        public ConfigEntry<int> ServerObjectsCreatedPerFrame { get; internal set; }
-        public ConfigEntry<int> ChatMaxHistory { get; internal set; }
+        public ConfigEntry<float> WardMonsterVPlayerReflectDamage { get; private set; }
+        public ConfigEntry<float> ClientAttackCompensationWindow { get; private set; }
+        public ConfigEntry<float> ClientAttackCompensationDistance { get; private set; }
+        public ConfigEntry<float> ClientAttackCompensationDistanceMin { get; private set; }
+        public ConfigEntry<float> ClientAttackCompensationDistanceMax { get; private set; }
+        public ConfigEntry<float> ForcedPVPDistanceFromCenter { get; private set; }
+        public ConfigEntry<float> ForcedPVPDistanceForBiomesOnly { get; private set; }
+        public Dictionary<Heightmap.Biome, ConfigEntry<bool>> ForcedPVPBiomes { get; private set; }
+        public ConfigEntry<int> ServerObjectsCreatedPerFrame { get; private set; }
+        public ConfigEntry<int> ChatMaxHistory { get; private set; }
+        public ConfigEntry<Color> ChatPartyColor { get; private set; }
+        public ConfigEntry<Color> ChatClanColor { get; private set; }
+        public ConfigEntry<Color> ChatWhisperColor { get; private set; }
+        public ConfigEntry<Color> ChatShoutColor { get; private set; }
+        public ConfigEntry<Color> ChatGlobalColor { get; private set; }
+        public ConfigEntry<Color> ChatDefaultColor { get; private set; }
+        public ConfigEntry<float> ChatShoutDistance { get; private set; }
+        public ConfigEntry<float> ChatWhisperDistance { get; private set; }
+        public ConfigEntry<float> ChatNormalDistance { get; private set; }
         #endregion
 
         #region delegates
-        public delegate void OnClientConnectDelegate(OnClientConnectArgs args);
-        public delegate void OnServerConnectDelegate(OnServerConnectArgs args);
-        public delegate void OnServerConnectBeforeProfileLoadDelegate(OnServerConnectArgs args);
-        public delegate void OnServerSendPeerInfoDelegate(ZRpc rpc, Dictionary<int, byte[]> customData);
-        public delegate void OnClientSendPeerInfoDelegate(ZRpc rpc, Dictionary<int, byte[]> customData);
-        public delegate void OnChatMessageDelegate(OnChatMessageArgs args);
-        public delegate void OnTraderClientSoldItemDelegate(OnTraderClientSoldItemArgs args);
-        public delegate void OnTraderClientBoughtItemDelegate(OnTraderClientBoughtItemArgs args);
+        public delegate void OnClientConnectHandler(OnClientConnectArgs args);
+        public delegate void OnServerConnectHandler(OnServerConnectArgs args);
+        public delegate void OnServerConnectBeforeProfileLoadHandler(OnServerConnectArgs args);
+        public delegate void OnServerSendPeerInfoHandler(ZRpc rpc, Dictionary<int, byte[]> customData);
+        public delegate void OnClientSendPeerInfoHandler(ZRpc rpc, Dictionary<int, byte[]> customData);
+        public delegate void OnChatMessageHandler(OnChatMessageArgs args);
+        public delegate void OnTraderClientSoldItemHandler(OnTraderClientSoldItemArgs args);
+        public delegate void OnTraderClientBoughtItemHandler(OnTraderClientBoughtItemArgs args);
+        public delegate void OnPluginActivateHandler();
+        public delegate void OnPluginDeactivateHandler();
+        public delegate void OnPlayerOnlineHandler(ZNetPeer peer);
+        public delegate void OnPlayerOfflineHandler(ZNetPeer peer);
         #endregion
 
         // Awake is called once when both the game and the plug-in are loaded
@@ -271,13 +294,18 @@ namespace ValheimMP
                 OnServerConnect += AdminManager.OnServerConnect;
                 PlayerGroupManager = PlayerGroupManager.Load(Path.Combine(Paths.PluginPath, PluginName, "groups.json"));
 
-                OnWorldSave += () => {
+                OnWorldSave += () =>
+                {
                     PlayerGroupManager.Save(Path.Combine(Paths.PluginPath, PluginName, "groups.json"));
                     AdminManager.Save(Path.Combine(Paths.PluginPath, PluginName, "admins.json"));
                 };
 
                 PlayerGroupManager.Save(Path.Combine(Paths.PluginPath, PluginName, "groups.json"));
+                OnPlayerOnline += PlayerGroupManager.Internal_OnPlayerOnline;
+                OnPlayerOffline += PlayerGroupManager.Internal_OnPlayerOffline;
                 AdminManager.Save(Path.Combine(Paths.PluginPath, PluginName, "admins.json"));
+
+                ChatCommandManager = new ChatCommandManager(this);
             }
             else
             {
@@ -285,9 +313,6 @@ namespace ValheimMP
             }
 
             InventoryManager = new InventoryManager(this);
-            ChatCommandManager = new ChatCommandManager(this);
-
-
 
             CharacterPath = Config.Bind("Server", "CharacterPath", "vmp/", "Where it stores the server side characters.");
             UseZDOCompression = Config.Bind("Server", "UseZDOCompression", true, "Whether or not to compress ZDO data.");
@@ -314,7 +339,17 @@ namespace ValheimMP
 
             ForcedPVPBiomes = new Dictionary<Heightmap.Biome, ConfigEntry<bool>>();
 
-            ChatMaxHistory = Config.Bind("Client", "ChatMaxHistory", 30, "Amount of lines you can scroll back in the history of chat (with page up\\down)");
+            ChatMaxHistory = Config.Bind("Client", "ChatMaxHistory", 100, "Amount of lines you can scroll back in the history of chat (with page up\\down)");
+            ChatPartyColor = Config.Bind<Color>("Client", "ChatPartyColor", new Color32(170, 170, 255, 255), "Sets the chat color for party messages.");
+            ChatClanColor = Config.Bind<Color>("Client", "ChatClanColor", new Color32(64, 255, 64, 255), "Sets the chat color for clan messages.");
+            ChatWhisperColor = Config.Bind("Client", "ChatWhisperColor", new Color(1f, 1f, 1f, 0.75f), "Sets the chat color for whisper messages.");
+            ChatShoutColor = Config.Bind("Client", "ChatShoutColor", Color.yellow, "Sets the chat color for shout messages.");
+            ChatGlobalColor = Config.Bind("Client", "ChatGlobalColor", Color.white, "Sets the chat color for global messages.");
+            ChatDefaultColor = Config.Bind("Client", "ChatDefaultColor", Color.white, "Sets the default chat color for messages.");
+
+            ChatShoutDistance = Config.Bind("Server", "ChatShoutDistance", 128f, "Sets the distance for shouting. For distance a 2x2 floor tile is 2f by 2f.");
+            ChatWhisperDistance = Config.Bind("Server", "ChatWhisperDistance", 10f, "Sets the distance for whispers. For distance a 2x2 floor tile is 2f by 2f.");
+            ChatNormalDistance = Config.Bind("Server", "ChatNormalDistance", 64f, "Sets the distance for normal chat. For distance a 2x2 floor tile is 2f by 2f.");
 
             foreach (Heightmap.Biome val in typeof(Heightmap.Biome).GetEnumValues())
             {
@@ -355,6 +390,24 @@ namespace ValheimMP
                 "WardMonsterVPlayerReflectDamage", 0f,
                 "Monster attacks player (with access) in a ward.\n" +
                 "And receives this multiplier worth of his own damage in return.");
+
+            LocalizeDefaults();
+        }
+
+        private static void LocalizeDefaults()
+        {
+            var loc = Localization.instance;
+            foreach (ChatMessageType val in typeof(ChatMessageType).GetEnumValues())
+            {
+                loc.AddWord($"vmp_{val}", val.ToString());
+            }
+            loc.AddWord("vmp_revive", "Revive");
+            loc.AddWord("vmp_reviving_in", "Reviving in {secondsWaitTime}");
+            loc.AddWord("vmp_reviving", "Reviving {playerName}");
+            loc.AddWord("vmp_revival_interupted", "Reviving Interrupted");
+            loc.AddWord("vmp_revival_request", "<color=green>{playerName}</color> wishes to revive you type <color=green>/revive</color> to accept.");
+            loc.AddWord("vmp_forcedpvp_enter", "Entering forced pvp area");
+            loc.AddWord("vmp_forcedpvp_exit", "Leaving forced pvp area");
         }
 
         internal static void Log(object o)
@@ -399,6 +452,10 @@ namespace ValheimMP
                     Logger.LogInfo($"Patching {HarmonyGUID}");
                     m_harmony.PatchAll();
                     OnPluginActivate?.Invoke();
+
+                    var chat = Chat.instance;
+                    UnityEngine.Object.Instantiate(chat);
+                    UnityEngine.Object.DestroyImmediate(chat);
                 }
                 else
                 {
@@ -416,6 +473,16 @@ namespace ValheimMP
                 InventoryManager.Update();
                 PlayerGroupManager.Update();
             }
+        }
+
+        internal void Internal_OnPlayerOffline(ZNetPeer peer)
+        {
+            OnPlayerOffline?.Invoke(peer);
+        }
+
+        internal void Internal_OnPlayerOnline(ZNetPeer peer)
+        {
+            OnPlayerOnline?.Invoke(peer);
         }
 
         internal void Internal_OnServerSendPeerInfo(ZRpc rpc, Dictionary<int, byte[]> dic)

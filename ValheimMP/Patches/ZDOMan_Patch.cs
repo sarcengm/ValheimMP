@@ -274,10 +274,11 @@ namespace ValheimMP.Patches
             ZDOMan.ZDOPeer zDOPeer = __instance.FindPeer(netPeer);
             if (zDOPeer != null)
             {
+                ValheimMP.Instance.Internal_OnPlayerOffline(netPeer);
                 __instance.m_peers.Remove(zDOPeer);
-                if (ZNet.instance.IsServer())
+                if (ZNet.instance.IsServer() && netPeer.m_player && netPeer.m_player.m_nview && netPeer.m_player.m_nview.m_zdo != null)
                 {
-                    __instance.DestroyZDO(netPeer.m_player?.m_nview?.m_zdo);
+                    __instance.DestroyZDO(netPeer.m_player.m_nview.m_zdo);
                 }
             }
         }

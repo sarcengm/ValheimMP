@@ -18,8 +18,8 @@ namespace ValheimMP.Framework
             m_valheimMP = valheimMP;
         }
 
-        public delegate void OnItemCraftedDelegate(int craftTrigger, Inventory inventory, ItemDrop.ItemData itemData, byte[] triggerData);
-        public event OnItemCraftedDelegate OnItemCrafted;
+        public delegate void OnItemCraftedHandler(int craftTrigger, Inventory inventory, ItemDrop.ItemData itemData, byte[] triggerData);
+        public event OnItemCraftedHandler OnItemCrafted;
 
         private class InventoryWrapper
         {

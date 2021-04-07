@@ -180,7 +180,7 @@ namespace ValheimMP.Patches
                 });
                 zdo.RegisterZDOEvent("forcedpvp", (ZDO zdo) =>
                 {
-                    ZDOEvent_PVPChanged(__instance);
+                    ZDOEvent_ForcedPVPChanged(__instance);
                 });
                 zdo.RegisterZDOEvent("noPlacementCost", (ZDO zdo) =>
                 {
@@ -206,6 +206,10 @@ namespace ValheimMP.Patches
                 {
                     ZDOEvent_HairColorChanged(__instance);
                 });
+                zdo.RegisterZDOEvent("playerName", (ZDO zdo) =>
+                {
+                    ZDOEvent_PlayerNameChanged(__instance);
+                });
 
                 __instance.SetLocalPlayer();
                 __instance.m_isLoading = true;
@@ -217,6 +221,7 @@ namespace ValheimMP.Patches
                 ZDOEvent_PlayerModelChanged(__instance);
                 ZDOEvent_SkinColorChanged(__instance);
                 ZDOEvent_HairColorChanged(__instance);
+                ZDOEvent_PlayerNameChanged(__instance);
             }
 
             if (zdo != null)
@@ -285,8 +290,24 @@ namespace ValheimMP.Patches
 
         private static void ZDOEvent_PVPChanged(Player player)
         {
-            player.SetPVP(player.m_nview.m_zdo.GetBool("pvp") || player.m_nview.m_zdo.GetBool("forcedpvp"));
+            player.SetPVP(player.m_nview.m_zdo.GetBool("pvp"));
         }
+
+        private static void ZDOEvent_ForcedPVPChanged(Player player)
+        {
+            var forcedpvp = player.m_nview.m_zdo.GetBool("forcedpvp");
+            if(forcedpvp)
+            {
+                player.Message(MessageHud.MessageType.Center, forcedpvp ? "$vmp_forcedpvp_enter" : "$vmp_forcedpvp_exit");
+            }
+
+        }
+
+        private static void ZDOEvent_PlayerNameChanged(Player player)
+        {
+            Game.instance.m_playerProfile.m_playerName = player.m_nview.m_zdo.GetString("playerName");
+        }
+
 
         private static void RPC_SetAppearance(Player player, long sender, ZPackage pkg)
         {

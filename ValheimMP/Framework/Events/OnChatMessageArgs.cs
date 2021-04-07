@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Framework.Events
 {
@@ -42,7 +43,7 @@ namespace ValheimMP.Framework.Events
         /// <summary>
         /// Message type
         /// </summary>
-        public Talker.Type MessageType { get; set; }
+        public ChatMessageType MessageType { get; set; }
 
         /// <summary>
         /// Set true if you want to suppress the message from going out.

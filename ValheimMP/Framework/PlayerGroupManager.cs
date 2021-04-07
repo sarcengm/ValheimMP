@@ -17,24 +17,66 @@ namespace ValheimMP.Framework
         [JsonIgnore]
         public Dictionary<long, List<PlayerGroup>> GroupsByPlayerID { get; private set; } = new();
 
-        public delegate void OnPlayerLeaveGroupDelegate(PlayerGroup group, PlayerGroupMember member);
-        public event OnPlayerLeaveGroupDelegate OnPlayerLeaveGroup;
+        public event OnPlayerLeaveGroupHandler OnPlayerLeaveGroup;
+        public event OnPlayerKickGroupHandler OnPlayerKickGroup;
+        public event OnPlayerJoinGroupHandler OnPlayerJoinGroup;
+        public event OnPlayerInviteGroupHandler OnPlayerInviteGroup;
+        public event OnPlayerAcceptInviteGroupHandler OnPlayerAcceptInvite;
 
-        public delegate void OnPlayerKickGroupDelegate(PlayerGroup group, PlayerGroupMember member);
-        public event OnPlayerKickGroupDelegate OnPlayerKickGroup;
+        /// <summary>
+        /// Fired for every group the player is in
+        /// </summary>
+        public event OnGroupMemberOnlineHandler OnGroupMemberOnline;
+        /// <summary>
+        /// Fired for every group the player is in
+        /// </summary>
+        public event OnGroupMemberOfflineHandler OnGroupMemberOffline;
 
-        public delegate void OnPlayerJoinGroupDelegate(PlayerGroup group, PlayerGroupMember member);
-        public event OnPlayerJoinGroupDelegate OnPlayerJoinGroup;
-
-        public delegate void OnPlayerInviteGroupDelegate(PlayerGroup group, ZNetPeer peer);
-        public event OnPlayerInviteGroupDelegate OnPlayerInviteGroup;
-
-        public delegate void OnPlayerAcceptInviteGroupDelegate(PlayerGroup group, PlayerGroupMember member);
-        public event OnPlayerAcceptInviteGroupDelegate OnPlayerAcceptInvite;
+        public delegate void OnPlayerLeaveGroupHandler(PlayerGroup group, PlayerGroupMember member);
+        public delegate void OnPlayerKickGroupHandler(PlayerGroup group, PlayerGroupMember member);
+        public delegate void OnPlayerJoinGroupHandler(PlayerGroup group, PlayerGroupMember member);
+        public delegate void OnPlayerInviteGroupHandler(PlayerGroup group, ZNetPeer peer);
+        public delegate void OnPlayerAcceptInviteGroupHandler(PlayerGroup group, PlayerGroupMember member);
+        public delegate void OnGroupMemberOnlineHandler(PlayerGroup group, PlayerGroupMember member);
+        public delegate void OnGroupMemberOfflineHandler(PlayerGroup group, PlayerGroupMember member);
 
         public PlayerGroupManager()
         {
 
+        }
+
+        internal void Internal_OnPlayerOnline(ZNetPeer peer)
+        {
+            if(GroupsByPlayerID.TryGetValue(peer.m_uid, out var groups))
+            {
+                for (int i = 0; i < groups.Count; i++)
+                {
+                    var group = groups[i];
+                    if (group.Members.TryGetValue(peer.m_uid, out var member))
+                    {
+                        member.Peer = peer;
+                        OnGroupMemberOnline?.Invoke(group, member);
+                    }
+                }
+            }
+
+            SendPlayerGroupUpdate(peer, false);
+        }
+
+        internal void Internal_OnPlayerOffline(ZNetPeer peer)
+        {
+            if (GroupsByPlayerID.TryGetValue(peer.m_uid, out var groups))
+            {
+                for (int i = 0; i < groups.Count; i++)
+                {
+                    var group = groups[i];
+                    if (group.Members.TryGetValue(peer.m_uid, out var member))
+                    {
+                        member.LastOnline = DateTime.Now;
+                        OnGroupMemberOffline?.Invoke(group, member);
+                    }
+                }
+            }
         }
 
         private void addToGroupsByPlayer(PlayerGroup group, PlayerGroupMember member)
@@ -73,7 +115,7 @@ namespace ValheimMP.Framework
                 var jsonStr = System.IO.File.ReadAllText(jsonFile);
                 manager = JsonConvert.DeserializeObject<PlayerGroupManager>(jsonStr);
 
-                manager.UpdateGroupsByPlayerID();
+                manager.FixReferences();
             }
             catch (System.IO.FileNotFoundException)
             {
@@ -101,12 +143,13 @@ namespace ValheimMP.Framework
             }
         }
 
-        private void UpdateGroupsByPlayerID()
+        private void FixReferences()
         {
             GroupsByPlayerID.Clear();
 
             foreach (var group in Groups.Values)
             {
+                group.m_manager = this;
                 foreach (var member in group.Members.Values)
                 {
                     addToGroupsByPlayer(group, member);
@@ -136,7 +179,6 @@ namespace ValheimMP.Framework
                 if (party.Members.ContainsKey(playerId2))
                     return true;
             }
-            ValheimMP.Log($"Nope! {party} {clan} {playerId1} {playerId2} ");
             return false;
         }
 
@@ -177,7 +219,6 @@ namespace ValheimMP.Framework
                 Name = groupName,
                 Id = GetNewGroupID(),
                 CreationDate = DateTime.Now,
-                GroupTextColor = groupType == PlayerGroupType.Party ? "#AAAAFFFF" : "#40FF40FF",
             };
             Groups.Add(newGroup.Id, newGroup);
 
@@ -539,15 +580,13 @@ namespace ValheimMP.Framework
 
     public class PlayerGroup
     {
-        private PlayerGroupManager m_manager;
+        internal PlayerGroupManager m_manager;
         [JsonProperty]
         public int Id { get; internal set; }
         [JsonProperty]
         public string Name { get; internal set; }
         [JsonProperty]
         public PlayerGroupType GroupType { get; internal set; }
-        [JsonProperty]
-        public string GroupTextColor { get; internal set; }
         [JsonProperty]
         public Dictionary<long, PlayerGroupMember> Members { get; private set; } = new();
         [JsonProperty]
@@ -556,6 +595,10 @@ namespace ValheimMP.Framework
         [JsonIgnore]
         public HashSet<long> PendingInvites { get; private set; } = new();
 
+        public PlayerGroup()
+        {
+
+        }
 
         public PlayerGroup(PlayerGroupManager manager)
         {
@@ -638,7 +681,12 @@ namespace ValheimMP.Framework
 
         public void SendGroupMessage(ZNetPeer peer, string text)
         {
-            SendServerMessage($"<color={GroupTextColor}>[{GroupType}] {peer.m_playerName}: {text}</color>");
+            var messageType = GroupType == PlayerGroupType.Party ? ChatMessageType.Party : (GroupType == PlayerGroupType.Clan ? ChatMessageType.Clan : ChatMessageType.Normal);
+
+            foreach (var member in Members.Values)
+            {
+                member.Peer?.SendChatMessage(text, messageType, peer.m_playerName);
+            }
         }
 
         internal GroupUpdateFlags Serialize(ZNetPeer peer, ZPackage pkg, bool periodic)
