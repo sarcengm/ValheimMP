@@ -454,8 +454,7 @@ namespace ValheimMP
                     OnPluginActivate?.Invoke();
 
                     var chat = Chat.instance;
-                    UnityEngine.Object.Instantiate(chat);
-                    UnityEngine.Object.DestroyImmediate(chat);
+                    chat.Awake();
                 }
                 else
                 {
@@ -466,12 +465,21 @@ namespace ValheimMP
             }
         }
 
+        //private static float m_lastDisplayFPS;
+
         private void Update()
         {
+            //Time.fixedDeltaTime = 1f / 30f;
             if (IsDedicated)
             {
                 InventoryManager.Update();
                 PlayerGroupManager.Update();
+
+                //if (Time.realtimeSinceStartup - m_lastDisplayFPS > 1f)
+                //{
+                //    Log($"FPS: { 1f / Time.deltaTime}");
+                //    m_lastDisplayFPS = Time.realtimeSinceStartup;
+                //}
             }
         }
 

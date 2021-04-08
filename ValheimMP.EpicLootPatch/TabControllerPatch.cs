@@ -10,10 +10,15 @@ namespace ValheimMP.EpicLootPatch
     {
         public static void AddIfNoneExist<T>(this List<TabController> list) where T : TabController, new()
         {
-            if (list.SingleOrDefault(k => k.GetType() == typeof(T)) == null)
+            for (int i = 0; i < list.Count; i++)
             {
-                list.Add(new T());
+                if (list[i].GetType() == typeof(T))
+                {
+                    return;
+                }
             }
+
+            list.Add(new T());
         }
 
         public static void RemoveIfExist<T>(this List<TabController> list) where T : TabController

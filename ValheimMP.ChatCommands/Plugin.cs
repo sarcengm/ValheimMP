@@ -539,5 +539,23 @@ namespace ValheimMP.ChatCommands
 
             clan.SendGroupMessage(peer, message);
         }
+
+
+        [ChatCommand("SetActiveArea", "Better not touch this unless you want to destroy the server.", requireAdmin:true)]
+        private void DebugCommand_SetActiveArea(ZNetPeer peer, int area = -1)
+        {
+            if (area >= 0)
+            {
+                ZoneSystem.instance.m_activeArea = area;
+            }
+
+            peer.SendServerMessage($"ZoneSystem.instance.m_activeArea: {ZoneSystem.instance.m_activeArea}");
+        }
+
+        [ChatCommand("ServerFPS", "Server FPS, or rather latest delta time", requireAdmin: true)]
+        private void DebugCommand_ServerFPS(ZNetPeer peer)
+        {
+            peer.SendServerMessage($"Time.deltaTime: {Time.deltaTime} ({1f / Time.deltaTime} fps)");
+        }
     }
 }

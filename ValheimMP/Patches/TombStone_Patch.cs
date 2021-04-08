@@ -32,7 +32,7 @@ namespace ValheimMP.Patches
         private static void RPC_RequestRevive(TombStone __instance, long sender)
         {
             var owner = __instance.GetOwner();
-            if (owner != 0 && ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(owner, sender))
+            if (owner != sender && owner != 0 && ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(owner, sender))
             {
                 var peer = ZNet.instance.GetPeer(sender);
                 if (peer == null || !peer.m_player)
@@ -122,8 +122,6 @@ namespace ValheimMP.Patches
         internal static void RPC_ReviveRequest(ZRpc rpc, ZDOID id, string playerName, long playerId)
         {
             // temp until I can be bothered enough to make a simple UI, which I'm incapable of atm, or at least not bothered enough to figure out.
-
-            ValheimMP.Log("RPC_ReviveRequest");
             Chat.instance.AddInworldText(null, playerId, Player.m_localPlayer.transform.position, Talker.Type.Normal, "", 
                 Localization.instance.Localize("$vmp_revival_request")
                 .Replace("{playerName}",$"{playerName}"));
@@ -150,6 +148,8 @@ namespace ValheimMP.Patches
         internal static void RPC_ReviveRequestAccept(ZRpc rpc, ZDOID id)
         {
             var peer = ZNet.instance.GetPeer(rpc);
+            if (peer == null || !peer.m_player || peer.m_player.IsDead())
+                return;
             var tombstoneObj = ZNetScene.instance.FindInstance(id);
             if (!tombstoneObj)
                 return;
@@ -172,8 +172,8 @@ namespace ValheimMP.Patches
         private static bool Interact(TombStone __instance, ref bool __result, Humanoid character, bool hold)
         {
             var owner = __instance.GetOwner();
-            var shiftDown = Input.GetKey(KeyCode.LeftShift) | Input.GetKey(KeyCode.RightShift);
-            if (!shiftDown && !hold && owner != 0 && ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(owner, Player.m_localPlayer.GetPlayerID()))
+            var shiftDown = Input.GetKey(KeyCode.LeftShift) | Input.GetKey(KeyCode.RightShift); // I bet there is still 1 person on the planet that uses right shift right?
+            if (!shiftDown && !hold && owner != character.GetOwner() && owner != 0 && ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(owner, Player.m_localPlayer.GetPlayerID()))
             {
                 if (Time.time - m_reviveDelayTimer > 0.5f)
                 {
@@ -203,7 +203,7 @@ namespace ValheimMP.Patches
 
             var owner = __instance.GetOwner();
 
-            if (owner != 0 && ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(owner, Player.m_localPlayer.GetPlayerID()))
+            if (owner != 0 && ZNet.instance.GetUID() != owner && ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(owner, Player.m_localPlayer.GetPlayerID()))
             {
                 __result = Localization.instance.Localize(text + "\n" +
                     "[<color=yellow><b>$KEY_Use</b></color>] $vmp_revive\n" +

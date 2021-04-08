@@ -21,6 +21,7 @@ namespace ValheimMP.Patches
             Chat.m_instance = __instance;
             if (!ValheimMP.IsDedicated)
             {
+                __instance.m_chatBuffer.Clear();
                 __instance.AddString(Localization.instance.Localize("/w [text] - $chat_whisper"));
                 __instance.AddString(Localization.instance.Localize("/s [text] - $chat_shout"));
                 __instance.AddString(Localization.instance.Localize("Modes: " + chatModes.Join()));
@@ -134,7 +135,7 @@ namespace ValheimMP.Patches
         }
 
         [HarmonyPatch(typeof(Chat), "UpdateWorldTextField")]
-        [HarmonyPrefix]
+        [HarmonyPostfix]
         private static void UpdateWorldTextField(WorldTextInstance wt)
         {
             if ((ChatMessageType)wt.m_type == ChatMessageType.Party)
@@ -191,7 +192,7 @@ namespace ValheimMP.Patches
                     break;
             }
 
-            var groupName = messageType == ChatMessageType.Normal? "" : Localization.instance.Localize($"[$vmp_{messageType}] ");
+            var groupName = messageType == ChatMessageType.Normal ? "" : Localization.instance.Localize($"[$vmp_{messageType}] ");
             __instance.AddString($"<color=#{ColorUtility.ToHtmlStringRGBA(chatColor * 0.7f)}>{groupName}{user}</color>: <color=#{ColorUtility.ToHtmlStringRGBA(chatColor)}>{text}</color>");
             return false;
         }

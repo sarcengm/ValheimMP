@@ -20,7 +20,7 @@ namespace ValheimMP.Patches
 
         private static GameObject m_debugZdoPlayerLocationObject;
         private static float m_lastSyncTime;
-        private static float m_playerTickRate = 1.0f / 60f;
+        internal static float m_playerTickRate = 1.0f / 30f;
         private static bool m_isBlocking;
         private static HashSet<string> m_hairs;
         private static HashSet<int> m_models;
