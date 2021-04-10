@@ -16,6 +16,8 @@ namespace ValheimMP.Patches
                 {
                     RPC_SetText(__instance, sender, text);
                 });
+
+                instance.CancelInvoke("UpdateText");
             }
         }
 

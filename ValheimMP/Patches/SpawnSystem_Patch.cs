@@ -42,5 +42,21 @@ namespace ValheimMP.Patches
 
             return false;
         }
+
+        [HarmonyPatch(typeof(SpawnSystem), "GetPlayersInZone")]
+        [HarmonyPrefix]
+        private static bool GetPlayersInZone(SpawnSystem __instance, List<Player> players)
+        {
+            var peers = ZNet.instance.GetPeers();
+            for (int i = 0; i < peers.Count; i++)
+            {
+                var peer = peers[i];
+                if (peer.m_player && !peer.m_player.IsDead() && __instance.InsideZone(peer.m_refPos))
+                {
+                    players.Add(peer.m_player);
+                }
+            }
+            return false;
+        }
     }
 }

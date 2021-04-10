@@ -39,24 +39,27 @@ namespace ValheimMP.Patches
 
             __instance.m_zdo.m_nview = __instance;
 
-            if (ZNet.instance.IsServer() && __instance.m_type != (ZDO.ObjectType)(-1))
+            //if (ZNet.instance.IsServer())
             {
-                if (__instance.GetComponent<StaticPhysics>() != null ||
-                    __instance.GetComponent<Piece>() != null ||
-                    __instance.GetComponent<ItemDrop>() != null || // Adding item drop to Solid may be questionable since those things can move and roll around but when its not its basically a solid
-                    __instance.GetComponent<Pickable>() != null)
+                if (__instance.m_type != (ZDO.ObjectType)(-1))
                 {
-                    __instance.m_type = ZDO.ObjectType.Solid;
-                    if (__instance.m_zdo != null)
+                    if (__instance.GetComponent<StaticPhysics>() != null ||
+                        __instance.GetComponent<Piece>() != null ||
+                        __instance.GetComponent<ItemDrop>() != null || // Adding item drop to Solid may be questionable since those things can move and roll around but when its not its basically a solid
+                        __instance.GetComponent<Pickable>() != null)
                     {
-                        __instance.m_zdo.SetType(ZDO.ObjectType.Solid);
+                        __instance.m_type = ZDO.ObjectType.Solid;
+                        if (__instance.m_zdo != null)
+                        {
+                            __instance.m_zdo.SetType(ZDO.ObjectType.Solid);
 
+                        }
                     }
                 }
 
                 LivingSectorObjects.AddObject(__instance.m_zdo);
 
-                if (__instance.m_zdo.m_type == ZDO.ObjectType.Solid)
+                if (ValheimMP.IsDedicated && __instance.m_zdo.m_type == ZDO.ObjectType.Solid)
                 {
                     // Solid object spawned into loaded player sector, this wont get send unless its changed, so add it to be send.
                     foreach (var peer in ZNet.instance.m_peers)

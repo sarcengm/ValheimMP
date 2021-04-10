@@ -103,5 +103,10 @@ namespace ValheimMP.Framework.Extensions
         {
             return (ZDOType)zdo.m_zdoType;
         }
+
+        public static ZNetView GetNetView(this ZDO zdo)
+        {
+            return zdo.m_nview;
+        }
     }
 }

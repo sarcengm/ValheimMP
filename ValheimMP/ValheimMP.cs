@@ -29,6 +29,7 @@ namespace ValheimMP
         public const string BepInGUID = "BepIn." + Author + "." + PluginName;
         public const string HarmonyGUID = "Harmony." + Author + "." + PluginName;
         public const string ProtocolIdentifier = "VMP";
+        public static readonly long ServerUID = 1;
         #endregion
 
         #region Properties
@@ -60,7 +61,7 @@ namespace ValheimMP
         /// 
         /// Only fired on the client that connects
         /// </summary>
-        public event OnClientConnectHandler OnClientConnect; 
+        public event OnClientConnectHandler OnClientConnect;
 
         /// <summary>
         /// Fired when someone joins the server. (After their profile is loaded)
@@ -82,7 +83,7 @@ namespace ValheimMP
         /// <summary>
         /// Fired when the client sends their peer info. 
         /// </summary>
-        public event OnClientSendPeerInfoHandler OnClientSendPeerInfo; 
+        public event OnClientSendPeerInfoHandler OnClientSendPeerInfo;
 
         /// <summary>
         /// Fired when a chat message is received on the server.
@@ -99,18 +100,18 @@ namespace ValheimMP
         /// <summary>
         /// Fired on clients after they successfully bought an item
         /// </summary>
-        public event OnTraderClientBoughtItemHandler OnTraderClientBoughtItem; 
+        public event OnTraderClientBoughtItemHandler OnTraderClientBoughtItem;
 
 
         /// <summary>
         /// Fired when the plugin is patched into the game
         /// </summary>
-        public event OnPluginActivateHandler OnPluginActivate; 
+        public event OnPluginActivateHandler OnPluginActivate;
 
         /// <summary>
         /// Fired when the plugin is unpatched from the game
         /// </summary>
-        public event OnPluginDeactivateHandler OnPluginDeactivate; 
+        public event OnPluginDeactivateHandler OnPluginDeactivate;
 
         /// <summary>
         /// Fired when the world is being saved
@@ -258,6 +259,12 @@ namespace ValheimMP
         {
             Instance = this;
 
+            m_harmony = new Harmony(HarmonyGUID);
+            if (isDedicated())
+            {
+                m_harmony.PatchAll();
+            }
+
             m_harmonyHandshake = new Harmony(HarmonyGUID + ".hs");
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(ZNet), "SendPeerInfo"),
                 transpiler: new HarmonyMethod(AccessTools.Method(typeof(ZNet_Patch), "SendPeerInfo")));
@@ -282,11 +289,7 @@ namespace ValheimMP
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(ZSteamSocket), "RegisterGlobalCallbacks"),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(ZSteamSocket_Patch), "RegisterGlobalCallbacks")));
 
-            m_harmony = new Harmony(HarmonyGUID);
-            if (isDedicated())
-            {
-                m_harmony.PatchAll();
-            }
+            
 
             if (IsDedicated)
             {
@@ -410,9 +413,9 @@ namespace ValheimMP
             loc.AddWord("vmp_forcedpvp_exit", "Leaving forced pvp area");
         }
 
-        internal static void Log(object o)
+        internal static void Log(object o, LogLevel level = LogLevel.Info)
         {
-            Instance.Logger.LogInfo(o);
+            Instance.Logger.Log(level, o);
         }
 
         internal static void LogWarning(object o)
@@ -465,7 +468,7 @@ namespace ValheimMP
             }
         }
 
-        //private static float m_lastDisplayFPS;
+        private static float m_lastDisplayFPS;
 
         private void Update()
         {
@@ -475,11 +478,11 @@ namespace ValheimMP
                 InventoryManager.Update();
                 PlayerGroupManager.Update();
 
-                //if (Time.realtimeSinceStartup - m_lastDisplayFPS > 1f)
-                //{
-                //    Log($"FPS: { 1f / Time.deltaTime}");
-                //    m_lastDisplayFPS = Time.realtimeSinceStartup;
-                //}
+                if (Time.realtimeSinceStartup - m_lastDisplayFPS > 1f)
+                {
+                    System.Console.Write($"FPS: {(int)(1f / Time.deltaTime), -5} instances: {ZNetScene.instance?.m_instances.Count,-10} sectors: {ZNetScene_Patch.m_fullyLoadedSectors.Count}/{LivingSectorObjects.GetSectorCount()}\r");
+                    m_lastDisplayFPS = Time.realtimeSinceStartup;
+                }
             }
         }
 

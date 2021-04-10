@@ -6,6 +6,7 @@ using System.Linq;
 using UnityEngine;
 using ValheimMP.Framework.Extensions;
 using ValheimMP.Framework;
+using System.Diagnostics;
 
 namespace ValheimMP.Patches
 {
@@ -17,11 +18,9 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Constructor(ref ZDOMan __instance)
         {
-            /// This ID isn't truly used, it is no longer serialized saving 8byte for every ZDO send.
-            /// Always use steam ID here, for clients its overwritten once they connect.
             if (ZNet.instance.IsDedicated())
             {
-                __instance.m_myid = (long)SteamGameServer.GetSteamID().m_SteamID;
+                __instance.m_myid = ValheimMP.ServerUID;
             }
         }
 
@@ -197,20 +196,20 @@ namespace ValheimMP.Patches
                 {
                     if (sortArea)
                     {
-                        objects.AddRange(obj.PriorityObjects.Values
+                        objects.AddRange(obj.PriorityObjectsList
                                             .OrderBy(k =>
                                                 (peer.m_refPos.x - k.m_position.x) * (peer.m_refPos.x - k.m_position.x) +
                                                 (peer.m_refPos.y - k.m_position.y) * (peer.m_refPos.y - k.m_position.y)));
 
-                        objects.AddRange(obj.DefaultObjects.Values
+                        objects.AddRange(obj.DefaultObjectsList
                                             .OrderBy(k =>
                                                 (peer.m_refPos.x - k.m_position.x) * (peer.m_refPos.x - k.m_position.x) +
                                                 (peer.m_refPos.y - k.m_position.y) * (peer.m_refPos.y - k.m_position.y)));
                     }
                     else
                     {
-                        objects.AddRange(obj.PriorityObjects.Values);
-                        objects.AddRange(obj.DefaultObjects.Values);
+                        objects.AddRange(obj.PriorityObjectsList);
+                        objects.AddRange(obj.DefaultObjectsList);
                     }
 
                     var addSolidObjects = true;
@@ -220,14 +219,14 @@ namespace ValheimMP.Patches
                     }
                     if (addSolidObjects)
                     {
-                        obj.SolidObjects.Values.Do(k => solidObjects[k.m_uid] = k);
+                        obj.SolidObjectsList.Do(k => solidObjects[k.m_uid] = k);
                     }
                     peer.m_loadedSectors[sector] = new KeyValuePair<int, bool>(peer.m_loadedSectorsTouch, false);
                 }
                 else
                 {
-                    objects.AddRange(obj.PriorityObjects.Values.Where(k => k.m_distant));
-                    objects.AddRange(obj.DefaultObjects.Values.Where(k => k.m_distant));
+                    objects.AddRange(obj.PriorityObjectsList.Where(k => k.m_distant));
+                    objects.AddRange(obj.DefaultObjectsList.Where(k => k.m_distant));
 
                     var addSolidObjects = true;
                     if (peer.m_loadedSectors.TryGetValue(sector, out var val))
@@ -236,7 +235,7 @@ namespace ValheimMP.Patches
                     }
                     if (addSolidObjects)
                     {
-                        obj.SolidObjects.Values.DoIf(k => k.m_distant, k => solidObjects[k.m_uid] = k);
+                        obj.SolidObjectsList.DoIf(k => k.m_distant, k => solidObjects[k.m_uid] = k);
                     }
                     peer.m_loadedSectors[sector] = new KeyValuePair<int, bool>(peer.m_loadedSectorsTouch, true);
                 }
@@ -262,7 +261,6 @@ namespace ValheimMP.Patches
                 SendUpdateZDO(__instance, peer);
                 SendDestroyZDO(__instance, peer);
             }
-
             __instance.m_destroySendList.Clear();
             return false;
         }

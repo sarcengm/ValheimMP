@@ -81,18 +81,22 @@ namespace ValheimMP.Patches
         {
             var list = instructions.ToList();
             int i = 0;
-            for (; i < list.Count; i++)
+
+            if (ValheimMP.IsDedicated)
             {
-                if (list[i].Calls(AccessTools.Method(typeof(ZPackage), "ReadLong")))
+                for (; i < list.Count; i++)
                 {
-                    i++;
-                    list.InsertRange(i, new CodeInstruction[]
+                    if (list[i].Calls(AccessTools.Method(typeof(ZPackage), "ReadLong")))
                     {
+                        i++;
+                        list.InsertRange(i, new CodeInstruction[]
+                        {
                         new CodeInstruction(OpCodes.Pop),
                         new CodeInstruction(OpCodes.Ldloc_0), //peer
                         new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ZNetPeerExtension), "GetSteamID")),
-                    });
-                    break;
+                        });
+                        break;
+                    }
                 }
             }
 
@@ -464,22 +468,6 @@ namespace ValheimMP.Patches
             {
                 ValheimMP.Instance.InventoryManager.RPC_InventoryData(pkg);
             }
-        }
-
-        [HarmonyPatch(typeof(ZNet), "LoadWorld")]
-        [HarmonyPrefix]
-        private static bool LoadWorld(ZNet __instance)
-        {
-            if(ValheimMP.IsDedicated && !ZSteamMatchmaking_Patch.HasConnected)
-            {
-                ZoneSystem.instance.m_locationsGenerated = true;
-                ValheimMP.Log($"SteamGameServer still not yet connected delaying LoadWorld...");
-                __instance.Invoke("LoadWorld", 1);
-                return false;
-            }
-            __instance.m_zdoMan.m_myid = (long)SteamGameServer.GetSteamID().m_SteamID;
-            __instance.m_routedRpc.SetUID(__instance.m_zdoMan.GetMyID());
-            return true;
         }
 
         [HarmonyPatch(typeof(ZNet), "SaveWorld")]

@@ -39,9 +39,15 @@ namespace ValheimMP.EpicLootPatch
         [HarmonyPatch(typeof(InventoryGui), "Awake")]
         [HarmonyAfter(EpicLoot.EpicLoot.PluginId)]
         [HarmonyPostfix]
-        private static void Awake()
+        private static void Awake(InventoryGui __instance)
         {
             AddTabControllers();
+
+            if(ValheimMP.IsDedicated)
+            {
+                // This function is apparently big enough to show up in the profiler near the top :thinking:
+                __instance.StopCoroutine(CraftingTabs.UpdateTabPositionCoroutine);
+            }
         }
 
 

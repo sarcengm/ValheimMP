@@ -29,7 +29,7 @@ namespace ValheimMP.Patches
 
             if (__instance is Player player)
             {
-                if(!player.m_pvp && hit.m_attackerCharacter && hit.m_attackerCharacter is Player player2)
+                if (!player.m_pvp && hit.m_attackerCharacter && hit.m_attackerCharacter is Player player2)
                 {
                     if (ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(player2.GetPlayerID(), player.GetPlayerID()))
                         return false;
