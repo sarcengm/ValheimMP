@@ -34,3 +34,6 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.ChatCommands.ChatCommands.Command_ServerUnban(ZNetPeer,System.String)")]
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.ChatCommands.ChatCommands.DebugCommand_ServerFPS(ZNetPeer)")]
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.ChatCommands.ChatCommands.DebugCommand_SetActiveArea(ZNetPeer,System.Int32)")]
+[assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.ChatCommands.ChatCommands.Command_NoCost(ZNetPeer,ZNetPeer)")]
+[assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.ChatCommands.ChatCommands.DebugCommand_SaveWorld(ZNetPeer)")]
+[assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.ChatCommands.ChatCommands.DebugCommand_Stats(ZNetPeer)")]

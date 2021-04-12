@@ -34,16 +34,16 @@ Valheim MP or VMP for short is Valheim mod designed to make all authority server
 
 ## TODO
 
-- Fishing?
-- Player map markers?
-- Destruction of ZDO's via SendZDOData (to prevent sending unneeded RPCs across the map of objects you've never even heard of)
-- EpicLootPatch updating to the latest version with the trader support
+- Environment manager currently doesn't work in mp, and there need to be several changes done to make it work on an authoritive server.
+- Fishing? I havent tried it at all, but I assume it's somewhat unuseable with an authoritive server as is.
+- Player map markers? *I will probably* sync these at some point. (Probably with support for clan or party level markers)
+
 
 ## Known issues 
 
 - Hide weapons hides them completely rather then stashing them on your person
 - Raven shows up because tutorial text is still out of sync when it triggers.
-- When rocks turn into fragmentable rocks, the first rock is destroyed before it turns into a fragmentable rock making you see a short flicker.
+- Because there is no Environment Manager for each player you can not freeze to death, because the location of the server env is always fixed at spawn.
 - Sometimes items fail to show the durability properly in the inventory grid (I've actually seen this in other peoples screenshots, is this a vanilla game bug?)
 
 ## MOD Compatibility

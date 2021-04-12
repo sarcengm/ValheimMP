@@ -225,20 +225,25 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Update(Chat __instance)
         {
-            if (__instance.m_wasFocused && Input.GetKeyUp(KeyCode.Return) || Input.GetKeyDown(KeyCode.Return))
-            {
-                __instance.m_input.caretWidth = 2;
-                if (!string.IsNullOrEmpty(chatMode))
-                {
-                    __instance.m_input.text = chatMode + " ";
-                    __instance.m_input.caretPosition = __instance.m_input.text.Length;
-                    __instance.m_input.selectionFocusPosition = __instance.m_input.text.Length;
-                    __instance.m_input.selectionAnchorPosition = __instance.m_input.text.Length;
-                }
-            }
-
             if (__instance.m_wasFocused)
             {
+                if (Input.GetKeyUp(KeyCode.Return) || Input.GetKeyDown(KeyCode.Return))
+                {
+                    __instance.m_input.caretWidth = 2;
+                    if (!string.IsNullOrEmpty(chatMode))
+                    {
+                        __instance.m_input.text = chatMode + " ";
+                        __instance.m_input.caretPosition = __instance.m_input.text.Length;
+                        __instance.m_input.selectionFocusPosition = __instance.m_input.text.Length;
+                        __instance.m_input.selectionAnchorPosition = __instance.m_input.text.Length;
+                    }
+                }
+
+                if(__instance.m_input.text.StartsWith(chatMode + " /"))
+                {
+                    __instance.m_input.text = __instance.m_input.text.Substring(3);
+                }
+
                 var lastOffset = m_chatScrollOffset;
 
                 if (Input.GetKeyDown(KeyCode.PageUp) || (Input.GetKey(KeyCode.PageUp) && Time.time - m_lastPageUp > 0.05f))

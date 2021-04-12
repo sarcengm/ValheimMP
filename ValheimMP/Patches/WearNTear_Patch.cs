@@ -25,6 +25,13 @@ namespace ValheimMP.Patches
             return false;
         }
 
+        [HarmonyPatch(typeof(WearNTear), "UpdateWear")]
+        [HarmonyPrefix]
+        private static bool UpdateWear(WearNTear __instance)
+        {
+            return __instance && __instance.isActiveAndEnabled;
+        }
+
 
         [HarmonyPatch(typeof(WearNTear), "RPC_HealthChanged")]
         [HarmonyPrefix]

@@ -10,8 +10,10 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Constructor(ref ZNetPeer __instance, ISocket socket, bool server)
         {
+            __instance.m_lastSector = new Vector2i(9999999, 9999999);
             __instance.m_loadedSectors = new Dictionary<Vector2i, KeyValuePair<int, bool>>();
             __instance.m_solidObjectQueue = new Dictionary<ZDOID, ZDO>();
+            __instance.m_rpc.m_peer = __instance;
         }
 
         [HarmonyPatch(typeof(ZNetPeer), "Dispose")]

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using ValheimMP.Patches;
 
 namespace ValheimMP.Framework
 {
@@ -21,7 +22,7 @@ namespace ValheimMP.Framework
         private static Dictionary<int, Dictionary<int, LivingSectorObjects>> m_objects = new Dictionary<int, Dictionary<int, LivingSectorObjects>>();
 
         public List<ZDO> PendingObjects { get; private set; } = new List<ZDO>();
-        public HashSet<ZNetPeer> ActivePeers { get; private set; } = new HashSet<ZNetPeer>();
+        public HashSet<long> ActivePeers { get; private set; } = new HashSet<long>();
         public bool PendingLoad { get; internal set; }
         public float LastActive { get; internal set; }
 
@@ -241,22 +242,31 @@ namespace ValheimMP.Framework
             }
         }
 
-        internal static object GetSectorCount()
+        public static int GetSectorCount()
         {
             return m_sectors.Count;
+        }
+
+        public static int FullyLoadedSectors()
+        {
+            return ZNetScene_Patch.m_fullyLoadedSectors.Count;
         }
 
         internal void FreezeObject(ZDO item)
         {
             if (item.m_nview && item.m_nview.gameObject && item.m_nview.gameObject.activeSelf)
             {
+                //ValheimMP.Log($"Freezing {item.m_nview}");
                 item.m_nview.gameObject.SetActive(false);
-                var components = item.m_nview.GetComponents<Behaviour>();
+
                 var behaviour = new List<Behaviour>();
+
+                var components = item.m_nview.GetComponents<Behaviour>();
                 for (int j = 0; j < components.Length; j++)
                 {
-                    if (components[j].enabled)
+                    if (components[j] && components[j].enabled)
                     {
+                        // Does this crash it? or doesn't it? 
                         components[j].enabled = false;
                         behaviour.Add(components[j]);
                     }
@@ -283,16 +293,24 @@ namespace ValheimMP.Framework
         {
             //ValheimMP.Log($"FreezeSector {x},{y}", IsFrozen? BepInEx.Logging.LogLevel.Error : BepInEx.Logging.LogLevel.Info);
             IsFrozen = true;
-            var list = new List<ZDO>();
-
-            list.AddRange(NonNetworkedObjectsList);
-            list.AddRange(PriorityObjectsList);
-            list.AddRange(SolidObjectsList);
-            list.AddRange(DefaultObjectsList);
-
-            for (int i = 0; i < list.Count; i++)
+            for (int i = 0; i < NonNetworkedObjectsList.Count; i++)
             {
-                var item = list[i];
+                var item = NonNetworkedObjectsList[i];
+                FreezeObject(item);
+            }
+            for (int i = 0; i < PriorityObjectsList.Count; i++)
+            {
+                var item = PriorityObjectsList[i];
+                FreezeObject(item);
+            }
+            for (int i = 0; i < SolidObjectsList.Count; i++)
+            {
+                var item = SolidObjectsList[i];
+                FreezeObject(item);
+            }
+            for (int i = 0; i < DefaultObjectsList.Count; i++)
+            {
+                var item = DefaultObjectsList[i];
                 FreezeObject(item);
             }
         }

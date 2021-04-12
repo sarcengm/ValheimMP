@@ -62,8 +62,10 @@ namespace ValheimMP.Patches
                 if (ValheimMP.IsDedicated && __instance.m_zdo.m_type == ZDO.ObjectType.Solid)
                 {
                     // Solid object spawned into loaded player sector, this wont get send unless its changed, so add it to be send.
-                    foreach (var peer in ZNet.instance.m_peers)
+                    var peers = ZNet.instance.m_peers;
+                    for (int i = 0; i < peers.Count; i++)
                     {
+                        var peer = peers[i];
                         if (peer.m_loadedSectors.ContainsKey(__instance.m_zdo.m_sector))
                         {
                             peer.m_solidObjectQueue[__instance.m_zdo.m_uid] = __instance.m_zdo;

@@ -330,7 +330,7 @@ namespace ValheimMP.Patches
                 }
 
                 var steamId = (peer.m_socket as ZSteamSocket).GetPeerID();
-                peer.m_playerProfile = new PlayerProfile(System.IO.Path.Combine(valheimMP.CharacterPath.Value, steamId.ToString()));
+                peer.m_playerProfile = new PlayerProfile(steamId.ToString());
                 // Loading can and should possibly be done async?
                 var loaded = peer.m_playerProfile.Load();
                 if (!loaded)
@@ -475,6 +475,58 @@ namespace ValheimMP.Patches
         private static void SaveWorld()
         {
             ValheimMP.Instance.Internal_OnWorldSave();
+        }
+
+        [HarmonyPatch(typeof(ZNet), "GetPeer", new[] { typeof(ZRpc) })]
+        [HarmonyPrefix]
+        private static bool GetPeer(ZRpc rpc, ref ZNetPeer __result)
+        {
+            __result = rpc.m_peer;
+            return false;
+        }
+
+        [HarmonyPatch(typeof(ZNet), "GetPeer", new[] { typeof(long) })]
+        [HarmonyPrefix]
+        private static bool GetPeer(long uid, ref ZNetPeer __result)
+        {
+            m_peers.TryGetValue(uid, out __result);
+            return false;
+        }
+
+        private static Dictionary<long, ZNetPeer> m_peers = new Dictionary<long, ZNetPeer>();
+
+        [HarmonyPatch(typeof(ZNet), "OnNewConnection")]
+        [HarmonyPrefix]
+        private static void OnNewConnection(ZNet __instance, ZNetPeer peer)
+        {
+            var uid = (long)(peer.m_socket as ZSteamSocket).m_peerID.GetSteamID().m_SteamID;
+
+            if(m_peers.TryGetValue(uid, out var existingPeer))
+            {
+                // someone with the same steam ID connecting, possibly duplicate account?
+                // also possibly the same person that has already timed out and is reconnecting
+                if (existingPeer != null)
+                {
+                    __instance.Disconnect(existingPeer);
+                }
+                m_peers.Remove(uid);
+            }
+
+            m_peers.Add(uid, peer);
+        }
+
+        [HarmonyPatch(typeof(ZNet), "Disconnect")]
+        [HarmonyPrefix]
+        private static void Disconnect(ZNetPeer peer)
+        {
+            m_peers.Remove(peer.m_uid);
+        }
+
+        [HarmonyPatch(typeof(ZNet), "StopAll")]
+        [HarmonyPostfix]
+        private static void StopAll()
+        {
+            m_peers.Clear();
         }
     }
 }

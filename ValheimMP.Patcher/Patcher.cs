@@ -229,6 +229,7 @@ namespace ValheimMP.Patcher
                 ZRpcType.Fields.Add(new FieldDefinition("m_ping", FieldAttributes.Private | FieldAttributes.NotSerialized, FloatType));
                 ZRpcType.Fields.Add(new FieldDefinition("m_averagePing", FieldAttributes.Private | FieldAttributes.NotSerialized, FloatType));
                 ZRpcType.Fields.Add(new FieldDefinition("m_pingTime", FieldAttributes.Private | FieldAttributes.NotSerialized, FloatType));
+                ZRpcType.Fields.Add(new FieldDefinition("m_peer", FieldAttributes.Private | FieldAttributes.NotSerialized, ZNetPeerType));
             }
         }
 

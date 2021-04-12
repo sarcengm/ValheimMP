@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Emit;
 
 namespace ValheimMP.Patches
 {
@@ -336,6 +337,11 @@ namespace ValheimMP.Patches
             var list = instructions.ToList();
             for (var i = 0; i < list.Count; i++)
             {
+                if(list[i].opcode == OpCodes.Ldc_R4 && (0.25f).Equals(list[i].operand))
+                {
+                    list[i].operand = ValheimMP.Instance.PerfectBlockWindow.Value;
+                }
+
                 if (list[i].Calls(AccessTools.PropertyGetter(typeof(DamageText), "instance")))
                 {
                     list.RemoveRange(i, 11);
@@ -351,5 +357,6 @@ namespace ValheimMP.Patches
         {
             return ValheimMP.IsDedicated;
         }
+
     }
 }

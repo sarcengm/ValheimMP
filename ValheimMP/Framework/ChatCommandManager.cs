@@ -131,7 +131,7 @@ namespace ValheimMP.Framework
                         }
                         catch (TargetParameterCountException)
                         {
-                            SendCommandSyntax(args.Peer, args.Player, command);
+                            SendCommandSyntax(args.Peer, command);
                         }
                         catch (Exception ex)
                         {
@@ -144,7 +144,7 @@ namespace ValheimMP.Framework
             }
         }
 
-        private void SendCommandSyntax(ZNetPeer peer, Player player, CommandInfo command)
+        private void SendCommandSyntax(ZNetPeer peer, CommandInfo command)
         {
             peer.SendServerMessage(GetCommandSyntax(command));
         }
@@ -158,6 +158,8 @@ namespace ValheimMP.Framework
                 if (param.Name == "peer" && param.ParameterType == typeof(ZNetPeer))
                     continue;
                 if (param.Name == "player" && param.ParameterType == typeof(Player))
+                    continue;
+                if (param.Name == "chatargs" && param.ParameterType == typeof(OnChatMessageArgs))
                     continue;
 
                 var argstr = $"{param.ParameterType.Name}: {param.Name}";
@@ -192,7 +194,7 @@ namespace ValheimMP.Framework
                 {
                     parameterObjects.Add(args.Player);
                 }
-                else if(param.Name =="chatargs" && param.ParameterType == typeof(OnChatMessageArgs))
+                else if (param.Name == "chatargs" && param.ParameterType == typeof(OnChatMessageArgs))
                 {
                     parameterObjects.Add(args);
                 }

@@ -48,15 +48,15 @@ namespace ValheimMP.Patches
             if (player == null)
                 return false;
 
+            // if debug flying dont snap back
+            if (player.m_debugFly)
+                return false;
+
             // OwnerSync is reserved for the server, while Client sync normally syncs clients.
             // But since we simulate our own position we only need to resync if we go out of sync too much
             Vector3 vector = zdo.GetPosition();
 
-            if (player.IsTeleporting())
-            {
-
-            }
-            else
+            if (!player.IsTeleporting())
             {
                 var distance = (vector - __instance.transform.position).magnitude;
                 var speed = __instance.GetVelocity().magnitude;

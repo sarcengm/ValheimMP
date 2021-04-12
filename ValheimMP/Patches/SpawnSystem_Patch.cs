@@ -42,7 +42,6 @@ namespace ValheimMP.Patches
 
             return false;
         }
-
         [HarmonyPatch(typeof(SpawnSystem), "GetPlayersInZone")]
         [HarmonyPrefix]
         private static bool GetPlayersInZone(SpawnSystem __instance, List<Player> players)

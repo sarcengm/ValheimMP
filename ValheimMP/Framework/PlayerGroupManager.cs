@@ -325,7 +325,7 @@ namespace ValheimMP.Framework
             if (ZNet.instance == null)
                 return;
 
-            var peers = ZNet.instance.GetConnectedPeers();
+            var peers = ZNet.instance.GetPeers();
 
             for (int i = 0; i < peers.Count; i++)
             {
@@ -415,15 +415,13 @@ namespace ValheimMP.Framework
         PlayerPosition = 1 << 8,
         Rank = 1 << 9,
 
-        // All flags related to having a player character.
-        PlayerCharacter = PlayerZDOID | PlayerHealth | PlayerMaxHealth | PlayerPosition,
         // Flags send once on connect
         Once = Name | LastOnline | MemberSince | Rank,
         // Flags send for periodic updates when someone is out of range
-        PeriodicFar = PlayerCharacter,
+        PeriodicFar = PlayerHealth | PlayerMaxHealth | PlayerPosition,
         // Flags send for periodic updates when someone is nearby,
         // should be none, since the player will have the ZDO available to query!
-        PeriodicNear = None,
+        PeriodicNear = PlayerZDOID,
     }
 
     public class PlayerGroupMember

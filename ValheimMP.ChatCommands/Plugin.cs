@@ -193,6 +193,24 @@ namespace ValheimMP.ChatCommands
             }
         }
 
+        [ChatCommand("NoCost", "Toggle no cost mode", requireAdmin: true)]
+        private void Command_NoCost(ZNetPeer peer, ZNetPeer target = null)
+        {
+            if (target == null)
+                target = peer;
+
+            var player = target.GetPlayer();
+
+            player.m_noPlacementCost = !player.m_noPlacementCost;
+            player.m_nview.m_zdo.Set("noPlacementCost", player.m_noPlacementCost);
+            peer.SendServerMessage($"<color=white>NoCost mode for <color=green><b>{player.GetPlayerName()}</b></color> to <color=green><b>{player.m_noPlacementCost}</b></color>.</color>");
+
+            if (peer != target)
+            {
+                target.SendServerMessage($"<color=white><color=green><b>{peer.m_playerName}</b></color> set your NoCost mode to <color=green><b>{player.m_noPlacementCost}</b></color>.</color>");
+            }
+        }
+
         [ChatCommand("SetPlayerModel", "Sets Character Model", requireAdmin: true, aliases: new[] { "Model", "SetModel" })]
         private void Command_SetModel(ZNetPeer peer, int index, ZNetPeer target = null)
         {
@@ -552,10 +570,19 @@ namespace ValheimMP.ChatCommands
             peer.SendServerMessage($"ZoneSystem.instance.m_activeArea: {ZoneSystem.instance.m_activeArea}");
         }
 
-        [ChatCommand("ServerFPS", "Server FPS, or rather latest delta time", requireAdmin: true)]
-        private void DebugCommand_ServerFPS(ZNetPeer peer)
+        [ChatCommand("Stats", "Server FPS, or rather latest delta time", requireAdmin: true)]
+        private void DebugCommand_Stats(ZNetPeer peer)
+        {           
+            peer.SendServerMessage(
+                $"Time.deltaTime: {Time.deltaTime} ({1f / Time.deltaTime} fps)\n" +
+                $"Instances: {ZNetScene.instance?.m_instances.Count}\n" +
+                $"Sectors: {LivingSectorObjects.FullyLoadedSectors()}/{ LivingSectorObjects.GetSectorCount()}");
+        }
+
+        [ChatCommand("SaveWorld", "Saves the world", requireAdmin: true)]
+        private void DebugCommand_SaveWorld(ZNetPeer peer)
         {
-            peer.SendServerMessage($"Time.deltaTime: {Time.deltaTime} ({1f / Time.deltaTime} fps)");
+            ZNet.instance.SaveWorld(false);
         }
     }
 }

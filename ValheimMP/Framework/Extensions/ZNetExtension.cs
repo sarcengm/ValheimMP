@@ -4,8 +4,10 @@
     {
         public static ZNetPeer GetPeerByPlayerName(this ZNet znet, string playerName, bool ignoreCase)
         {
-            foreach (var peer in znet.m_peers)
+            var peers = ZNet.instance.m_peers;
+            for (int i = 0; i < peers.Count; i++)
             {
+                var peer = peers[i];
                 if (string.Compare(peer.m_playerName, playerName, ignoreCase) == 0)
                     return peer;
             }

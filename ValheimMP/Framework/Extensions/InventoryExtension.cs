@@ -6,6 +6,18 @@ namespace ValheimMP.Framework.Extensions
     {
         public static ZDOID GetZDOID(this Inventory inventory)
         {
+            if (!inventory.m_nview) 
+            {
+                ValheimMP.Log("InventoryExtension.GetZDOID missing m_nview");
+                return ZDOID.None;
+            }
+
+            if (inventory.m_nview.m_zdo == null)
+            {
+                ValheimMP.Log("InventoryExtension.GetZDOID missing m_zdo");
+                return ZDOID.None;
+            }
+
             return inventory.m_nview.m_zdo.m_uid;
         }
 

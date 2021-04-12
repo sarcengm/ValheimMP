@@ -116,6 +116,10 @@ namespace ValheimMP.Patches
 
         private static void CheckHitProtection(HitData hit, long hitPlayerId = 0, bool victimMonster = false)
         {
+            // don't protect players for environmental damage\fall damage and whatnot.
+            if (!hit.m_attackerCharacter)
+                return;
+
             var attackerMonster = hit.m_attackerCharacter is not Player;
             if (victimMonster && attackerMonster)
                 return;
@@ -146,7 +150,7 @@ namespace ValheimMP.Patches
             {
                 var reflectHit = new HitData();
                 reflectHit.m_damage = hit.m_damage;
-                reflectHit.m_point = hit.m_attackerCharacter.GetHeadPoint();
+                reflectHit.m_point = hit.m_attackerCharacter.transform.position;
                 reflectHit.m_staggerMultiplier = 100000f;
                 reflectHit.m_damage.Modify(reflectMul);
                 hit.m_attackerCharacter.Damage(reflectHit);

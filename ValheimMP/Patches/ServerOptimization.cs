@@ -18,6 +18,13 @@ namespace ValheimMP.Patches
         [HarmonyPatch(typeof(CookingStation), "UpdateVisual")]
         [HarmonyPatch(typeof(DistantFogEmitter), "Update")]
         [HarmonyPatch(typeof(EnvMan), "SetParticleArrayEnabled")]
+        [HarmonyPatch(typeof(Windmill), "Update")]
+        [HarmonyPatch(typeof(MessageHud), "ShowMessage")]
+        [HarmonyPatch(typeof(MessageHud), "Update")]
+        [HarmonyPatch(typeof(MessageHud), "ShowBiomeFoundMsg")]
+        [HarmonyPatch(typeof(MessageHud), "QueueUnlockMsg")]
+        [HarmonyPatch(typeof(CookingStation), "UpdateVisual")]
+        [HarmonyPatch(typeof(CookingStation), "SetSlotVisual")]
         [HarmonyPrefix]
         private static bool DoNothing()
         {
@@ -32,6 +39,7 @@ namespace ValheimMP.Patches
             {
                 // this thing takes an absolute insane amount of processing, better just redo it altogether.
                 // Why would this have to be so hard anyway? :thinking:
+                // Seems portals still work with this disabled, was it even needed?
                 __instance.StopCoroutine("ConnectPortals");
             }
         }
@@ -86,7 +94,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void ParticleDecal_Awake(ParticleDecal __instance)
         {
-            if(ValheimMP.IsDedicated)
+            if (ValheimMP.IsDedicated)
             {
                 UnityEngine.Object.Destroy(__instance.part);
                 __instance.part = null;

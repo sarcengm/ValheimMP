@@ -19,12 +19,7 @@ namespace ValheimMP.Patches
         {
             int maxCreatedPerFrame = 10;
 
-            if (ZNet.instance.IsServer())
-            {
-                maxCreatedPerFrame = Mathf.Clamp(ValheimMP.Instance.ServerObjectsCreatedPerFrame.Value, 10, 1000);
-            }
-
-            else if (Player.m_localPlayer == null ||
+            if (Player.m_localPlayer == null ||
                 (Player.m_localPlayer != null && (Player.m_localPlayer.IsTeleporting() || Hud.instance.m_loadingScreen.isActiveAndEnabled)) ||
                 m_isStillLoading)
             {
@@ -92,7 +87,7 @@ namespace ValheimMP.Patches
         // keeping things loaded could be nice... especially if you run in and out of sectors constantly, but..
         // things start falling out of the world, it seems that the map generation that is still seperate will need
         // to be attached to this loading\unloading of sectors.
-        private static float m_sectorStayLoadedTime = 10f;
+        private static float m_sectorStayLoadedTime = 60f;
 
         private static float m_lastSectorCheck;
         private static float m_sectorCheckFrequency = 1f;
@@ -112,10 +107,11 @@ namespace ValheimMP.Patches
                 var peerList = sector.ActivePeers.ToList();
                 for (int j = 0; j < peerList.Count; j++)
                 {
-                    var peer = peerList[j];
+                    var peerId = peerList[j];
+                    var peer = ZNet.instance.GetPeer(peerList[j]);
                     if (peer == null || peer.m_socket == null || !peer.m_socket.IsConnected())
                     {
-                        sector.ActivePeers.Remove(peer);
+                        sector.ActivePeers.Remove(peerId);
                     }
                 }
 
@@ -145,6 +141,8 @@ namespace ValheimMP.Patches
                 if (Time.realtimeSinceStartup - obj.LastActive < m_sectorStayLoadedTime)
                     continue;
 
+                //ValheimMP.Log($"Start unloaded sector {obj.x}, {obj.y}");
+
                 var list = new List<ZDO>();
                 list.AddRange(obj.SolidObjectsList);
                 list.AddRange(obj.PriorityObjectsList);
@@ -160,11 +158,13 @@ namespace ValheimMP.Patches
                     var zdo = list[i];
                     DestroyZDO(ns, zdoman, zdo);
                 }
+                //ValheimMP.Log($"Unloaded sector {obj.x}, {obj.y} destroyed {list.Count} objects.");
 
-                //ValheimMP.Log($"Unloaded sector {obj.x}, {obj.y} in {sw.GetElapsedMilliseconds()}ms", sw.GetElapsedMilliseconds() > 10f ? BepInEx.Logging.LogLevel.Warning : BepInEx.Logging.LogLevel.Info);
                 LivingSectorObjects.RemoveSector(obj);
                 m_pendingUnloadSectors.RemoveAt(s);
                 m_fullyLoadedSectors.Remove(new Vector2i(obj.x, obj.y));
+
+                //ValheimMP.Log($"Unloaded sector {obj.x}, {obj.y} in {sw.GetElapsedMilliseconds()}ms", sw.GetElapsedMilliseconds() > 10f ? BepInEx.Logging.LogLevel.Warning : BepInEx.Logging.LogLevel.Info);
                 s--;
                 break;
             }
@@ -174,7 +174,7 @@ namespace ValheimMP.Patches
         {
             if (zdo == null || netscene == null || zdoman == null || !zdo.m_nview)
             {
-                ValheimMP.Log($"Null zdo: {zdo} netscene: {netscene} zdoman:{zdo} zdoman:{zdo.m_nview}");
+                ValheimMP.Log($"DestroyZDO NullSomething zdo: {zdo} netscene: {netscene} zdoman:{zdo} zdoman:{zdo.m_nview}");
                 return;
             }
             // Since we clear the lists manually, we should also reset this manually.
@@ -182,7 +182,7 @@ namespace ValheimMP.Patches
 
             if (zdo.m_nview)
             {
-                if (zdo.m_nview && zdo.m_nview.gameObject)
+                if (zdo.m_nview.gameObject)
                 {
                     UnityEngine.Object.Destroy(zdo.m_nview.gameObject);
                 }
@@ -190,6 +190,7 @@ namespace ValheimMP.Patches
                 {
                     ValheimMP.Log($"ZDO Missing gameobj {zdo.m_nview}");
                 }
+                zdo.m_nview.ResetZDO();
                 zdo.m_nview = null;
             }
             else
@@ -283,16 +284,15 @@ namespace ValheimMP.Patches
                 var peer = peers[p];
                 if (!ValheimMP.IsDedicated)
                     peer.m_refPos = ZNet.instance.GetReferencePosition();
-                if (peer.m_player)
+                if (peer.m_player && !peer.m_player.IsDead())
                     peer.m_refPos = peer.m_player.transform.position;
 
                 if (peer.m_refPos == Vector3.zero)
                     continue;
-                // use refPos not player position because preloading terrain needs to happen before players are spawned!
+
                 Vector2i sector = ZoneSystem.instance.GetZone(peer.m_refPos);
                 if (sector == peer.m_lastSector)
                     continue;
-                // Peer moved to a new sector, lets see if there is anything that needs to be loaded!
 
                 var oldsector = peer.m_lastSector;
                 RemovePeerFromSector(peer, oldsector.x, oldsector.y);
@@ -332,7 +332,7 @@ namespace ValheimMP.Patches
         private static void AddPeerToSector(ZNetPeer peer, int x, int y)
         {
             var sectorObj = LivingSectorObjects.GetObjectOrCreate(x, y);
-            sectorObj.ActivePeers.Add(peer);
+            sectorObj.ActivePeers.Add(peer.m_uid);
 
             if (!sectorObj.PendingLoad)
             {
@@ -360,75 +360,8 @@ namespace ValheimMP.Patches
             LivingSectorObjects sectorObj = LivingSectorObjects.GetObject(x, y);
             if (sectorObj != null)
             {
-                sectorObj.ActivePeers.Remove(peer);
+                sectorObj.ActivePeers.Remove(peer.m_uid);
             }
-        }
-
-        private static void FindSectorObjectsForAllCharacters(int area, int distantArea, List<ZDO> sectorObjects, List<ZDO> distantSectorObjects = null)
-        {
-            var sectorVectors = new HashSet<Vector2i>();
-            var distantSectorVectors = new HashSet<Vector2i>();
-            var peers = ZNet.instance.m_peers;
-
-            // peers may have overlapping sectors so add them all to a hashset before we scan the final ones.
-            for (int p = 0; p < peers.Count; p++)
-            {
-                var peer = peers[p];
-                if (peer.m_player != null && peer.m_player.m_nview != null && peer.m_player.m_nview.m_zdo != null)
-                {
-                    // Keep player characters alive regardless of whether they fall out of the playable area
-                    peer.m_player.m_nview.m_zdo.m_tempRemoveEarmark = Time.frameCount;
-                }
-
-                if (peer.m_refPos == Vector3.zero)
-                    continue;
-                // use refPos not player position because preloading terrain needs to happen before players are spawned!
-                Vector2i sector = ZoneSystem.instance.GetZone(peer.m_refPos);
-
-                sectorVectors.Add(sector);
-                for (int i = 1; i <= area; i++)
-                {
-                    for (int x = sector.x - i; x <= sector.x + i; x++)
-                    {
-                        sectorVectors.Add(new Vector2i(x, sector.y - i));
-                        sectorVectors.Add(new Vector2i(x, sector.y + i));
-                    }
-                    for (int y = sector.y - i + 1; y <= sector.y + i - 1; y++)
-                    {
-                        sectorVectors.Add(new Vector2i(sector.x - i, y));
-                        sectorVectors.Add(new Vector2i(sector.x + i, y));
-                    }
-                }
-
-                for (int l = area + 1; l <= area + distantArea; l++)
-                {
-                    for (int m = sector.x - l; m <= sector.x + l; m++)
-                    {
-                        distantSectorVectors.Add(new Vector2i(m, sector.y - l));
-                        distantSectorVectors.Add(new Vector2i(m, sector.y + l));
-                    }
-
-                    for (int n = sector.y - l + 1; n <= sector.y + l - 1; n++)
-                    {
-                        distantSectorVectors.Add(new Vector2i(sector.x - l, n));
-                        distantSectorVectors.Add(new Vector2i(sector.x + l, n));
-                    }
-                }
-            }
-
-            foreach (var v in sectorVectors)
-            {
-                ZDOMan.instance.FindObjects(v, sectorObjects);
-            }
-
-            var objects = distantSectorObjects ?? sectorObjects;
-            foreach (var v in distantSectorVectors)
-            {
-                ZDOMan.instance.FindDistantObjects(v, objects);
-            }
-
-
-            ValheimMP.Log("Managing " + sectorObjects.Count.ToString() + ":" + distantSectorObjects.Count.ToString() + " objects for " + peers.Count.ToString() + " peer(s) ");
         }
 
         [HarmonyPatch(typeof(ZNetScene), "OutsideActiveArea", new Type[] { typeof(Vector3) })]

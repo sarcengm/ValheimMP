@@ -133,11 +133,6 @@ namespace ValheimMP
 
         #region Configuration
         /// <summary>
-        /// Path where characters are stored
-        /// </summary>
-        public ConfigEntry<string> CharacterPath { get; private set; }
-
-        /// <summary>
         /// Does the current server use compression?
         /// </summary>
         public ConfigEntry<bool> UseZDOCompression { get; private set; }
@@ -237,6 +232,8 @@ namespace ValheimMP
         public ConfigEntry<float> ChatShoutDistance { get; private set; }
         public ConfigEntry<float> ChatWhisperDistance { get; private set; }
         public ConfigEntry<float> ChatNormalDistance { get; private set; }
+        public ConfigEntry<float> PerfectBlockWindow { get; internal set; }
+        public ConfigEntry<float> PlayerDamageDelay { get; internal set; }
         #endregion
 
         #region delegates
@@ -289,7 +286,7 @@ namespace ValheimMP
             m_harmonyHandshake.Patch(AccessTools.Method(typeof(ZSteamSocket), "RegisterGlobalCallbacks"),
                 postfix: new HarmonyMethod(AccessTools.Method(typeof(ZSteamSocket_Patch), "RegisterGlobalCallbacks")));
 
-            
+
 
             if (IsDedicated)
             {
@@ -317,7 +314,6 @@ namespace ValheimMP
 
             InventoryManager = new InventoryManager(this);
 
-            CharacterPath = Config.Bind("Server", "CharacterPath", "vmp/", "Where it stores the server side characters.");
             UseZDOCompression = Config.Bind("Server", "UseZDOCompression", true, "Whether or not to compress ZDO data.");
             DebugOutputZDO = Config.Bind("Debug", "DebugOutputZDO", false, "ZDO send number debug output.");
             DebugRPC = Config.Bind("Debug", "DebugRPC", false, "Log all RPC invokes.");
@@ -328,13 +324,13 @@ namespace ValheimMP
 
             ServerObjectsCreatedPerFrame = Config.Bind("Server", "ServerObjectsCreatedPerFrame", 100, "Number of objects per frame the server instantiates while loading sectors, too many will cause stutters, too few will make it so you see the world loading in slowly."); ;
 
-            ClientAttackCompensationWindow = Config.Bind("Server", "ClientAttackCompensationWindow", 0.1f,
+            ClientAttackCompensationWindow = Config.Bind("Server", "ClientAttackCompensationWindow", 0.15f,
                 "Max amount of time window for hits to be compensated (towards client hit detection).");
             ClientAttackCompensationDistance = Config.Bind("Server", "ClientAttackCompensationDistance", 10.0f,
                 "Max amount of distance for hits to be compensated (towards client hit detection). \n" +
                 " This amount is multiplied by the average ping in seconds. \n" +
                 " E.g. 150 ms ping will be multiplied by 0.15");
-            ClientAttackCompensationDistanceMin = Config.Bind("Server", "ClientAttackCompensationDistanceMin", 1.0f, "Minimum value for compensation distance.");
+            ClientAttackCompensationDistanceMin = Config.Bind("Server", "ClientAttackCompensationDistanceMin", 2.0f, "Minimum value for compensation distance.");
             ClientAttackCompensationDistanceMax = Config.Bind("Server", "ClientAttackCompensationDistanceMax", 5.0f, "Maximum value for compensation distance.");
 
             ForcedPVPDistanceFromCenter = Config.Bind("ForcedPVP", "ForcedPVPDistanceFromCenter", 10000f, "Force PVP on at this distance from the center of the world.");
@@ -353,6 +349,9 @@ namespace ValheimMP
             ChatShoutDistance = Config.Bind("Server", "ChatShoutDistance", 128f, "Sets the distance for shouting. For distance a 2x2 floor tile is 2f by 2f.");
             ChatWhisperDistance = Config.Bind("Server", "ChatWhisperDistance", 10f, "Sets the distance for whispers. For distance a 2x2 floor tile is 2f by 2f.");
             ChatNormalDistance = Config.Bind("Server", "ChatNormalDistance", 64f, "Sets the distance for normal chat. For distance a 2x2 floor tile is 2f by 2f.");
+
+            PerfectBlockWindow = Config.Bind("Server", "PerfectBlockWindow", 0.35f, "Window for perfect blocks, 0.25f in Vanilla, 0.35f by default in VMP (slight compensation)");
+            PlayerDamageDelay = Config.Bind("Server", "PlayerDamageDelay", 0.1f, "Delay on damage against players (on top of the already established latency delay) to allow for easier blocking.");
 
             foreach (Heightmap.Biome val in typeof(Heightmap.Biome).GetEnumValues())
             {
@@ -468,21 +467,12 @@ namespace ValheimMP
             }
         }
 
-        private static float m_lastDisplayFPS;
-
         private void Update()
         {
-            //Time.fixedDeltaTime = 1f / 30f;
             if (IsDedicated)
             {
                 InventoryManager.Update();
                 PlayerGroupManager.Update();
-
-                if (Time.realtimeSinceStartup - m_lastDisplayFPS > 1f)
-                {
-                    System.Console.Write($"FPS: {(int)(1f / Time.deltaTime), -5} instances: {ZNetScene.instance?.m_instances.Count,-10} sectors: {ZNetScene_Patch.m_fullyLoadedSectors.Count}/{LivingSectorObjects.GetSectorCount()}\r");
-                    m_lastDisplayFPS = Time.realtimeSinceStartup;
-                }
             }
         }
 
@@ -610,6 +600,7 @@ namespace ValheimMP
             zrpc.m_ping = 0f;
             zrpc.m_averagePing = 0f;
             zrpc.m_pingTime = 0f;
+            zrpc.m_peer = new ZNetPeer(null, false);
 
             var attack = new Attack();
             attack.m_lastMeleeHitTime = 0f;

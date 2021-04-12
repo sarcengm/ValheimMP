@@ -161,6 +161,10 @@ namespace ValheimMP.Patches
                 {
                     RPC_TeleportTo(__instance, pos, rot, distantTeleport);
                 });
+                __instance.m_nview.Register("TeleportFinished", (long sender) =>
+                {
+                    RPC_TeleportFinished(__instance);
+                });
                 __instance.m_nview.Register("Pushback", (long sender, Vector3 pushForce) =>
                 {
                     RPC_Pushback(__instance, pushForce);
@@ -232,6 +236,7 @@ namespace ValheimMP.Patches
                 });
             }
         }
+
 
         private static string GetHair(int hash)
         {
@@ -381,7 +386,7 @@ namespace ValheimMP.Patches
                 return;
             var targetHealth = __instance.m_nview.m_zdo.GetFloat("health");
 
-            if (Mathf.Abs(__instance.m_health - targetHealth) > 1f)
+            if (Mathf.Abs(__instance.m_health - targetHealth) > 1.5f)
             {
                 __instance.m_health = targetHealth;
             }
@@ -925,7 +930,7 @@ namespace ValheimMP.Patches
             if (peer == null)
                 return;
 
-            while (Time.time + peer.m_rpc.m_averagePing > __instance.m_delayedDamage.Peek().Key)
+            while (Time.time + peer.m_rpc.m_averagePing + ValheimMP.Instance.PlayerDamageDelay.Value > __instance.m_delayedDamage.Peek().Key)
             {
                 __instance.RPC_Damage(0, __instance.m_delayedDamage.Dequeue().Value);
                 if (__instance.m_delayedDamage.Count == 0)
@@ -1557,11 +1562,14 @@ namespace ValheimMP.Patches
             return false;
         }
 
+        internal static bool m_serverTeleporting;
+
         private static void RPC_TeleportTo(Player __instance, Vector3 pos, Quaternion rot, bool distantTeleport)
         {
             Hud.instance.m_loadingScreen.alpha = 1f;
             ZNet.instance.SetReferencePosition(pos);
             __instance.m_teleporting = true;
+            m_serverTeleporting = true;
             __instance.m_distantTeleport = distantTeleport;
             __instance.m_teleportTimer = 0f;
             __instance.m_teleportCooldown = 0f;
@@ -1569,6 +1577,24 @@ namespace ValheimMP.Patches
             __instance.m_teleportFromRot = rot;
             __instance.m_teleportTargetPos = pos;
             __instance.m_teleportTargetRot = rot;
+        }
+
+        private static void RPC_TeleportFinished(Player instance)
+        {
+            m_serverTeleporting = false;
+        }
+
+        [HarmonyPatch(typeof(Player), "IsTeleporting")]
+        [HarmonyPrefix]
+        private static bool IsTeleporting(Player __instance, ref bool __result)
+        {
+            if (__instance == m_localPlayer && m_serverTeleporting)
+            {
+                __result = true;
+                return false;
+            }
+
+            return true;
         }
 
         [HarmonyPatch(typeof(Player), "UpdateTeleport")]
@@ -1617,6 +1643,7 @@ namespace ValheimMP.Patches
                     __instance.m_teleportTimer = 0f;
                     __instance.m_teleporting = false;
                     __instance.ResetCloth();
+                    __instance.m_nview.InvokeRPC("TeleportFinished");
                 }
                 else
                 {
@@ -1636,6 +1663,7 @@ namespace ValheimMP.Patches
                     __instance.m_teleportTimer = 0f;
                     __instance.m_teleporting = false;
                     __instance.ResetCloth();
+                    __instance.m_nview.InvokeRPC("TeleportFinished");
                 }
             }
             else
