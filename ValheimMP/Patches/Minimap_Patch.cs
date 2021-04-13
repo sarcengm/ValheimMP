@@ -56,6 +56,10 @@ namespace ValheimMP.Patches
             for (int i = 0; i < members.Count; i++)
             {
                 var member = members[i];
+
+                if (member.Id == ZNet.instance.GetUID())
+                    continue;
+
                 if (!m_partyPinsById.TryGetValue(member.Id, out var pin))
                 {
                     pin = AddPartyPin(__instance);

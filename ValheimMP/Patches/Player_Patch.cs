@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
 using UnityEngine;
+using ValheimMP.Framework;
 using ValheimMP.Framework.Extensions;
 using static Player;
 
@@ -135,7 +136,10 @@ namespace ValheimMP.Patches
                 {
                     RPC_Crouch(__instance, sender, crouch);
                 });
-
+                __instance.m_nview.Register("StartGuardianPower", (long sender) =>
+                {
+                    RPC_StartGuardianPower(__instance);
+                });
                 __instance.m_nview.Register("ClientMeleeHit", (long sender, ZPackage pkg) =>
                 {
                     Attack_Patch.RPC_ClientMeleeHit(__instance, __instance.m_currentAttack ?? __instance.m_previousAttack, pkg);
@@ -214,18 +218,24 @@ namespace ValheimMP.Patches
                 {
                     ZDOEvent_PlayerNameChanged(__instance);
                 });
+                zdo.RegisterZDOEvent("m_guardianPower", (ZDO zdo) =>
+                {
+                    ZDOEvent_GuardianPowerChanged(__instance);
+                });
 
                 __instance.SetLocalPlayer();
                 __instance.m_isLoading = true;
                 CheckPlayerReady();
 
                 // Update all appearance fields so the client side profile gets it right.
+                // Basically this needs to be done because the zdo is filled in before it is claimed locally, so no change events happen.
                 ZDOEvent_BeardItemChanged(__instance);
                 ZDOEvent_HairItemChanged(__instance);
                 ZDOEvent_PlayerModelChanged(__instance);
                 ZDOEvent_SkinColorChanged(__instance);
                 ZDOEvent_HairColorChanged(__instance);
                 ZDOEvent_PlayerNameChanged(__instance);
+                ZDOEvent_GuardianPowerChanged(__instance);
             }
 
             if (zdo != null)
@@ -236,7 +246,6 @@ namespace ValheimMP.Patches
                 });
             }
         }
-
 
         private static string GetHair(int hash)
         {
@@ -2030,6 +2039,85 @@ namespace ValheimMP.Patches
 
             __instance.AttachStop();
         }
+
+        [HarmonyPatch(typeof(Player), "SetGuardianPower")]
+        [HarmonyPrefix]
+        private static void SetGuardianPower(Player __instance, string name)
+        {
+            if (ValheimMP.IsDedicated)
+            {
+                __instance.m_nview.m_zdo.Set("m_guardianPower", name);
+            }
+        }
+
+        private static void ZDOEvent_GuardianPowerChanged(Player __instance)
+        {
+            __instance.SetGuardianPower(__instance.m_nview.m_zdo.GetString("m_guardianPower", __instance.m_guardianPower));
+        }
+
+        private static void RPC_StartGuardianPower(Player __instance)
+        {
+            __instance.StartGuardianPower();
+        }
+
+        [HarmonyPatch(typeof(Player), "StartGuardianPower")]
+        [HarmonyPrefix]
+        private static bool StartGuardianPower(Player __instance, ref bool __result)
+        {
+            __result = false;
+            if (__instance.m_guardianSE == null)
+            {
+                return false;
+            }
+            if ((__instance.InAttack() && !__instance.HaveQueuedChain()) || __instance.InDodge() || !__instance.CanMove() || __instance.IsKnockedBack() || __instance.IsStaggering() || __instance.InMinorAction())
+            {
+                return false;
+            }
+            if (__instance.m_guardianPowerCooldown > 0f)
+            {
+                __instance.Message(MessageHud.MessageType.Center, "$hud_powernotready");
+                return false;
+            }
+
+            __instance.m_zanim.SetTrigger("gpower");
+
+            if (!ValheimMP.IsDedicated)
+            {
+                __instance.m_nview.InvokeRPC("StartGuardianPower");
+            }
+
+            __result = true;
+            return false;
+        }
+
+        [HarmonyPatch(typeof(Player), "ActivateGuardianPower")]
+        [HarmonyPrefix]
+        private static bool ActivateGuardianPower(Player __instance, ref bool __result)
+        {
+            __result = false;
+
+            if (__instance.m_guardianPowerCooldown > 0f)
+            {
+                return false;
+            }
+            if (__instance.m_guardianSE == null)
+            {
+                return false;
+            }
+            var list = new List<Player>();
+            GetPlayersInRange(__instance.transform.position, 10f, list);
+            for (int i = 0; i < list.Count; i++)
+            {
+                var otherPlayer = list[i];
+                if (otherPlayer == __instance || ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(otherPlayer.GetPlayerID(), __instance.GetPlayerID())) 
+                {
+                    otherPlayer.GetSEMan().AddStatusEffect(__instance.m_guardianSE.name, resetTime: true);
+                }
+            }
+            __instance.m_guardianPowerCooldown = __instance.m_guardianSE.m_cooldown;
+            return false;
+        }
+
 
         [HarmonyPatch(typeof(Player), "IsPVPEnabled")]
         [HarmonyPrefix]

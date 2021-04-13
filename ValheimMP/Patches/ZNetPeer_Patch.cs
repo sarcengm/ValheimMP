@@ -24,6 +24,13 @@ namespace ValheimMP.Patches
             {
                 SavePeer(__instance);
                 ValheimMP.Instance.InventoryManager.RemoveListenerFromAll(__instance.m_uid);
+
+                if(__instance.m_player)
+                {
+                    var zdo = __instance.m_player.m_nview.m_zdo;
+                    zdo.SetOwner(ZDOMan.instance.GetMyID());
+                    ZDOMan.instance.DestroyZDO(zdo);
+                }
             }
         }
 

@@ -440,7 +440,10 @@ namespace ValheimMP.Framework
         {
             get
             {
-                if (m_player != null || ValheimMP.IsDedicated)
+                if (ValheimMP.IsDedicated)
+                    return Peer != null ? Peer.m_player : m_player;
+
+                if (m_player)
                     return m_player;
                 var gameObj = ZNetScene.instance.FindInstance(m_zdoid);
                 if (!gameObj)
@@ -469,7 +472,7 @@ namespace ValheimMP.Framework
         [JsonIgnore]
         public Vector3 PlayerPosition
         {
-            get { return Player == null ? m_position : Player.transform.position; }
+            get { return Player ? Player.transform.position : m_position; }
             internal set { m_position = value; }
         }
 
@@ -477,7 +480,7 @@ namespace ValheimMP.Framework
         [JsonIgnore]
         public float PlayerHealth
         {
-            get { return Player == null ? m_health : Player.GetHealth(); }
+            get { return Player ? Player.GetHealth() : m_health; }
             internal set { m_health = value; }
         }
 
@@ -485,7 +488,7 @@ namespace ValheimMP.Framework
         [JsonIgnore]
         public ZDOID PlayerZDOID
         {
-            get { return Player == null ? m_zdoid : Player.GetZDOID(); }
+            get { return Player ? Player.GetZDOID() : m_zdoid; }
             internal set { m_zdoid = value; }
         }
 
@@ -493,7 +496,7 @@ namespace ValheimMP.Framework
         [JsonIgnore]
         public float PlayerMaxHealth
         {
-            get { return Player == null ? m_maxhealth : Player.GetMaxHealth(); }
+            get { return Player ? Player.GetMaxHealth() : m_maxhealth; }
             internal set { m_maxhealth = value; }
         }
 
