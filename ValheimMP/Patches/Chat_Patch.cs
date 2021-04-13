@@ -209,7 +209,7 @@ namespace ValheimMP.Patches
 
             for (int i = start; i >= end; i--)
             {
-                if (text.Length + __instance.m_chatBuffer[i].Length >= 16380)
+                if (text.Length + __instance.m_chatBuffer[i].Length >= 10000)
                     break;
 
                 visibleLines.Insert(0, __instance.m_chatBuffer[i]);
