@@ -80,7 +80,23 @@ namespace ValheimMP.Patches
 
             var recipeName = __instance.m_craftRecipe.m_item.m_itemData.m_shared.m_name;
             var upgradeItemId = __instance.m_craftUpgradeItem != null ? __instance.m_craftUpgradeItem.m_id : -1;
-            ZNet.instance.GetServerRPC().Invoke("InventoryGui_DoCrafting", recipeName, upgradeItemId);
+
+            ZPackage pkg = new ZPackage();
+            pkg.Write(recipeName);
+
+            var resources = __instance.m_craftRecipe.m_resources;
+
+            pkg.Write(resources.Length);
+            for (int i = 0; i < resources.Length; i++)
+            {
+                pkg.Write(resources[i].m_amount);
+                pkg.Write(resources[i].m_amountPerLevel);
+                pkg.Write(resources[i].m_resItem.m_itemData.m_shared.m_name);
+            }
+
+            pkg.Write(upgradeItemId);
+
+            ZNet.instance.GetServerRPC().Invoke("InventoryGui_DoCrafting", pkg);
 
             CraftingStation currentCraftingStation = Player.m_localPlayer.GetCurrentCraftingStation();
             if ((bool)currentCraftingStation)
@@ -92,6 +108,8 @@ namespace ValheimMP.Patches
                 __instance.m_craftItemDoneEffects.Create(player.transform.position, Quaternion.identity);
             }
             Game.instance.GetPlayerProfile().m_playerStats.m_crafts++;
+
+
             Gogan.LogEvent("Game", "Crafted", __instance.m_craftRecipe.m_item.m_itemData.m_shared.m_name, num);
             return false;
         }
@@ -115,7 +133,7 @@ namespace ValheimMP.Patches
             return true;
         }
 
-        public static void RPC_DoCrafting(ZRpc rpc, string recipeName, int upgradeItemId)
+        public static void RPC_DoCrafting(ZRpc rpc, ZPackage pkg)
         {
             var __instance = InventoryGui.instance;
 
@@ -127,7 +145,35 @@ namespace ValheimMP.Patches
             if (player == null)
                 return;
 
-            __instance.m_craftRecipe = ObjectDB.instance.m_recipes.SingleOrDefault(k => k.m_item?.m_itemData?.m_shared?.m_name == recipeName);
+            var recipeName = pkg.ReadString();
+            var resourceCount = pkg.ReadInt();
+            var resources = new List<(int, int, string)>();
+            for (int i = 0; i < resourceCount; i++)
+            {
+                resources.Add((pkg.ReadInt(), pkg.ReadInt(), pkg.ReadString()));
+            }
+            var upgradeItemId = pkg.ReadInt();
+
+            __instance.m_craftRecipe = ObjectDB.instance.m_recipes.SingleOrDefault(k =>
+            {
+                if (k.m_item && k.m_item.m_itemData?.m_shared?.m_name == recipeName)
+                {
+                    if (k.m_resources.Length != resourceCount)
+                        return false;
+
+                    for (int i = 0; i < resourceCount; i++)
+                    {
+                        if (k.m_resources[i].m_amount != resources[i].Item1 ||
+                            k.m_resources[i].m_amountPerLevel != resources[i].Item2 ||
+                            k.m_resources[i].m_resItem.m_itemData.m_shared.m_name != resources[i].Item3)
+                            return false;
+                    }
+
+                    return true;
+                }
+
+                return false;
+            });
 
             if (__instance.m_craftRecipe == null)
                 return;

@@ -369,9 +369,9 @@ namespace ValheimMP.Patches
                     Inventory_Patch.RPC_MoveItemToThis(rpc, toId, fromId, itemId);
                 });
 
-                rpc.Register("InventoryGui_DoCrafting", (ZRpc rpc, string recipeName, int upgradeItemId) =>
+                rpc.Register("InventoryGui_DoCrafting", (ZRpc rpc, ZPackage pkg) =>
                 {
-                    InventoryGui_Patch.RPC_DoCrafting(rpc, recipeName, upgradeItemId);
+                    InventoryGui_Patch.RPC_DoCrafting(rpc, pkg);
                 });
 
                 rpc.Register("InventoryGui_RepairOneItem", (ZRpc rpc, int itemId) =>

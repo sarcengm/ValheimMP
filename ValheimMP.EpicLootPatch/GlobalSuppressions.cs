@@ -6,5 +6,4 @@
 using System.Diagnostics.CodeAnalysis;
 
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.EpicLootPatch.EpicLootPatch.Command_EpicLoot(ZNetPeer)")]
-[assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.EpicLootPatch.TabControllerPatch.Awake")]
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.EpicLootPatch.TabControllerPatch.Awake(InventoryGui)")]
