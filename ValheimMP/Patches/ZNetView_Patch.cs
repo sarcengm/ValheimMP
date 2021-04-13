@@ -57,7 +57,7 @@ namespace ValheimMP.Patches
                     }
                 }
 
-                LivingSectorObjects.AddObject(__instance.m_zdo);
+                SectorManager.AddObject(__instance.m_zdo);
 
                 if (ValheimMP.IsDedicated && __instance.m_zdo.m_type == ZDO.ObjectType.Solid)
                 {
@@ -82,7 +82,7 @@ namespace ValheimMP.Patches
         {
             if (__instance.m_zdo != null)
             {
-                LivingSectorObjects.RemoveObject(__instance.m_zdo);
+                SectorManager.RemoveObject(__instance.m_zdo);
                 __instance.m_zdo.m_nview = null;
             }
         }
@@ -93,7 +93,7 @@ namespace ValheimMP.Patches
         {
             if (__instance.m_zdo != null)
             {
-                LivingSectorObjects.RemoveObject(__instance.m_zdo);
+                SectorManager.RemoveObject(__instance.m_zdo);
                 __instance.m_zdo.m_nview = null;
             }
         }

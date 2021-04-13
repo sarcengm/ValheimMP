@@ -78,8 +78,8 @@ namespace ValheimMP.Patches
             return false;
         }
 
-        private static List<LivingSectorObjects> m_pendingLoadSectors = new List<LivingSectorObjects>();
-        private static List<LivingSectorObjects> m_pendingUnloadSectors = new List<LivingSectorObjects>();
+        private static List<SectorManager.Sector> m_pendingLoadSectors = new List<SectorManager.Sector>();
+        private static List<SectorManager.Sector> m_pendingUnloadSectors = new List<SectorManager.Sector>();
 
         private static int m_maxCreatedPerFrame = 100;
         private static int m_createdThisFrame = 0;
@@ -98,7 +98,7 @@ namespace ValheimMP.Patches
 
         private static void CheckActiveSectors()
         {
-            var sectors = LivingSectorObjects.GetSectors();
+            var sectors = SectorManager.GetSectors();
 
             for (int i = 0; i < sectors.Count; i++)
             {
@@ -160,7 +160,7 @@ namespace ValheimMP.Patches
                 }
                 //ValheimMP.Log($"Unloaded sector {obj.x}, {obj.y} destroyed {list.Count} objects.");
 
-                LivingSectorObjects.RemoveSector(obj);
+                SectorManager.RemoveSector(obj);
                 m_pendingUnloadSectors.RemoveAt(s);
                 m_fullyLoadedSectors.Remove(new Vector2i(obj.x, obj.y));
 
@@ -331,7 +331,7 @@ namespace ValheimMP.Patches
 
         private static void AddPeerToSector(ZNetPeer peer, int x, int y)
         {
-            var sectorObj = LivingSectorObjects.GetObjectOrCreate(x, y);
+            var sectorObj = SectorManager.GetObjectOrCreate(x, y);
             sectorObj.ActivePeers.Add(peer.m_uid);
 
             if (!sectorObj.PendingLoad)
@@ -357,7 +357,7 @@ namespace ValheimMP.Patches
 
         private static void RemovePeerFromSector(ZNetPeer peer, int x, int y)
         {
-            LivingSectorObjects sectorObj = LivingSectorObjects.GetObject(x, y);
+            var sectorObj = SectorManager.GetObject(x, y);
             if (sectorObj != null)
             {
                 sectorObj.ActivePeers.Remove(peer.m_uid);

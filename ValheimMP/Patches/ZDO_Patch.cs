@@ -87,11 +87,11 @@ namespace ValheimMP.Patches
         {
             if (!(__instance.m_sector == sector))
             {
-                LivingSectorObjects.RemoveObject(__instance);
+                SectorManager.RemoveObject(__instance);
                 __instance.m_zdoMan.RemoveFromSector(__instance, __instance.m_sector);
                 __instance.m_sector = sector;
 
-                LivingSectorObjects.AddObject(__instance);
+                SectorManager.AddObject(__instance);
                 __instance.m_zdoMan.AddToSector(__instance, __instance.m_sector);
                 __instance.m_zdoMan.ZDOSectorInvalidated(__instance);
             }

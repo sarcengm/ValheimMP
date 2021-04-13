@@ -632,7 +632,7 @@ namespace ValheimMP.ChatCommands
             peer.SendServerMessage(
                 $"Time.deltaTime: {Time.deltaTime} ({1f / Time.deltaTime} fps)\n" +
                 $"Instances: {ZNetScene.instance?.m_instances.Count}\n" +
-                $"Sectors: {LivingSectorObjects.FullyLoadedSectors()}/{ LivingSectorObjects.GetSectorCount()}");
+                $"Sectors: {SectorManager.FullyLoadedSectors()}/{ SectorManager.GetSectorCount()}");
         }
 
         [ChatCommand("SaveWorld", "Saves the world", requireAdmin: true)]

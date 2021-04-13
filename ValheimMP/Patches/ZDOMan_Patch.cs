@@ -189,7 +189,7 @@ namespace ValheimMP.Patches
 
         private static void FindLiveObjects(ZNetPeer peer, Vector2i sector, List<ZDO> objects, Dictionary<ZDOID, ZDO> solidObjects, bool distant = false, bool sortArea = false)
         {
-            var obj = LivingSectorObjects.GetObject(sector.x, sector.y);
+            var obj = SectorManager.GetObject(sector.x, sector.y);
             if (obj != null)
             {
                 if (!distant)
