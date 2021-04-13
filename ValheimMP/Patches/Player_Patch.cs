@@ -767,7 +767,7 @@ namespace ValheimMP.Patches
             {
                 return;
             }
-            if (!__instance.HaveRequirements(piece, RequirementMode.CanBuild))
+            if (!__instance.m_noPlacementCost && !__instance.HaveRequirements(piece, RequirementMode.CanBuild))
             {
                 return;
             }

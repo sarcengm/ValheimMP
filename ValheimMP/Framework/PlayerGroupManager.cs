@@ -745,7 +745,7 @@ namespace ValheimMP.Framework
 
                 if (periodic)
                 {
-                    if (member.Peer == null)
+                    if (member.Peer == null) // || member.Peer == peer, though for testing purposes leaving this to replicate to myself.
                         continue;
 
                     var dist = (member.Peer.m_refPos - peer.m_refPos).sqrMagnitude;

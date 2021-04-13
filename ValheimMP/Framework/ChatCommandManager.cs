@@ -37,13 +37,19 @@ namespace ValheimMP.Framework
             m_valheimMP.OnChatMessage += OnChatMessage;
         }
 
+        public static CommandExecutionLocation GetCurrentExecutionLocation()
+        {
+            return ValheimMP.IsDedicated ? CommandExecutionLocation.Server : CommandExecutionLocation.Client;
+        }
+
         public void RegisterAll(object obj)
         {
             var methods = obj.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static);
+            var execLoc = GetCurrentExecutionLocation();
             for (int i = 0; i < methods.Length; i++)
             {
                 var command = methods[i].GetCustomAttribute<ChatCommandAttribute>();
-                if (command != null)
+                if (command != null && (command.m_executionLocation & execLoc) == execLoc)
                 {
                     var cmd = new CommandInfo() { m_methodObj = methods[i].IsStatic ? null : obj, m_method = methods[i], m_command = command };
                     ValheimMP.Log($"Registered ChatCommand: {GetCommandSyntax(cmd)}");
@@ -102,23 +108,27 @@ namespace ValheimMP.Framework
         internal void OnChatMessage(OnChatMessageArgs args)
         {
             // This normally happens on the client but we supress it here so we can still send marked up text ourselves!
-            args.Text = args.Text.Replace('<', ' ').Replace('>', ' ');
+            if (ValheimMP.IsDedicated && !args.Peer.IsAdmin())
+            {
+                args.Text = args.Text.Replace('<', ' ').Replace('>', ' ');
+            }
 
             if (args.Text.StartsWith(CommandToken))
             {
-                // server side suppress by default but commands can turn it back on
+                // server always suppresses commands even invalid ones.
                 args.SuppressMessage = ValheimMP.IsDedicated;
+                var text = args.Text.Substring(CommandToken.Length);
+                var commandEnd = text.IndexOf(" ");
+                if (commandEnd < 0) commandEnd = text.Length;
 
-                args.Text = args.Text.Substring(CommandToken.Length);
-                var commandEnd = args.Text.IndexOf(" ");
-                if (commandEnd < 0) commandEnd = args.Text.Length;
-
-                var commandText = args.Text.Substring(0, commandEnd);
+                var commandText = text.Substring(0, commandEnd);
 
                 foreach (var command in m_commands)
                 {
                     if (command.m_command.m_aliases.Contains(commandText))
                     {
+                        args.SuppressMessage = true;
+
                         if (command.m_command.m_requireAdmin && !args.Peer.IsAdmin())
                         {
                             args.Peer.SendServerMessage($"Command {command.m_command.m_name} requires admin access.");
@@ -127,7 +137,7 @@ namespace ValheimMP.Framework
 
                         try
                         {
-                            ExecuteCommand(args, command, args.Text.Substring(commandEnd));
+                            ExecuteCommand(args, command, text.Substring(commandEnd));
                         }
                         catch (TargetParameterCountException)
                         {
@@ -135,8 +145,8 @@ namespace ValheimMP.Framework
                         }
                         catch (Exception ex)
                         {
-                            args.Peer.SendServerMessage($"Error in {command.m_command.m_name}: {ex.Message}");
                             ValheimMP.Log(ex.ToString());
+                            args.Peer.SendServerMessage($"Error in {command.m_command.m_name}: {ex.Message}");
                         }
                         break;
                     }
@@ -213,7 +223,7 @@ namespace ValheimMP.Framework
                             if (param.IsOptional)
                             {
                                 parameterObjects.Add(param.DefaultValue);
-                                break;
+                                continue;
                             }
                             throw new TargetParameterCountException();
                         }
@@ -224,15 +234,25 @@ namespace ValheimMP.Framework
                         // basic types
                         if (param.ParameterType == typeof(string)) parameterObjects.Add(paramValue);
                         else if (param.ParameterType == typeof(double)) parameterObjects.Add(double.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
+                        else if (param.ParameterType == typeof(double?)) parameterObjects.Add(double.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
                         else if (param.ParameterType == typeof(float)) parameterObjects.Add(float.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
+                        else if (param.ParameterType == typeof(float?)) parameterObjects.Add(float.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
                         else if (param.ParameterType == typeof(sbyte)) parameterObjects.Add(sbyte.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
+                        else if (param.ParameterType == typeof(sbyte?)) parameterObjects.Add(sbyte.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
                         else if (param.ParameterType == typeof(short)) parameterObjects.Add(short.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
+                        else if (param.ParameterType == typeof(short?)) parameterObjects.Add(short.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
                         else if (param.ParameterType == typeof(int)) parameterObjects.Add(int.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
+                        else if (param.ParameterType == typeof(int?)) parameterObjects.Add(int.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
                         else if (param.ParameterType == typeof(long)) parameterObjects.Add(long.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
+                        else if (param.ParameterType == typeof(long?)) parameterObjects.Add(long.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
                         else if (param.ParameterType == typeof(byte)) parameterObjects.Add(byte.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
+                        else if (param.ParameterType == typeof(byte?)) parameterObjects.Add(byte.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
                         else if (param.ParameterType == typeof(ushort)) parameterObjects.Add(ushort.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
+                        else if (param.ParameterType == typeof(ushort?)) parameterObjects.Add(ushort.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
                         else if (param.ParameterType == typeof(uint)) parameterObjects.Add(uint.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
+                        else if (param.ParameterType == typeof(uint?)) parameterObjects.Add(uint.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
                         else if (param.ParameterType == typeof(ulong)) parameterObjects.Add(ulong.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
+                        else if (param.ParameterType == typeof(ulong?)) parameterObjects.Add(ulong.Parse(paramValue, System.Globalization.CultureInfo.InvariantCulture));
 
                         // Specially parsed types
                         else if (param.ParameterType == typeof(ZNetPeer))
@@ -290,39 +310,51 @@ namespace ValheimMP.Framework
         }
 
 
-        internal class CommandParameters
+        public class CommandParameters
         {
-            static readonly Regex m_regex = new Regex(@"(\""(?<qarg>[^""]*)\""|(?<arg>[^\s]+))");
+            static readonly Regex m_regex = new("(\\s*\"(?<qarg>[^\"]*)\"\\s*|\\s*(?<arg>[^,]+)\\s*)");
             readonly string m_parameters;
             int m_regexpos;
             int m_lastRegexpos;
 
-            internal CommandParameters(string parameters)
+            public CommandParameters(string parameters)
             {
                 m_parameters = parameters;
                 m_regexpos = 0;
                 m_lastRegexpos = 0;
             }
 
-            internal string GetNextParameter()
+            public string GetNextParameter()
             {
                 var currentParameter = m_regex.Match(m_parameters, m_regexpos);
-                var paramGroup = currentParameter.Groups["qarg"].Success ? currentParameter.Groups["qarg"] : currentParameter.Groups["arg"];
-                if (!paramGroup.Success)
+                var paramGroup = currentParameter.Groups["qarg"];
+                if (paramGroup.Success)
+                {
+                    m_lastRegexpos = m_regexpos;
+                    m_regexpos = currentParameter.Index + currentParameter.Length;
+                    return paramGroup.Value;
+                }
+
+
+                // non quoted args cannot be empty e.g.: ,, results in null parameters instead of empty string parameters
+                // if a empty string needs to be specified it will need to be specifically quoted e.g.: "","",""
+                paramGroup = currentParameter.Groups["arg"];
+                if (!paramGroup.Success || string.IsNullOrWhiteSpace(paramGroup.Value))
                 {
                     return null;
                 }
+
                 m_lastRegexpos = m_regexpos;
-                m_regexpos = paramGroup.Index + paramGroup.Length;
-                return paramGroup.Value;
+                m_regexpos = currentParameter.Index + currentParameter.Length;
+                return paramGroup.Value.Trim();
             }
 
-            internal string GetRemainingParameter()
+            public string GetRemainingParameter()
             {
                 return m_parameters.Substring(m_regexpos);
             }
 
-            internal void ReturnParameter()
+            public void ReturnParameter()
             {
                 m_regexpos = m_lastRegexpos;
             }

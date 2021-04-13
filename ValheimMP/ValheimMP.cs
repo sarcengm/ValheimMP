@@ -304,14 +304,13 @@ namespace ValheimMP
                 OnPlayerOnline += PlayerGroupManager.Internal_OnPlayerOnline;
                 OnPlayerOffline += PlayerGroupManager.Internal_OnPlayerOffline;
                 AdminManager.Save(Path.Combine(Paths.PluginPath, PluginName, "admins.json"));
-
-                ChatCommandManager = new ChatCommandManager(this);
             }
             else
             {
                 PlayerGroupManager = new PlayerGroupManager();
             }
 
+            ChatCommandManager = new ChatCommandManager(this);
             InventoryManager = new InventoryManager(this);
 
             UseZDOCompression = Config.Bind("Server", "UseZDOCompression", true, "Whether or not to compress ZDO data.");

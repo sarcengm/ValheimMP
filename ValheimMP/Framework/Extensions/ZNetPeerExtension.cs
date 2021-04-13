@@ -4,7 +4,7 @@ namespace ValheimMP.Framework.Extensions
 {
     public enum ChatMessageType
     {
-        
+
         Whisper = Talker.Type.Whisper,
         Normal = Talker.Type.Normal,
         Shout = Talker.Type.Shout,
@@ -40,7 +40,8 @@ namespace ValheimMP.Framework.Extensions
 
         public static void SendServerMessage(this ZNetPeer peer, string message)
         {
-            ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", peer.m_refPos, (int)ChatMessageType.ServerMessage, "", message);
+            // server messages can not be send from the client, if a client sends one they will send it to themselves.
+            ZRoutedRpc.instance.InvokeRoutedRPC(ValheimMP.IsDedicated ? peer.m_uid : ZNet.instance.GetUID(), "ChatMessage", peer.m_refPos, (int)ChatMessageType.ServerMessage, "", message);
         }
 
         public static void SendChatMessage(this ZNetPeer peer, string message, ChatMessageType type, string from)
@@ -50,7 +51,9 @@ namespace ValheimMP.Framework.Extensions
 
         public static bool IsAdmin(this ZNetPeer peer)
         {
-            return ValheimMP.Instance.AdminManager.IsAdmin(peer.m_uid);
+            // If we are not on a dedicated server we can be counted as admin (well locally anyway)
+            // The client doesn't actually have information about wether or not they are a real admin on the server.
+            return !ValheimMP.IsDedicated || ValheimMP.Instance.AdminManager.IsAdmin(peer.m_uid);
         }
     }
 }

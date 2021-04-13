@@ -108,6 +108,7 @@ namespace ValheimMP.Patches
                 Text = text,
                 MessageType = type,
                 Player = Player.m_localPlayer,
+                Peer = ZNet.instance.GetServerPeer(),
             };
 
             ValheimMP.Instance.Internal_OnChatMessage(args);
@@ -115,7 +116,7 @@ namespace ValheimMP.Patches
             if (args.SuppressMessage)
                 return;
 
-            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), "ClientMessage", (int)type, text);
+            ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), "ClientMessage", (int)args.MessageType, args.Text);
         }
 
         [HarmonyPatch(typeof(Chat), "OnNewChatMessage")]

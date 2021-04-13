@@ -3,9 +3,11 @@ using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using UnityEngine;
 using ValheimMP.Framework;
+using ValheimMP.Framework.Events;
 using ValheimMP.Framework.Extensions;
 using Object = UnityEngine.Object;
 
@@ -24,12 +26,6 @@ namespace ValheimMP.ChatCommands
 
         public void Awake()
         {
-            if (!ValheimMP.IsDedicated)
-            {
-                Logger.LogError($"{Name} is a server side only plugin.");
-                return;
-            }
-
             Instance = this;
 
             ValheimMP.Instance.ChatCommandManager.RegisterAll(this);
@@ -152,17 +148,26 @@ namespace ValheimMP.ChatCommands
         }
 
         [ChatCommand("Teleport", "Teleport to target to destination or coordinates.", requireAdmin: true, aliases: new[] { "Tp" })]
-        private void Command_Teleport(ZNetPeer peer, ZNetPeer target = null, ZNetPeer destination = null, float x = 0, float z = 0, float y = 0)
+        private void Command_Teleport(ZNetPeer peer, ZNetPeer target = null, ZNetPeer destination = null, float? x = null, float z = 0, float y = 0)
         {
             if (target == null)
                 target = peer;
 
             var player = target.GetPlayer();
 
-            var pos = new Vector3(x, y, z);
-
-            if (pos == Vector3.zero && destination != null)
+            Vector3 pos;
+            if (x != null)
+            {
+                pos = new Vector3(x.Value, y, z);
+            }
+            else if (destination != null)
+            {
                 pos = destination.GetPlayer().transform.position;
+            }
+            else
+            {
+                throw new TargetParameterCountException("There needs to be either a destination or target position");
+            }
 
             if (y == 0)
                 pos.y = ZoneSystem.instance.GetGroundHeight(pos);
@@ -208,6 +213,57 @@ namespace ValheimMP.ChatCommands
             if (peer != target)
             {
                 target.SendServerMessage($"<color=white><color=green><b>{peer.m_playerName}</b></color> set your NoCost mode to <color=green><b>{player.m_noPlacementCost}</b></color>.</color>");
+            }
+        }
+
+
+        [ChatCommand("GiveItem", "Client side give item to translate items into actual game names", aliases: new[] { "Give" }, executionLocation: CommandExecutionLocation.Client)]
+        private void Command_GiveItemClient(OnChatMessageArgs chatargs, string itemName, int amount = 1, string target = "")
+        {
+            // passthrough the command to the server
+            chatargs.SuppressMessage = false;
+
+            var item = ObjectDB.instance.GetItemByLocalizedName(itemName, true);
+            Log($"GetItemByLocalizedName: {itemName} -> {item}");
+            if (item != null)
+            {
+                // we only modify the command if the client typed a localized item name
+                chatargs.Text = $"/giveitem \"{item.name}\", {amount}, {target}";
+                Log(chatargs.Text);
+            }
+        }
+
+        [ChatCommand("GiveItem", "Gives an item to the player", requireAdmin: true, aliases: new[] { "Give" })]
+        private void Command_GiveItem(ZNetPeer peer, string itemName, int amount = 1, ZNetPeer target = null)
+        {
+            if (target == null)
+                target = peer;
+
+            var player = target.GetPlayer();
+
+            var item = ObjectDB.instance.GetItemPrefab(itemName);
+            
+            if(item == null)
+            {
+                peer.SendServerMessage($"No such item found, item names are case sensitive.");
+                return;
+            }
+
+            // we simply call this to make sure it works, invalid items will throw an exception, perfect handling!
+            try { _ = item.GetComponent<ItemDrop>().m_itemData.GetIcon(); }
+            catch(Exception)
+            {
+                peer.SendServerMessage($"The item specified is an invalid inventory item.");
+                return;
+            }
+
+            var itemAdded = player.GetInventory().AddItem(itemName, amount, 1, 0, 0, "");
+
+            peer.SendServerMessage($"<color=white>Giving <color=green><b>{player.GetPlayerName()}</b></color> to <color=green><b>{amount}x{itemAdded.m_shared.m_name}</b></color>.</color>");
+
+            if (peer != target)
+            {
+                target.SendServerMessage($"<color=white><color=green><b>{peer.m_playerName}</b></color> gave you <color=green><b>{amount}x{itemAdded.m_shared.m_name}</b></color>.</color>");
             }
         }
 
