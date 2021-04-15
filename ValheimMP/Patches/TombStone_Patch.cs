@@ -32,7 +32,7 @@ namespace ValheimMP.Patches
         private static void RPC_RequestRevive(TombStone __instance, long sender)
         {
             var owner = __instance.GetOwner();
-            if (owner != sender && owner != 0 && ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(owner, sender))
+            if (owner != sender && owner != 0 && ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(sender, owner))
             {
                 var peer = ZNet.instance.GetPeer(sender);
                 if (peer == null || !peer.m_player)
@@ -173,7 +173,7 @@ namespace ValheimMP.Patches
         {
             var owner = __instance.GetOwner();
             var shiftDown = Input.GetKey(KeyCode.LeftShift) | Input.GetKey(KeyCode.RightShift); // I bet there is still 1 person on the planet that uses right shift right?
-            if (!shiftDown && !hold && owner != character.GetOwner() && owner != 0 && ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(owner, Player.m_localPlayer.GetPlayerID()))
+            if (!shiftDown && !hold && owner != character.GetOwner() && owner != 0 && ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(Player.m_localPlayer.GetPlayerID(), owner))
             {
                 if (Time.time - m_reviveDelayTimer > 0.5f)
                 {

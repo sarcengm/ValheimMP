@@ -73,7 +73,7 @@ namespace ValheimMP.Framework
             m_id = itemData.m_id;
             pkg.Write(itemData.m_id);
 
-            if(itemData.m_crafted != 0)
+            if (itemData.m_crafted != 0)
             {
                 // this flag is useful only once, only the person who created it will first serialize it.
                 pkg.Write(itemData.m_crafted);
@@ -357,7 +357,7 @@ namespace ValheimMP.Framework
                     itemData.m_durability = m_durability;
                     itemData.m_stack = m_stack;
                 }
-                
+
             }
 
             // Little out of order here, but there is no need for these fields in the item creation so lets just serialize them straight into the object.
@@ -392,7 +392,7 @@ namespace ValheimMP.Framework
                 }
             }
 
-            if(itemData != null && (flags & NetworkedItemDataFlags.m_crafted) == NetworkedItemDataFlags.m_crafted)
+            if (itemData != null && (flags & NetworkedItemDataFlags.m_crafted) == NetworkedItemDataFlags.m_crafted)
             {
                 m_inventoryManager.Internal_OnItemCrafted(craftTrigger, targetInventory, itemData, triggerData);
             }
@@ -401,6 +401,18 @@ namespace ValheimMP.Framework
             {
                 if (itemData != null)
                 {
+                    if (itemData.m_equiped)
+                    {
+                        var humanoid = targetInventory.m_nview.GetComponent<Humanoid>();
+                        if (humanoid != null)
+                        {
+                            Player_Patch.SuppressMessages = true;
+                            Humanoid_Patch.LocalActionOnly = true;
+                            humanoid.UnequipItem(itemData);
+                            Humanoid_Patch.LocalActionOnly = false;
+                            Player_Patch.SuppressMessages = false;
+                        }
+                    }
                     targetInventory.m_inventory.Remove(itemData);
                 }
             }

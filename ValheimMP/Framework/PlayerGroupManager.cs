@@ -47,7 +47,7 @@ namespace ValheimMP.Framework
 
         internal void Internal_OnPlayerOnline(ZNetPeer peer)
         {
-            if(GroupsByPlayerID.TryGetValue(peer.m_uid, out var groups))
+            if (GroupsByPlayerID.TryGetValue(peer.m_uid, out var groups))
             {
                 for (int i = 0; i < groups.Count; i++)
                 {
@@ -428,27 +428,44 @@ namespace ValheimMP.Framework
     {
         [JsonProperty]
         public long Id { get; internal set; }
+
+        private string m_name;
         [JsonProperty]
-        public string Name { get; internal set; }
+        public string Name
+        {
+            get
+            {
+                if (Peer != null)
+                    m_name = Peer.m_playerName;
+                else if (Player)
+                    m_name = Player.GetPlayerName();
+
+
+                return m_name;
+            }
+
+            internal set { m_name = value; }
+        }
+
         [JsonProperty]
         public int Rank { get; internal set; }
 
         private Player m_player;
-
         [JsonIgnore]
         public Player Player
         {
             get
             {
-                if (ValheimMP.IsDedicated)
-                    return Peer != null ? Peer.m_player : m_player;
+                if (Peer != null)
+                    m_player = Peer.m_player;
 
-                if (m_player)
+                if (m_player || ValheimMP.IsDedicated)
                     return m_player;
+
                 var gameObj = ZNetScene.instance.FindInstance(m_zdoid);
-                if (!gameObj)
-                    return null;
-                m_player = gameObj.GetComponent<Player>();
+                if (gameObj)
+                    m_player = gameObj.GetComponent<Player>();
+
                 return m_player;
             }
 
@@ -457,6 +474,7 @@ namespace ValheimMP.Framework
 
         [JsonIgnore]
         public ZNetPeer Peer { get; internal set; }
+
         [JsonProperty]
         public DateTime MemberSince { get; internal set; }
 
@@ -464,7 +482,14 @@ namespace ValheimMP.Framework
         [JsonProperty]
         public DateTime LastOnline
         {
-            get { return Peer == null ? m_lastOnline : DateTime.Now; }
+            get
+            {
+                if (Peer != null)
+                    m_lastOnline = DateTime.Now;
+
+                return m_lastOnline;
+            }
+
             internal set { m_lastOnline = value; }
         }
 
@@ -472,7 +497,13 @@ namespace ValheimMP.Framework
         [JsonIgnore]
         public Vector3 PlayerPosition
         {
-            get { return Player ? Player.transform.position : m_position; }
+            get
+            {
+                if (Player)
+                    m_position = Player.transform.position;
+
+                return m_position;
+            }
             internal set { m_position = value; }
         }
 
@@ -480,7 +511,13 @@ namespace ValheimMP.Framework
         [JsonIgnore]
         public float PlayerHealth
         {
-            get { return Player ? Player.GetHealth() : m_health; }
+            get
+            {
+                if (Player)
+                    m_health = Player.GetHealth();
+
+                return m_health;
+            }
             internal set { m_health = value; }
         }
 
@@ -488,7 +525,12 @@ namespace ValheimMP.Framework
         [JsonIgnore]
         public ZDOID PlayerZDOID
         {
-            get { return Player ? Player.GetZDOID() : m_zdoid; }
+            get
+            {
+                if (Player && ValheimMP.IsDedicated)
+                    m_zdoid = Player.GetZDOID();
+                return m_zdoid;
+            }
             internal set { m_zdoid = value; }
         }
 
@@ -496,7 +538,13 @@ namespace ValheimMP.Framework
         [JsonIgnore]
         public float PlayerMaxHealth
         {
-            get { return Player ? Player.GetMaxHealth() : m_maxhealth; }
+            get
+            {
+                if (Player)
+                    m_maxhealth = Player.GetMaxHealth();
+
+                return m_maxhealth;
+            }
             internal set { m_maxhealth = value; }
         }
 
@@ -686,7 +734,7 @@ namespace ValheimMP.Framework
 
             foreach (var member in Members.Values)
             {
-                member.Peer?.SendChatMessage(text, messageType, peer.m_playerName);
+                member.Peer?.SendChatMessage(peer, text, messageType);
             }
         }
 

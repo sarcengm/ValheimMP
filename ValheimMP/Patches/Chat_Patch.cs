@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using ValheimMP.Framework.Events;
 using ValheimMP.Framework.Extensions;
@@ -28,7 +29,17 @@ namespace ValheimMP.Patches
                 __instance.AddString(Localization.instance.Localize("/help for a list of commands"));
                 __instance.AddString("");
                 ZRoutedRpc.instance.m_functions.Remove("ChatMessage".GetHashCode());
-                ZRoutedRpc.instance.Register<Vector3, int, string, string>("ChatMessage", __instance.RPC_ChatMessage);
+                ZRoutedRpc.instance.Register("ChatMessage", (long sender, ZPackage pkg) =>
+                {
+                    var originator = pkg.ReadLong();
+                    var pos = pkg.ReadVector3();
+                    var type = pkg.ReadInt();
+                    var playerName = pkg.ReadString();
+                    var text = pkg.ReadString();
+
+                    __instance.RPC_ChatMessage(originator, pos, type, playerName, text);
+                });
+
                 m_chatMaxChatHistory = ValheimMP.Instance.ChatMaxHistory.Value;
             }
             else
@@ -44,7 +55,7 @@ namespace ValheimMP.Patches
             return false;
         }
 
-        private static List<string> chatModes = new() { "/s", "/w", "/g", "/p", "/c" };
+        private static List<string> chatModes = new() { "/s ", "/w ", "/g ", "/p ", "/c " };
 
         private static string chatMode;
 
@@ -54,15 +65,15 @@ namespace ValheimMP.Patches
         {
             string text = __instance.m_input.text;
 
-            if(!string.IsNullOrEmpty(chatMode) && !text.StartsWith(chatMode))
+            var chatModeTarget = text.Length > 2 ? text.Substring(0, 3) : text.Length > 1 ? text.Substring(0, 2) + " " : "";
+
+            if (chatModes.Contains(chatModeTarget))
+            {
+                chatMode = chatModeTarget;
+            }
+            else
             {
                 chatMode = "";
-            }
-
-            if(chatModes.Contains(text.ToLower()))
-            {
-                chatMode = text;
-                return false;
             }
 
             ChatMessageType type = ChatMessageType.Normal;
@@ -79,6 +90,11 @@ namespace ValheimMP.Patches
             if (text.StartsWith("/g ", System.StringComparison.InvariantCultureIgnoreCase))
             {
                 type = ChatMessageType.Global;
+                text = text.Substring(3);
+            }
+            if (text.StartsWith("/n ", System.StringComparison.InvariantCultureIgnoreCase))
+            {
+                type = ChatMessageType.Normal;
                 text = text.Substring(3);
             }
 
@@ -101,6 +117,55 @@ namespace ValheimMP.Patches
             return false;
         }
 
+        [HarmonyPatch(typeof(Chat), "SendPing")]
+        [HarmonyPrefix]
+        private static bool SendPing(Chat __instance, Vector3 position)
+        {
+            if (Player.m_localPlayer)
+            {
+
+                var pingStr = $"PING[{position.x.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)},{position.z.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)}]";
+
+                if (!__instance.IsChatDialogWindowVisible())
+                {
+                    __instance.m_input.text = $"{chatMode}{pingStr}";
+                    __instance.InputText();
+                    __instance.m_input.text = chatMode;
+                }
+                else
+                {
+                    if (string.IsNullOrWhiteSpace(__instance.m_input.text) && !string.IsNullOrWhiteSpace(chatMode))
+                    {
+                        __instance.m_input.text = chatMode;
+                    }
+
+                    var replaced = false;
+                    __instance.m_input.text = pingRegex.Replace(__instance.m_input.text, delegate (Match m)
+                    {
+                        replaced = true;
+                        return pingStr;
+                    });
+
+                    if (!replaced)
+                        __instance.m_input.text += pingStr;
+
+                    __instance.m_hideTimer = 0f;
+                    __instance.m_chatWindow.gameObject.SetActive(value: true);
+                    __instance.m_input.gameObject.SetActive(value: true);
+                    __instance.m_input.ActivateInputField();
+
+                    __instance.m_input.caretPosition = __instance.m_input.text.Length;
+                    __instance.m_input.selectionFocusPosition = __instance.m_input.text.Length;
+                    __instance.m_input.selectionAnchorPosition = __instance.m_input.text.Length;
+
+                    __instance.m_input.text = __instance.m_input.text;
+                    __instance.m_input.ActivateInputField();
+                }
+            }
+
+            return false;
+        }
+
         private static void SendText(ChatMessageType type, string text)
         {
             var args = new OnChatMessageArgs()
@@ -119,18 +184,45 @@ namespace ValheimMP.Patches
             ZRoutedRpc.instance.InvokeRoutedRPC(ZRoutedRpc.instance.GetServerPeerID(), "ClientMessage", (int)args.MessageType, args.Text);
         }
 
+        private static readonly Regex pingRegex = new(@"PING\s*\[\s*(?<x>\-?[0-9]+\.?[0-9]*)\s*,\s*(?<z>\-?[0-9]+\.?[0-9]*)\s*(,\s*(?<y>\-?[0-9]+\.?[0-9]*)\s*)?\]", RegexOptions.IgnoreCase);
+
         [HarmonyPatch(typeof(Chat), "OnNewChatMessage")]
         [HarmonyPrefix]
         private static bool OnNewChatMessage(Chat __instance, GameObject go, long senderID, Vector3 pos, Talker.Type type, string user, string text)
         {
-            if ((ChatMessageType)type == ChatMessageType.ServerMessage)
+            var ctype = (ChatMessageType)type;
+            if (ctype == ChatMessageType.ServerMessage)
             {
                 __instance.AddString(text);
             }
             else
             {
+                var pingMatch = pingRegex.Match(text);
+
+                if (!pingMatch.Success && go == null && (ctype == ChatMessageType.Normal || ctype == ChatMessageType.Party || ctype == ChatMessageType.Clan))
+                {
+                    var players = Player.GetAllPlayers();
+                    for (int i = 0; i < players.Count; i++)
+                    {
+                        if (players[i].GetPlayerID() == senderID)
+                        {
+                            go = players[i].gameObject;
+                            break;
+                        }
+                    }
+                }
+
+                if (pingMatch.Success)
+                {
+                    go = null;
+                }
+
                 __instance.AddString(user, text, type);
-                __instance.AddInworldText(go, senderID, pos, type, user, text);
+
+                if (ctype != ChatMessageType.Global)
+                {
+                    __instance.AddInworldText(go, senderID, pos, type, user, text);
+                }
             }
             return false;
         }
@@ -146,6 +238,26 @@ namespace ValheimMP.Patches
             else if ((ChatMessageType)wt.m_type == ChatMessageType.Clan)
             {
                 wt.m_textField.color = ValheimMP.Instance.ChatClanColor.Value;
+            }
+
+            var pingMatch = pingRegex.Match(wt.m_text);
+            if (pingMatch.Success)
+            {
+                float.TryParse(pingMatch.Groups["x"].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var x);
+                float.TryParse(pingMatch.Groups["z"].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var z);
+                if (pingMatch.Groups["y"].Success)
+                {
+                    float.TryParse(pingMatch.Groups["y"].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var y);
+                    wt.m_position = new Vector3(x, z, y);
+                }
+                else
+                {
+                    wt.m_position = new Vector3(x, 0, z);
+                    ZoneSystem.instance.GetGroundHeight(wt.m_position, out var y);
+                    wt.m_position.y = y;
+                }
+
+                wt.m_type = Talker.Type.Ping;
             }
         }
 
@@ -204,14 +316,14 @@ namespace ValheimMP.Patches
         {
             var start = Mathf.Clamp(__instance.m_chatBuffer.Count - 1 - m_chatScrollOffset, 0, __instance.m_chatBuffer.Count);
             var end = 0;
-            var text = "";
+            var totalLength = 0;
             var visibleLines = new List<string>();
 
             for (int i = start; i >= end; i--)
             {
-                if (text.Length + __instance.m_chatBuffer[i].Length >= 10000)
+                if (totalLength + __instance.m_chatBuffer[i].Length >= 10000)
                     break;
-
+                totalLength += __instance.m_chatBuffer[i].Length;
                 visibleLines.Insert(0, __instance.m_chatBuffer[i]);
             }
 
@@ -233,16 +345,16 @@ namespace ValheimMP.Patches
                     __instance.m_input.caretWidth = 2;
                     if (!string.IsNullOrEmpty(chatMode))
                     {
-                        __instance.m_input.text = chatMode + " ";
+                        __instance.m_input.text = chatMode;
                         __instance.m_input.caretPosition = __instance.m_input.text.Length;
                         __instance.m_input.selectionFocusPosition = __instance.m_input.text.Length;
                         __instance.m_input.selectionAnchorPosition = __instance.m_input.text.Length;
                     }
                 }
 
-                if(__instance.m_input.text.StartsWith(chatMode + " /"))
+                if (!string.IsNullOrEmpty(chatMode) && __instance.m_input.text.StartsWith(chatMode + "/"))
                 {
-                    __instance.m_input.text = __instance.m_input.text.Substring(3);
+                    __instance.m_input.text = __instance.m_input.text.Substring(chatMode.Length);
                 }
 
                 var lastOffset = m_chatScrollOffset;
@@ -323,8 +435,15 @@ namespace ValheimMP.Patches
             if (args.SuppressMessage)
                 return;
 
+            var pkg = new ZPackage();
+            pkg.Write(sender);
+            pkg.Write(args.MessageLocation);
+            pkg.Write((int)args.MessageType);
+            pkg.Write(args.PlayerName);
+            pkg.Write(args.Text);
+
             ZRoutedRpc.instance.InvokeProximityRoutedRPC(args.MessageLocation, args.MessageDistance,
-                ZRoutedRpc.Everybody, ZDOID.None, "ChatMessage", args.MessageLocation, (int)args.MessageType, args.PlayerName, args.Text);
+                ZRoutedRpc.Everybody, ZDOID.None, "ChatMessage", pkg);
         }
     }
 }

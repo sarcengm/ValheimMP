@@ -40,13 +40,34 @@ namespace ValheimMP.Framework.Extensions
 
         public static void SendServerMessage(this ZNetPeer peer, string message)
         {
+            if (!ValheimMP.IsDedicated)
+            {
+                var pos = Player.m_localPlayer ? Player.m_localPlayer.transform.position : Utils.GetMainCamera().transform.position;
+                Chat.instance.RPC_ChatMessage(ZNet.instance.GetUID(), pos, (int)ChatMessageType.ServerMessage, "", message);
+                return;
+            }
+
+            var pkg = new ZPackage();
+            pkg.Write(peer.m_uid);
+            pkg.Write(peer.m_refPos);
+            pkg.Write((int)ChatMessageType.ServerMessage);
+            pkg.Write("");
+            pkg.Write(message);
+
             // server messages can not be send from the client, if a client sends one they will send it to themselves.
-            ZRoutedRpc.instance.InvokeRoutedRPC(ValheimMP.IsDedicated ? peer.m_uid : ZNet.instance.GetUID(), "ChatMessage", peer.m_refPos, (int)ChatMessageType.ServerMessage, "", message);
+            ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", pkg);
         }
 
-        public static void SendChatMessage(this ZNetPeer peer, string message, ChatMessageType type, string from)
+        public static void SendChatMessage(this ZNetPeer peer, ZNetPeer sender, string message, ChatMessageType type)
         {
-            ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", peer.m_refPos, (int)type, from, message);
+            var pkg = new ZPackage();
+            pkg.Write(sender.m_uid);
+            pkg.Write(sender.m_refPos);
+            pkg.Write((int)type);
+            pkg.Write(sender.m_playerName);
+            pkg.Write(message);
+
+            ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", pkg);
         }
 
         public static bool IsAdmin(this ZNetPeer peer)
