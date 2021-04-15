@@ -2046,7 +2046,10 @@ namespace ValheimMP.Patches
         {
             if (ValheimMP.IsDedicated)
             {
-                __instance.m_nview.m_zdo.Set("m_guardianPower", name);
+                if (__instance.m_nview && __instance.m_nview.m_zdo != null)
+                {
+                    __instance.m_nview.m_zdo.Set("m_guardianPower", name);
+                }
             }
         }
 

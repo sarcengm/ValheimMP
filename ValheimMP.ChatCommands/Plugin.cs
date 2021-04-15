@@ -99,11 +99,11 @@ namespace ValheimMP.ChatCommands
                 {
                     var sb = new StringBuilder();
                     sb.AppendLine(ChatCommandManager.GetCommandSyntax(foundCommand));
-                    sb.AppendLine($"<i>{foundCommand.Command.Description}</i>");
+                    sb.AppendLine($"\n<i>{foundCommand.Command.Description}</i>\n");
                     var aliases = foundCommand.Command.GetAliases();
                     if (aliases.Length > 1)
-                        sb.AppendLine($"Aliases: {aliases.Join()}");
-                    peer.SendServerMessage(ChatCommandManager.GetCommandSyntax(foundCommand));
+                        sb.AppendLine($"Aliases: {aliases.Join()}\n");
+                    peer.SendServerMessage(sb.ToString());
                 }
                 else
                 {
@@ -135,10 +135,13 @@ namespace ValheimMP.ChatCommands
             peer.SendServerMessage($"<color=white>Claimed <color=green>{guardStones}</color> guardstones for <color=green>{targetId}</color>.</color>");
         }
 
-        [ChatCommand("Ping", "Get your ping to the server.")]
-        private void Command_Ping(ZNetPeer peer, Player player)
+        [ChatCommand("Ping", "Get the targets ping to the server.")]
+        private void Command_Ping(ZNetPeer peer, ZNetPeer target = null)
         {
-            peer.SendServerMessage($"<color=white>Ping <color=green><b>{(int)(peer.GetPing() * 1000)}</b></color>ms.</color>");
+            if (target == null)
+                target = peer;
+
+            peer.SendServerMessage($"<color=white>{target.m_playerName}'s ping is <color=green><b>{(int)(target.GetPing() * 1000)}</b></color>ms.</color>");
         }
 
         [ChatCommand("Version", "Get the version of ValheimMP", aliases: new[] { "Version", "Ver", "ValheimMP", "Vmp" })]

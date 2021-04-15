@@ -395,20 +395,28 @@ namespace ValheimMP
             LocalizeDefaults();
         }
 
-        private static void LocalizeDefaults()
+        private void LocalizeDefaults()
         {
             var loc = Localization.instance;
+            var langSection = "Localization_" + loc.GetSelectedLanguage();
             foreach (ChatMessageType val in typeof(ChatMessageType).GetEnumValues())
             {
-                loc.AddWord($"vmp_{val}", val.ToString());
+                LocalizeWord(langSection, $"vmp_{val}", val.ToString());
             }
-            loc.AddWord("vmp_revive", "Revive");
-            loc.AddWord("vmp_reviving_in", "Reviving in {secondsWaitTime}");
-            loc.AddWord("vmp_reviving", "Reviving {playerName}");
-            loc.AddWord("vmp_revival_interupted", "Reviving Interrupted");
-            loc.AddWord("vmp_revival_request", "<color=green>{playerName}</color> wishes to revive you type <color=green>/revive</color> to accept.");
-            loc.AddWord("vmp_forcedpvp_enter", "Entering forced pvp area");
-            loc.AddWord("vmp_forcedpvp_exit", "Leaving forced pvp area");
+
+            LocalizeWord(langSection, "vmp_revive", "Revive");
+            LocalizeWord(langSection, "vmp_reviving_in", "Reviving in {secondsWaitTime}");
+            LocalizeWord(langSection, "vmp_reviving", "Reviving {playerName}");
+            LocalizeWord(langSection, "vmp_revival_interupted", "Reviving Interrupted");
+            LocalizeWord(langSection, "vmp_revival_request", "<color=green>{playerName}</color> wishes to revive you type <color=green>/revive</color> to accept.");
+            LocalizeWord(langSection, "vmp_forcedpvp_enter", "Entering forced pvp area");
+            LocalizeWord(langSection, "vmp_forcedpvp_exit", "Leaving forced pvp area");
+        }
+
+        private void LocalizeWord(string langSection, string key, string val)
+        {
+            var config = Config.Bind(langSection, key, val);
+            Localization.instance.AddWord(key, config.Value);
         }
 
         internal static void Log(object o, LogLevel level = LogLevel.Info)

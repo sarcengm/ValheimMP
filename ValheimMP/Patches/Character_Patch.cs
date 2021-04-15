@@ -88,6 +88,13 @@ namespace ValheimMP.Patches
             return ZNet_Patch.IsRPCAllowed(__instance, sender);
         }
 
+        [HarmonyPatch(typeof(Character), "AddNoise")]
+        [HarmonyPrefix]
+        private static bool AddNoise(Character __instance)
+        {
+            return __instance.IsOwnerOrServer();
+        }
+
 
         [HarmonyPatch(typeof(Character), "RPC_ResetCloth")]
         [HarmonyPrefix]
