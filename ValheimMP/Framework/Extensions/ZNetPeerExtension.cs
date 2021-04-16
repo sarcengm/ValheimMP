@@ -38,7 +38,13 @@ namespace ValheimMP.Framework.Extensions
             return peer.m_rpc.m_averagePing;
         }
 
-        public static void SendServerMessage(this ZNetPeer peer, string message)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="peer"></param>
+        /// <param name="message">message</param>
+        /// <param name="args">arguments replaced into message after localization. {0} will be replaced with args[0]. </param>
+        public static void SendServerMessage(this ZNetPeer peer, string message, params string[] args)
         {
             if (!ValheimMP.IsDedicated)
             {
@@ -54,6 +60,11 @@ namespace ValheimMP.Framework.Extensions
             pkg.Write("");
             pkg.Write(message);
 
+            pkg.Write(args != null ? args.Length : 0);
+            for (int i = 0; i < args.Length; i++)
+            {
+                pkg.Write(args[i]);
+            }
             // server messages can not be send from the client, if a client sends one they will send it to themselves.
             ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", pkg);
         }

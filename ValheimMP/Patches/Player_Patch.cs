@@ -989,9 +989,8 @@ namespace ValheimMP.Patches
             ZNetPeer_Patch.SavePeer(peer, false);
 
             __instance.m_timeSinceDeath = 0f;
+
             peer.m_respawnWait = ValheimMP.Instance.RespawnDelay.Value;
-
-
 
             if (!__instance.HardDeath())
             {
@@ -2006,7 +2005,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void AttachStop(Player __instance)
         {
-            if (ZNet.instance.IsServer() && __instance.m_attached == false)
+            if (ZNet.instance.IsServer() && __instance.m_attached == false && __instance.m_nview && __instance.m_nview.m_zdo != null)
             {
                 __instance.m_nview.GetZDO().Set("m_attachPoint", "");
             }

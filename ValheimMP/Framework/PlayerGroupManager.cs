@@ -719,12 +719,11 @@ namespace ValheimMP.Framework
             PendingInvites.Add(target.m_uid);
             m_manager.playerInvite(this, target);
         }
-
-        public void SendServerMessage(string text)
+        public void SendServerMessage(string text, params string[] args)
         {
             foreach (var member in Members.Values)
             {
-                member.Peer?.SendServerMessage(text);
+                member.Peer?.SendServerMessage(text, args);
             }
         }
 

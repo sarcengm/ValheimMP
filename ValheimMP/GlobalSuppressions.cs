@@ -302,3 +302,4 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.Patches.Player_Patch.ActivateGuardianPower(Player,System.Boolean@)~System.Boolean")]
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.Patches.Player_Patch.SetGuardianPower(Player,System.String)")]
 [assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.Patches.Player_Patch.StartGuardianPower(Player,System.Boolean@)~System.Boolean")]
+[assembly: SuppressMessage("CodeQuality", "IDE0051:Remove unused private members", Justification = "<Pending>", Scope = "member", Target = "~M:ValheimMP.Patches.ZDOMan_Patch.HandleDestroyedZDO(ZDOMan,ZDOID)~System.Boolean")]

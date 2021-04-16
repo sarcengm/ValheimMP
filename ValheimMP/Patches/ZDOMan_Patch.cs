@@ -43,7 +43,7 @@ namespace ValheimMP.Patches
                 __instance.m_destroySendList.Add(zdo.m_uid);
             }
             // if we are owner of an object just destroy it right away, this is only a local action.
-            if (zdo.IsOwner())
+            if (zdo.IsOwnerOrServer())
             {
                 __instance.HandleDestroyedZDO(zdo.m_uid);
             }
@@ -54,6 +54,39 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool SendDestroyed()
         {
+            return false;
+        }
+
+
+        [HarmonyPatch(typeof(ZDOMan), "HandleDestroyedZDO")]
+        [HarmonyPrefix]
+        private static bool HandleDestroyedZDO(ZDOMan __instance, ZDOID uid)
+        {
+            if (uid.userID == __instance.m_myid && uid.id >= __instance.m_nextUid)
+            {
+                __instance.m_nextUid = uid.id + 1;
+            }
+            ZDO zdo = __instance.GetZDO(uid);
+            if (zdo == null)
+            {
+                return false;
+            }
+
+            if (__instance.m_onZDODestroyed != null)
+            {
+                __instance.m_onZDODestroyed(zdo);
+            }
+
+            SectorManager.RemoveObject(zdo);
+            __instance.RemoveFromSector(zdo, zdo.GetSector());
+            __instance.m_objectsByID.Remove(zdo.m_uid);
+            ZDOPool.Release(zdo);
+
+            for (int i = 0; i < __instance.m_peers.Count; i++)
+            {
+                var peer = __instance.m_peers[i];
+                peer.m_zdos.Remove(uid);
+            }
             return false;
         }
 
@@ -387,7 +420,7 @@ namespace ValheimMP.Patches
             // int maxDataPerTick = (int)((float)__instance.m_dataPerSec * 0.05f);
 
             // Packet size is probably much more effective
-            int maxDataPerTick = (maxPacketSize - 150) * 10;
+            int maxDataPerTick = (maxPacketSize - 150) * 20;
 
             var zdoCollectionPkg = new ZPackage();
             var zdoPkg = new ZPackage();

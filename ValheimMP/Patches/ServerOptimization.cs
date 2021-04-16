@@ -25,6 +25,7 @@ namespace ValheimMP.Patches
         [HarmonyPatch(typeof(MessageHud), "QueueUnlockMsg")]
         [HarmonyPatch(typeof(CookingStation), "UpdateVisual")]
         [HarmonyPatch(typeof(CookingStation), "SetSlotVisual")]
+        [HarmonyPatch(typeof(BossStone), "Start")]
         [HarmonyPrefix]
         private static bool DoNothing()
         {

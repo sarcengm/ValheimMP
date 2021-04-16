@@ -36,31 +36,37 @@ namespace ValheimMP.ChatCommands
             man.OnPlayerJoinGroup += PlayerGroupManager_OnPlayerJoinGroup;
             man.OnPlayerKickGroup += PlayerGroupManager_OnPlayerKickGroup;
             man.OnPlayerLeaveGroup += PlayerGroupManager_OnPlayerLeaveGroup;
+
+            var vmp = ValheimMP.Instance;
+            vmp.LocalizeWord("vmp_player_left_group", "{0} left your {1}");
+            vmp.LocalizeWord("vmp_player_kicked_group", "{0} was kicked from your {1}");
+            vmp.LocalizeWord("vmp_player_joined_group", "{0} joined your {1}");
+            vmp.LocalizeWord("vmp_player_invited_group", "{0} was invited to your {1}");
         }
 
         private void PlayerGroupManager_OnPlayerLeaveGroup(PlayerGroup group, PlayerGroupMember member)
         {
-            group.SendServerMessage($"{member.Name} left your {group.GroupType}");
+            group.SendServerMessage("$vmp_player_left_group", member.Name, $"$vmp_{group.GroupType}");
         }
 
         private void PlayerGroupManager_OnPlayerKickGroup(PlayerGroup group, PlayerGroupMember member)
         {
-            group.SendServerMessage($"{member.Name} was kicked from your {group.GroupType}");
+            group.SendServerMessage("$vmp_player_kicked_group", member.Name, $"$vmp_{group.GroupType}");
         }
 
         private void PlayerGroupManager_OnPlayerJoinGroup(PlayerGroup group, PlayerGroupMember member)
         {
-            group.SendServerMessage($"{member.Name} joined your {group.GroupType}");
+            group.SendServerMessage("$vmp_player_joined_group", member.Name, $"$vmp_{group.GroupType}");
         }
 
         private void PlayerGroupManager_OnPlayerInviteGroup(PlayerGroup group, ZNetPeer peer)
         {
-            group.SendServerMessage($"{peer.m_playerName} was invited to join your {group.GroupType}");
+            group.SendServerMessage("$vmp_player_invited_group", peer.m_playerName, $"$vmp_{group.GroupType}");
         }
 
         private void PlayerGroupManager_OnPlayerAcceptInvite(PlayerGroup group, PlayerGroupMember member)
         {
-            member.Peer.SendServerMessage($"You accepted and joined {group.Name}");
+            //member.Peer.SendServerMessage("vmp_player_accept_invite_group", $"vmp_{group.GroupType}");
         }
 
         public static void Log(string message)

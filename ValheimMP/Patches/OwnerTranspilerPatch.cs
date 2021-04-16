@@ -75,6 +75,7 @@ namespace ValheimMP.Patches
         [HarmonyPatch(typeof(Floating), "FixedUpdate", new Type[] { })]
         [HarmonyPatch(typeof(Ship), "UpdateControlls", new Type[] { typeof(float) })]
         [HarmonyPatch(typeof(ZSyncAnimation), "SyncParameters", new Type[] { })]
+        [HarmonyPatch(typeof(ZNetScene), "Destroy", new Type[] { typeof(UnityEngine.GameObject) })]
         [HarmonyTranspiler]
         private static IEnumerable<CodeInstruction> Replace_IsOwner_With_IsOwnerOrServer(IEnumerable<CodeInstruction> instructions)
         {

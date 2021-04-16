@@ -234,6 +234,9 @@ namespace ValheimMP
         public ConfigEntry<float> ChatNormalDistance { get; private set; }
         public ConfigEntry<float> PerfectBlockWindow { get; internal set; }
         public ConfigEntry<float> PlayerDamageDelay { get; internal set; }
+
+        private ConfigFile m_localizationFile;
+        private Dictionary<string, ConfigEntry<string>> m_localizedStrings = new Dictionary<string, ConfigEntry<string>>();
         #endregion
 
         #region delegates
@@ -254,6 +257,8 @@ namespace ValheimMP
         // Awake is called once when both the game and the plug-in are loaded
         private void Awake()
         {
+            m_localizationFile = new ConfigFile(Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath), BepInGUID + ".Localization.cfg"), false);
+
             Instance = this;
 
             m_harmony = new Harmony(HarmonyGUID);
@@ -395,28 +400,39 @@ namespace ValheimMP
             LocalizeDefaults();
         }
 
-        private void LocalizeDefaults()
+        public void OnDestroy()
         {
-            var loc = Localization.instance;
-            var langSection = "Localization_" + loc.GetSelectedLanguage();
-            foreach (ChatMessageType val in typeof(ChatMessageType).GetEnumValues())
-            {
-                LocalizeWord(langSection, $"vmp_{val}", val.ToString());
-            }
-
-            LocalizeWord(langSection, "vmp_revive", "Revive");
-            LocalizeWord(langSection, "vmp_reviving_in", "Reviving in {secondsWaitTime}");
-            LocalizeWord(langSection, "vmp_reviving", "Reviving {playerName}");
-            LocalizeWord(langSection, "vmp_revival_interupted", "Reviving Interrupted");
-            LocalizeWord(langSection, "vmp_revival_request", "<color=green>{playerName}</color> wishes to revive you type <color=green>/revive</color> to accept.");
-            LocalizeWord(langSection, "vmp_forcedpvp_enter", "Entering forced pvp area");
-            LocalizeWord(langSection, "vmp_forcedpvp_exit", "Leaving forced pvp area");
+            m_localizationFile.Save();
         }
 
-        private void LocalizeWord(string langSection, string key, string val)
+        private void LocalizeDefaults()
         {
-            var config = Config.Bind(langSection, key, val);
-            Localization.instance.AddWord(key, config.Value);
+            foreach (ChatMessageType val in typeof(ChatMessageType).GetEnumValues())
+            {
+                LocalizeWord($"vmp_{val}", val.ToString());
+            }
+
+            LocalizeWord("vmp_revive", "Revive");
+            LocalizeWord("vmp_reviving_in", "Reviving in {secondsWaitTime}");
+            LocalizeWord("vmp_reviving", "Reviving {playerName}");
+            LocalizeWord("vmp_revival_interupted", "Reviving Interrupted");
+            LocalizeWord("vmp_revival_request", "<color=green>{playerName}</color> wishes to revive you type <color=green>/revive</color> to accept.");
+            LocalizeWord("vmp_forcedpvp_enter", "Entering forced pvp area");
+            LocalizeWord("vmp_forcedpvp_exit", "Leaving forced pvp area");
+        }
+
+        public string LocalizeWord(string key, string val)
+        {
+            if (!m_localizedStrings.ContainsKey(key))
+            {
+                var loc = Localization.instance;
+                var langSection = loc.GetSelectedLanguage();
+                var configEntry = m_localizationFile.Bind(langSection, key, val);
+                Localization.instance.AddWord(key, configEntry.Value);
+                m_localizedStrings.Add(key, configEntry);
+            }
+
+            return $"${key}";
         }
 
         internal static void Log(object o, LogLevel level = LogLevel.Info)

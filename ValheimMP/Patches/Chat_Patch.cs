@@ -31,13 +31,7 @@ namespace ValheimMP.Patches
                 ZRoutedRpc.instance.m_functions.Remove("ChatMessage".GetHashCode());
                 ZRoutedRpc.instance.Register("ChatMessage", (long sender, ZPackage pkg) =>
                 {
-                    var originator = pkg.ReadLong();
-                    var pos = pkg.ReadVector3();
-                    var type = pkg.ReadInt();
-                    var playerName = pkg.ReadString();
-                    var text = pkg.ReadString();
-
-                    __instance.RPC_ChatMessage(originator, pos, type, playerName, text);
+                    RPC_ChatMessage(__instance, sender, pkg);
                 });
 
                 m_chatMaxChatHistory = ValheimMP.Instance.ChatMaxHistory.Value;
@@ -53,6 +47,34 @@ namespace ValheimMP.Patches
             __instance.m_input.gameObject.SetActive(value: false);
             __instance.m_worldTextBase.SetActive(value: false);
             return false;
+        }
+
+        private static void RPC_ChatMessage(Chat chat, long sender, ZPackage pkg)
+        {
+            var originator = pkg.ReadLong();
+            var pos = pkg.ReadVector3();
+            var type = pkg.ReadInt();
+            var playerName = pkg.ReadString();
+            var text = pkg.ReadString();
+
+            if ((ChatMessageType)type == ChatMessageType.ServerMessage)
+            {
+                text = Localization.instance.Localize(text);
+                var argsCount = pkg.ReadInt();
+                if (argsCount > 0)
+                {
+                    var args = new string[argsCount];
+
+                    for (int i = 0; i < args.Length; i++)
+                    {
+                        args[i] = Localization.instance.Localize(pkg.ReadString());
+                    }
+
+                    text = string.Format(text, args);
+                }
+            }
+
+            chat.RPC_ChatMessage(originator, pos, type, playerName, text);
         }
 
         private static List<string> chatModes = new() { "/s ", "/w ", "/g ", "/p ", "/c " };

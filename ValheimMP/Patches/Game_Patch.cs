@@ -61,9 +61,9 @@ namespace ValheimMP.Patches
                 return;
 
             var player = peer.m_player;
-            if (player == null)
+            if (!player)
                 return;
-            
+
             RequestRespawn(player, peer);
         }
 
@@ -99,9 +99,16 @@ namespace ValheimMP.Patches
                             peer.m_playerProfile.SetHomePoint(point);
                         }
 
-                        if (peer.m_player != null)
+                        if (peer.m_player)
                         {
-                            ZNetScene.instance.Destroy(peer.m_player.gameObject);
+                            if (peer.m_player.m_nview && peer.m_player.m_nview.m_zdo != null)
+                            {
+                                ZDOMan.instance.DestroyZDO(peer.m_player.m_nview.m_zdo);
+                            }
+                            else
+                            {
+                                ZNetScene.instance.Destroy(peer.m_player.gameObject);
+                            }
                         }
 
                         SpawnPlayer(ref __instance, peer, point);
