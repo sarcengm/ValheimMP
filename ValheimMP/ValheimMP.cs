@@ -419,6 +419,12 @@ namespace ValheimMP
             LocalizeWord("vmp_revival_request", "<color=green>{playerName}</color> wishes to revive you type <color=green>/revive</color> to accept.");
             LocalizeWord("vmp_forcedpvp_enter", "Entering forced pvp area");
             LocalizeWord("vmp_forcedpvp_exit", "Leaving forced pvp area");
+
+            LocalizeWord("vmp_allowMode", "Allow: ");
+            LocalizeWord("vmp_allowMode_Private", "Private");
+            LocalizeWord("vmp_allowMode_Clan", "Clan");
+            LocalizeWord("vmp_allowMode_Party", "Party");
+            LocalizeWord("vmp_allowMode_Both", "Clan and Party");
         }
 
         public string LocalizeWord(string key, string val)

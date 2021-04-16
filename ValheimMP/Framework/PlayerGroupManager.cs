@@ -74,6 +74,8 @@ namespace ValheimMP.Framework
                     {
                         member.LastOnline = DateTime.Now;
                         OnGroupMemberOffline?.Invoke(group, member);
+                        member.Peer = null;
+                        member.Player = null;
                     }
                 }
             }
@@ -166,6 +168,16 @@ namespace ValheimMP.Framework
         /// <returns></returns>
         public bool ArePlayersInTheSameGroup(long playerId1, long playerId2)
         {
+            // Clients only know their own group, so check if characters are in their group rather then the other way around
+            // because a GroupByPlayerId will fail on them.
+            // Possibly I should just store the group and party id in the zdo? It would probably result in more reliable checking in all cases
+            if(!ValheimMP.IsDedicated && ZNet.instance.GetUID() == playerId2)
+            {
+                var swap = playerId1;
+                playerId1 = playerId2;
+                playerId2 = swap;
+            }
+
             var clan = GetGroupByType(playerId1, PlayerGroupType.Clan);
             if (clan != null)
             {
@@ -174,6 +186,27 @@ namespace ValheimMP.Framework
             }
 
             var party = GetGroupByType(playerId1, PlayerGroupType.Party);
+            if (party != null)
+            {
+                if (party.Members.ContainsKey(playerId2))
+                    return true;
+            }
+            return false;
+        }
+
+        public bool ArePlayersInTheSameGroup(long playerId1, long playerId2, PlayerGroupType type)
+        {
+            // Clients only know their own group, so check if characters are in their group rather then the other way around
+            // because a GroupByPlayerId will fail on them.
+            // Possibly I should just store the group and party id in the zdo? It would probably result in more reliable checking in all cases
+            if (!ValheimMP.IsDedicated && ZNet.instance.GetUID() == playerId2)
+            {
+                var swap = playerId1;
+                playerId1 = playerId2;
+                playerId2 = swap;
+            }
+
+            var party = GetGroupByType(playerId1, type);
             if (party != null)
             {
                 if (party.Members.ContainsKey(playerId2))

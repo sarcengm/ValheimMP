@@ -9,6 +9,19 @@ namespace ValheimMP.Patches
     [HarmonyPatch]
     internal class PrivateArea_Patch
     {
+        [HarmonyPatch(typeof(PrivateArea), "Awake")]
+        [HarmonyPostfix]
+        private static void Awake(PrivateArea __instance)
+        {
+            if (ValheimMP.IsDedicated)
+            {
+                __instance.m_nview.Register("CycleAllowMode", (long sender) =>
+                {
+                    RPC_CycleAllowMode(__instance, sender);
+                });
+            }
+        }
+
         [HarmonyPatch(typeof(PrivateArea), "FlashShield")]
         [HarmonyPrefix]
         private static bool FlashShield(PrivateArea __instance, bool flashConnected)
@@ -41,6 +54,94 @@ namespace ValheimMP.Patches
                 __instance.RPC_FlashShield(0);
             }
             return false;
+        }
+
+        private static void RPC_CycleAllowMode(PrivateArea __instance, long sender)
+        {
+            if (__instance.m_piece.GetCreator() == sender)
+            {
+                var allowMode = __instance.GetAllowMode();
+                var vals = (PrivateAreaAllowMode[])Enum.GetValues(typeof(PrivateAreaAllowMode));
+
+                for (int i = 0; i < vals.Length; i++)
+                {
+                    if (vals[i] == allowMode)
+                    {
+                        i++;
+                        if (i >= vals.Length)
+                            i = 0;
+                        __instance.SetAllowMode(vals[i]);
+                        return;
+                    }
+                }
+
+                __instance.SetAllowMode(PrivateAreaAllowMode.Private);
+            }
+        }
+
+        [HarmonyPatch(typeof(PrivateArea), "GetHoverText")]
+        [HarmonyPostfix]
+        private static void GetHoverText(PrivateArea __instance, ref string __result)
+        {
+            var allowMode = __instance.GetAllowMode();
+
+            if (__instance.m_piece.IsCreator())
+            {
+                __result += Localization.instance.Localize($"\n[Shift+$KEY_Use] $vmp_allowMode $vmp_allowMode_{allowMode}");
+            }
+            else
+            {
+                __result += Localization.instance.Localize($"\n$vmp_allowMode $vmp_{allowMode}");
+            }
+        }
+
+        [HarmonyPatch(typeof(PrivateArea), "Interact")]
+        [HarmonyPrefix]
+        private static bool Interact(PrivateArea __instance, ref bool __result)
+        {
+            if(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+            {
+                __instance.m_nview.InvokeRPC(ZNet.instance.GetServerPeer().m_uid, "CycleAllowMode");
+                return false;
+            }
+
+            return true;
+        }
+
+        [HarmonyPatch(typeof(PrivateArea), "IsPermitted")]
+        [HarmonyPrefix]
+        private static bool IsPermitted(PrivateArea __instance, ref bool __result, long playerID)
+        {
+            var playerId1 = playerID;
+            var playerId2 = __instance.GetComponent<Piece>().GetCreator();
+
+            var allowMode = __instance.GetAllowMode();
+            if (allowMode == PrivateAreaAllowMode.Both)
+            {
+                if (ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(playerId1, playerId2))
+                {
+                    __result = true;
+                    return false;
+                }
+            }
+            else if (allowMode == PrivateAreaAllowMode.Clan)
+            {
+                if (ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(playerId1, playerId2, Framework.PlayerGroupType.Clan))
+                {
+                    __result = true;
+                    return false;
+                }
+            }
+            else if (allowMode == PrivateAreaAllowMode.Party)
+            {
+                if (ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(playerId1, playerId2, Framework.PlayerGroupType.Party))
+                {
+                    __result = true;
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         public static bool CheckAccess(long playerID, Vector3 point, float radius = 0f, bool flash = true)
@@ -118,6 +219,9 @@ namespace ValheimMP.Patches
         {
             // don't protect players for environmental damage\fall damage and whatnot.
             if (!hit.m_attackerCharacter)
+                return;
+            // bosses are excempted from this, else wouldn't people just put bosses in indestructable cages?
+            if (hit.m_attackerCharacter.m_faction == Character.Faction.Boss)
                 return;
 
             var attackerMonster = hit.m_attackerCharacter is not Player;
