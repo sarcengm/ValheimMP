@@ -25,7 +25,7 @@
     </BuildMacro>
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="fastJSON" Version="2.4.0.4" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\assembly_valheim\assembly_valheim.csproj" />

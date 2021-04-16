@@ -9,7 +9,6 @@ using UnityEngine;
 using ValheimMP.Framework;
 using ValheimMP.Framework.Events;
 using ValheimMP.Framework.Extensions;
-using Object = UnityEngine.Object;
 
 namespace ValheimMP.ChatCommands
 {

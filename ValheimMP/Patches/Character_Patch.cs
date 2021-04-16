@@ -1,7 +1,6 @@
 ﻿using HarmonyLib;
 using System.Collections.Generic;
 using UnityEngine;
-using ValheimMP.Framework;
 using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Patches

@@ -1,7 +1,6 @@
 ﻿using EpicLoot.Crafting;
 using HarmonyLib;
 using System.Collections.Generic;
-using System.Linq;
 using static EpicLoot.Crafting.CraftingTabs;
 
 namespace ValheimMP.EpicLootPatch

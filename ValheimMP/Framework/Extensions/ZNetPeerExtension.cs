@@ -1,6 +1,4 @@
-﻿using ValheimMP.Patches;
-
-namespace ValheimMP.Framework.Extensions
+﻿namespace ValheimMP.Framework.Extensions
 {
     public enum ChatMessageType
     {
