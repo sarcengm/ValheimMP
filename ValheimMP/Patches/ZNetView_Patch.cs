@@ -59,7 +59,7 @@ namespace ValheimMP.Patches
 
                 SectorManager.AddObject(__instance.m_zdo);
 
-                if (ValheimMP.IsDedicated && __instance.m_zdo.m_type == ZDO.ObjectType.Solid)
+                if (ValheimMP.IsDedicated && (__instance.m_zdo.m_type == ZDO.ObjectType.Solid || __instance.m_zdo.m_type == ZDO.ObjectType.Terrain))
                 {
                     // Solid object spawned into loaded player sector, this wont get send unless its changed, so add it to be send.
                     var peers = ZNet.instance.m_peers;

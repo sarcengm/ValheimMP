@@ -196,6 +196,7 @@ namespace ValheimMP.Framework
                     case (ZDO.ObjectType)(-1):
                         return NonNetworkedObjectsList;
                     case ZDO.ObjectType.Solid:
+                    case ZDO.ObjectType.Terrain:
                         return SolidObjectsList;
                     case ZDO.ObjectType.Prioritized:
                         return PriorityObjectsList;

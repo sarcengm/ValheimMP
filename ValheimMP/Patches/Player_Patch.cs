@@ -309,7 +309,7 @@ namespace ValheimMP.Patches
         private static void ZDOEvent_ForcedPVPChanged(Player player)
         {
             var forcedpvp = player.m_nview.m_zdo.GetBool("forcedpvp");
-            if(forcedpvp)
+            if (forcedpvp)
             {
                 player.Message(MessageHud.MessageType.Center, forcedpvp ? "$vmp_forcedpvp_enter" : "$vmp_forcedpvp_exit");
             }
@@ -1189,7 +1189,7 @@ namespace ValheimMP.Patches
                         }
 
                         if (!ZNet.instance.IsServer()) __instance.m_nview.InvokeRPC(ZNet.instance.GetServerPeer().m_uid, "StartDrawAttack");
-                        currentWeapon.m_shared.m_holdStartEffect.Create(__instance.transform.position, Quaternion.identity, __instance.transform);
+                        if (!ZNet.instance.IsServer()) currentWeapon.m_shared.m_holdStartEffect.CreateNonOriginator(__instance.transform.position, Quaternion.identity, __instance.transform, __instance.GetPlayerID());
                     }
                     __instance.m_attackDrawTime += dt;
                     if (!string.IsNullOrEmpty(currentWeapon.m_shared.m_holdAnimationState))
@@ -2110,7 +2110,7 @@ namespace ValheimMP.Patches
             for (int i = 0; i < list.Count; i++)
             {
                 var otherPlayer = list[i];
-                if (otherPlayer == __instance || ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(otherPlayer.GetPlayerID(), __instance.GetPlayerID())) 
+                if (otherPlayer == __instance || ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(otherPlayer.GetPlayerID(), __instance.GetPlayerID()))
                 {
                     otherPlayer.GetSEMan().AddStatusEffect(__instance.m_guardianSE.name, resetTime: true);
                 }

@@ -10,7 +10,7 @@ namespace ValheimMP.Patches
 {
 
     [HarmonyPatch]
-    internal class ZDOMan_Patch
+    public class ZDOMan_Patch
     {
         [HarmonyPatch(typeof(ZDOMan), MethodType.Constructor, new[] { typeof(int) })]
         [HarmonyPostfix]
@@ -362,11 +362,12 @@ namespace ValheimMP.Patches
             m_ints = 1 << 13,
             m_strings = 1 << 14,
             m_longs = 1 << 15,
+            m_byteArrays = 1 << 16,
 
 
             all = ZDOFlags.m_uid | ZDOFlags.m_owner | ZDOFlags.m_position | ZDOFlags.m_persistent | ZDOFlags.m_distant |
             ZDOFlags.m_timeCreated | ZDOFlags.m_pgwVersion | ZDOFlags.m_prefab | ZDOFlags.m_rotation | ZDOFlags.m_type |
-            ZDOFlags.m_floats | ZDOFlags.m_vec3 | ZDOFlags.m_quats | ZDOFlags.m_ints | ZDOFlags.m_strings | ZDOFlags.m_longs,
+            ZDOFlags.m_floats | ZDOFlags.m_vec3 | ZDOFlags.m_quats | ZDOFlags.m_ints | ZDOFlags.m_strings | ZDOFlags.m_longs | m_byteArrays,
 
             invalid = ~all
         }
@@ -525,15 +526,15 @@ namespace ValheimMP.Patches
             }
         }
 
-        public static bool SerializeZDOFor(ZDOMan.ZDOPeer peer, ref ZPackage zdoPkg, ref ZDO zDO, ref ZDO clientZDO)
+        public static bool SerializeZDOFor(ZDOMan.ZDOPeer peer, ref ZPackage zdoPkg, ref ZDO zdo, ref ZDO clientZDO)
         {
             var valheimMP = ValheimMP.Instance;
 
 #if DEBUG
-            if (valheimMP.DebugOutputZDO.Value)
+            if (valheimMP && valheimMP.DebugOutputZDO.Value)
             {
-                if (!valheimMP.ZDODebug.ContainsKey(zDO.m_prefab))
-                    valheimMP.ZDODebug.Add(zDO.m_prefab, new Dictionary<string, int>());
+                if (!valheimMP.ZDODebug.ContainsKey(zdo.m_prefab))
+                    valheimMP.ZDODebug.Add(zdo.m_prefab, new Dictionary<string, int>());
             }
 #endif
 
@@ -543,94 +544,94 @@ namespace ValheimMP.Patches
             // All fixed members of ZDO's
             // Normally all this junk including owner and data revision are send
             // even if they dont change, so lets just not.
-            zdoPkg.Write(zDO.m_uid);
+            zdoPkg.Write(zdo.m_uid);
             var flagsPos = zdoPkg.GetPos();
             zdoPkg.Write((int)flags); // this is a placeholder!
 
 
-            if (Math.Abs(zDO.m_position.x - clientZDO.m_position.x) > 0.01f ||
-                Math.Abs(zDO.m_position.z - clientZDO.m_position.z) > 0.01f ||
-                Math.Abs(zDO.m_position.y - clientZDO.m_position.y) > 0.01f)
+            if (Math.Abs(zdo.m_position.x - clientZDO.m_position.x) > 0.01f ||
+                Math.Abs(zdo.m_position.z - clientZDO.m_position.z) > 0.01f ||
+                Math.Abs(zdo.m_position.y - clientZDO.m_position.y) > 0.01f)
             {
-                clientZDO.m_position = zDO.m_position;
+                clientZDO.m_position = zdo.m_position;
                 flags |= ZDOFlags.m_position;
-                zdoPkg.Write(zDO.m_position);
+                zdoPkg.Write(zdo.m_position);
             }
 
-            if (zDO.m_owner != clientZDO.m_owner)
+            if (zdo.m_owner != clientZDO.m_owner)
             {
-                clientZDO.m_owner = zDO.m_owner;
+                clientZDO.m_owner = zdo.m_owner;
                 flags |= ZDOFlags.m_owner;
-                zdoPkg.Write(zDO.m_owner);
+                zdoPkg.Write(zdo.m_owner);
             }
 
-            if (zDO.m_persistent != clientZDO.m_persistent)
+            if (zdo.m_persistent != clientZDO.m_persistent)
             {
-                clientZDO.m_persistent = zDO.m_persistent;
+                clientZDO.m_persistent = zdo.m_persistent;
                 flags |= ZDOFlags.m_persistent;
-                zdoPkg.Write(zDO.m_persistent);
+                zdoPkg.Write(zdo.m_persistent);
             }
 
-            if (zDO.m_distant != clientZDO.m_distant)
+            if (zdo.m_distant != clientZDO.m_distant)
             {
-                clientZDO.m_distant = zDO.m_distant;
+                clientZDO.m_distant = zdo.m_distant;
                 flags |= ZDOFlags.m_distant;
-                zdoPkg.Write(zDO.m_distant);
+                zdoPkg.Write(zdo.m_distant);
             }
 
-            if (zDO.m_timeCreated != clientZDO.m_timeCreated)
+            if (zdo.m_timeCreated != clientZDO.m_timeCreated)
             {
-                clientZDO.m_timeCreated = zDO.m_timeCreated;
+                clientZDO.m_timeCreated = zdo.m_timeCreated;
                 flags |= ZDOFlags.m_timeCreated;
-                zdoPkg.Write(zDO.m_timeCreated);
+                zdoPkg.Write(zdo.m_timeCreated);
             }
 
-            if (zDO.m_pgwVersion != clientZDO.m_pgwVersion)
+            if (zdo.m_pgwVersion != clientZDO.m_pgwVersion)
             {
-                clientZDO.m_pgwVersion = zDO.m_pgwVersion;
+                clientZDO.m_pgwVersion = zdo.m_pgwVersion;
                 flags |= ZDOFlags.m_pgwVersion;
-                zdoPkg.Write(zDO.m_pgwVersion);
+                zdoPkg.Write(zdo.m_pgwVersion);
             }
 
-            if (zDO.m_type != clientZDO.m_type)
+            if (zdo.m_type != clientZDO.m_type)
             {
-                clientZDO.m_type = zDO.m_type;
+                clientZDO.m_type = zdo.m_type;
                 flags |= ZDOFlags.m_type;
-                zdoPkg.Write((int)zDO.m_type);
+                zdoPkg.Write((int)zdo.m_type);
             }
 
-            if (zDO.m_prefab != clientZDO.m_prefab)
+            if (zdo.m_prefab != clientZDO.m_prefab)
             {
-                clientZDO.m_prefab = zDO.m_prefab;
+                clientZDO.m_prefab = zdo.m_prefab;
                 flags |= ZDOFlags.m_prefab;
-                zdoPkg.Write(zDO.m_prefab);
+                zdoPkg.Write(zdo.m_prefab);
             }
 
-            if (Math.Abs(zDO.m_rotation.x - clientZDO.m_rotation.x) > 0.01f ||
-                Math.Abs(zDO.m_rotation.y - clientZDO.m_rotation.y) > 0.01f ||
-                Math.Abs(zDO.m_rotation.z - clientZDO.m_rotation.z) > 0.01f ||
-                Math.Abs(zDO.m_rotation.w - clientZDO.m_rotation.w) > 0.01f)
+            if (Math.Abs(zdo.m_rotation.x - clientZDO.m_rotation.x) > 0.01f ||
+                Math.Abs(zdo.m_rotation.y - clientZDO.m_rotation.y) > 0.01f ||
+                Math.Abs(zdo.m_rotation.z - clientZDO.m_rotation.z) > 0.01f ||
+                Math.Abs(zdo.m_rotation.w - clientZDO.m_rotation.w) > 0.01f)
             {
-                clientZDO.m_rotation = zDO.m_rotation;
+                clientZDO.m_rotation = zdo.m_rotation;
                 flags |= ZDOFlags.m_rotation;
-                zdoPkg.Write(zDO.m_rotation);
+                zdoPkg.Write(zdo.m_rotation);
             }
 
-            if (zDO.m_floats != null && zDO.m_floats.Count > 0)
+            if (zdo.m_floats != null && zdo.m_floats.Count > 0)
             {
                 byte writtenCount = 0;
                 int countAt = zdoPkg.GetPos();
                 // write the placeholder
                 zdoPkg.Write(writtenCount);
-                foreach (KeyValuePair<int, float> item in zDO.m_floats)
+                foreach (KeyValuePair<int, float> item in zdo.m_floats)
                 {
-                    if (zDO.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
+                    if (zdo.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
                     {
                         if (zdoFieldType == (int)ZDOFieldType.Ignored)
                             continue;
-                        if (peer.m_peer.m_uid != zDO.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
+                        if (peer.m_peer.m_uid != zdo.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
                             continue;
-                        if (peer.m_peer.m_uid == zDO.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
+                        if (peer.m_peer.m_uid == zdo.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
                             continue;
                     }
 
@@ -641,8 +642,8 @@ namespace ValheimMP.Patches
                         zdoPkg.Write(item.Key);
                         zdoPkg.Write(item.Value);
 #if DEBUG
-                        if (valheimMP.DebugOutputZDO.Value)
-                            valheimMP.ZDODebug[zDO.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
+                        if (valheimMP && valheimMP.DebugOutputZDO.Value)
+                            valheimMP.ZDODebug[zdo.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
 #endif
                     }
                 }
@@ -657,21 +658,21 @@ namespace ValheimMP.Patches
                 }
             }
 
-            if (zDO.m_vec3 != null && zDO.m_vec3.Count > 0)
+            if (zdo.m_vec3 != null && zdo.m_vec3.Count > 0)
             {
                 byte writtenCount = 0;
                 int countAt = zdoPkg.GetPos();
                 // write the placeholder
                 zdoPkg.Write(writtenCount);
-                foreach (KeyValuePair<int, Vector3> item in zDO.m_vec3)
+                foreach (KeyValuePair<int, Vector3> item in zdo.m_vec3)
                 {
-                    if (zDO.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
+                    if (zdo.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
                     {
                         if (zdoFieldType == (int)ZDOFieldType.Ignored)
                             continue;
-                        if (peer.m_peer.m_uid != zDO.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
+                        if (peer.m_peer.m_uid != zdo.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
                             continue;
-                        if (peer.m_peer.m_uid == zDO.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
+                        if (peer.m_peer.m_uid == zdo.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
                             continue;
                     }
 
@@ -683,8 +684,8 @@ namespace ValheimMP.Patches
                         zdoPkg.Write(item.Key);
                         zdoPkg.Write(item.Value);
 #if DEBUG
-                        if (valheimMP.DebugOutputZDO.Value)
-                            valheimMP.ZDODebug[zDO.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
+                        if (valheimMP && valheimMP.DebugOutputZDO.Value)
+                            valheimMP.ZDODebug[zdo.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
 #endif
                     }
                 }
@@ -699,21 +700,21 @@ namespace ValheimMP.Patches
                 }
             }
 
-            if (zDO.m_quats != null && zDO.m_quats.Count > 0)
+            if (zdo.m_quats != null && zdo.m_quats.Count > 0)
             {
                 byte writtenCount = 0;
                 int countAt = zdoPkg.GetPos();
                 // write the placeholder
                 zdoPkg.Write(writtenCount);
-                foreach (KeyValuePair<int, Quaternion> item in zDO.m_quats)
+                foreach (KeyValuePair<int, Quaternion> item in zdo.m_quats)
                 {
-                    if (zDO.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
+                    if (zdo.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
                     {
                         if (zdoFieldType == (int)ZDOFieldType.Ignored)
                             continue;
-                        if (peer.m_peer.m_uid != zDO.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
+                        if (peer.m_peer.m_uid != zdo.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
                             continue;
-                        if (peer.m_peer.m_uid == zDO.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
+                        if (peer.m_peer.m_uid == zdo.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
                             continue;
                     }
 
@@ -723,9 +724,9 @@ namespace ValheimMP.Patches
                         writtenCount++;
                         zdoPkg.Write(item.Key);
                         zdoPkg.Write(item.Value);
-#if DEBUG
-                        if (valheimMP.DebugOutputZDO.Value)
-                            valheimMP.ZDODebug[zDO.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
+#if DEBUG && !TEST
+                        if (valheimMP && valheimMP.DebugOutputZDO.Value)
+                            valheimMP.ZDODebug[zdo.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
 #endif
                     }
                 }
@@ -740,21 +741,21 @@ namespace ValheimMP.Patches
                 }
             }
 
-            if (zDO.m_ints != null && zDO.m_ints.Count > 0)
+            if (zdo.m_ints != null && zdo.m_ints.Count > 0)
             {
                 byte writtenCount = 0;
                 int countAt = zdoPkg.GetPos();
                 // write the placeholder
                 zdoPkg.Write(writtenCount);
-                foreach (KeyValuePair<int, int> item in zDO.m_ints)
+                foreach (KeyValuePair<int, int> item in zdo.m_ints)
                 {
-                    if (zDO.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
+                    if (zdo.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
                     {
                         if (zdoFieldType == (int)ZDOFieldType.Ignored)
                             continue;
-                        if (peer.m_peer.m_uid != zDO.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
+                        if (peer.m_peer.m_uid != zdo.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
                             continue;
-                        if (peer.m_peer.m_uid == zDO.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
+                        if (peer.m_peer.m_uid == zdo.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
                             continue;
                     }
 
@@ -764,9 +765,9 @@ namespace ValheimMP.Patches
                         writtenCount++;
                         zdoPkg.Write(item.Key);
                         zdoPkg.Write(item.Value);
-#if DEBUG
-                        if (valheimMP.DebugOutputZDO.Value)
-                            valheimMP.ZDODebug[zDO.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
+#if DEBUG && !TEST
+                        if (valheimMP && valheimMP.DebugOutputZDO.Value)
+                            valheimMP.ZDODebug[zdo.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
 #endif
                     }
                 }
@@ -781,21 +782,21 @@ namespace ValheimMP.Patches
                 }
             }
 
-            if (zDO.m_strings != null && zDO.m_strings.Count > 0)
+            if (zdo.m_strings != null && zdo.m_strings.Count > 0)
             {
                 byte writtenCount = 0;
                 int countAt = zdoPkg.GetPos();
                 // write the placeholder
                 zdoPkg.Write(writtenCount);
-                foreach (KeyValuePair<int, string> item in zDO.m_strings)
+                foreach (KeyValuePair<int, string> item in zdo.m_strings)
                 {
-                    if (zDO.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
+                    if (zdo.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
                     {
                         if (zdoFieldType == (int)ZDOFieldType.Ignored)
                             continue;
-                        if (peer.m_peer.m_uid != zDO.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
+                        if (peer.m_peer.m_uid != zdo.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
                             continue;
-                        if (peer.m_peer.m_uid == zDO.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
+                        if (peer.m_peer.m_uid == zdo.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
                             continue;
                     }
 
@@ -806,8 +807,8 @@ namespace ValheimMP.Patches
                         zdoPkg.Write(item.Key);
                         zdoPkg.Write(item.Value);
 #if DEBUG
-                        if (valheimMP.DebugOutputZDO.Value)
-                            valheimMP.ZDODebug[zDO.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
+                        if (valheimMP && valheimMP.DebugOutputZDO.Value)
+                            valheimMP.ZDODebug[zdo.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
 #endif
                     }
                 }
@@ -822,21 +823,62 @@ namespace ValheimMP.Patches
                 }
             }
 
-            if (zDO.m_longs != null && zDO.m_longs.Count > 0)
+            if (zdo.m_byteArrays != null && zdo.m_byteArrays.Count > 0)
             {
                 byte writtenCount = 0;
                 int countAt = zdoPkg.GetPos();
                 // write the placeholder
                 zdoPkg.Write(writtenCount);
-                foreach (KeyValuePair<int, long> item in zDO.m_longs)
+                foreach (KeyValuePair<int, byte[]> item in zdo.m_byteArrays)
                 {
-                    if (zDO.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
+                    if (zdo.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
                     {
                         if (zdoFieldType == (int)ZDOFieldType.Ignored)
                             continue;
-                        if (peer.m_peer.m_uid != zDO.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
+                        if (peer.m_peer.m_uid != zdo.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
                             continue;
-                        if (peer.m_peer.m_uid == zDO.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
+                        if (peer.m_peer.m_uid == zdo.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
+                            continue;
+                    }
+
+                    clientZDO.InitByteArrays();
+                    if (clientZDO.m_byteArrays.UpdateValue(item.Key, item.Value))
+                    {
+                        writtenCount++;
+                        zdoPkg.Write(item.Key);
+                        zdoPkg.Write(item.Value);
+#if DEBUG
+                        if (valheimMP && valheimMP.DebugOutputZDO.Value)
+                            valheimMP.ZDODebug[zdo.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
+#endif
+                    }
+                }
+
+                int listEndPos = zdoPkg.GetPos();
+                zdoPkg.SetPos(countAt);
+                if (writtenCount > 0)
+                {
+                    zdoPkg.Write(writtenCount);
+                    flags |= ZDOFlags.m_byteArrays;
+                    zdoPkg.SetPos(listEndPos);
+                }
+            }
+
+            if (zdo.m_longs != null && zdo.m_longs.Count > 0)
+            {
+                byte writtenCount = 0;
+                int countAt = zdoPkg.GetPos();
+                // write the placeholder
+                zdoPkg.Write(writtenCount);
+                foreach (KeyValuePair<int, long> item in zdo.m_longs)
+                {
+                    if (zdo.m_fieldTypes.TryGetValue(item.Key, out var zdoFieldType))
+                    {
+                        if (zdoFieldType == (int)ZDOFieldType.Ignored)
+                            continue;
+                        if (peer.m_peer.m_uid != zdo.m_owner && zdoFieldType == (int)ZDOFieldType.Private)
+                            continue;
+                        if (peer.m_peer.m_uid == zdo.m_owner && zdoFieldType == (int)ZDOFieldType.AllExceptOwner)
                             continue;
                     }
 
@@ -847,8 +889,8 @@ namespace ValheimMP.Patches
                         zdoPkg.Write(item.Key);
                         zdoPkg.Write(item.Value);
 #if DEBUG
-                        if (valheimMP.DebugOutputZDO.Value)
-                            valheimMP.ZDODebug[zDO.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
+                        if (valheimMP && valheimMP.DebugOutputZDO.Value)
+                            valheimMP.ZDODebug[zdo.m_prefab].Increment(StringExtensionMethods_Patch.GetStableHashName(item.Key));
 #endif
                     }
                 }
@@ -877,7 +919,7 @@ namespace ValheimMP.Patches
             zdoPkg.SetPos(endPos);
 
 #if DEBUG
-            if (valheimMP.DebugOutputZDO.Value)
+            if (valheimMP && valheimMP.DebugOutputZDO.Value)
             {
                 for (int i = 0; i < 20; i++)
                 {
@@ -885,7 +927,7 @@ namespace ValheimMP.Patches
                     var strKey = ((ZDOFlags)key).ToString();
                     if (((int)flags & key) == key)
                     {
-                        valheimMP.ZDODebug[zDO.m_prefab].Increment(strKey);
+                        valheimMP.ZDODebug[zdo.m_prefab].Increment(strKey);
                     }
                 }
             }
@@ -972,9 +1014,9 @@ namespace ValheimMP.Patches
             return false;
         }
 
-        public static void DeserializeZDO(ref ZPackage zdoPkg, ref ZDO zDO, ref List<Action<ZDO>> updateEvents)
+        public static void DeserializeZDO(ref ZPackage zdoPkg, ref ZDO zdo, ref List<Action<ZDO>> updateEvents)
         {
-            zDO.m_uid = zdoPkg.ReadZDOID();
+            zdo.m_uid = zdoPkg.ReadZDOID();
 
             var intFlags = zdoPkg.ReadInt();
 
@@ -988,68 +1030,68 @@ namespace ValheimMP.Patches
                 return;
             }
 
-            if ((flags & ZDOFlags.m_position) == ZDOFlags.m_position) zDO.m_position = zdoPkg.ReadVector3();
-            if ((flags & ZDOFlags.m_owner) == ZDOFlags.m_owner) zDO.m_owner = zdoPkg.ReadLong();
-            if ((flags & ZDOFlags.m_persistent) == ZDOFlags.m_persistent) zDO.m_persistent = zdoPkg.ReadBool();
-            if ((flags & ZDOFlags.m_distant) == ZDOFlags.m_distant) zDO.m_distant = zdoPkg.ReadBool();
-            if ((flags & ZDOFlags.m_timeCreated) == ZDOFlags.m_timeCreated) zDO.m_timeCreated = zdoPkg.ReadLong();
-            if ((flags & ZDOFlags.m_pgwVersion) == ZDOFlags.m_pgwVersion) zDO.m_pgwVersion = zdoPkg.ReadInt();
-            if ((flags & ZDOFlags.m_type) == ZDOFlags.m_type) zDO.m_type = (ZDO.ObjectType)zdoPkg.ReadInt();
-            if ((flags & ZDOFlags.m_prefab) == ZDOFlags.m_prefab) zDO.m_prefab = zdoPkg.ReadInt();
-            if ((flags & ZDOFlags.m_rotation) == ZDOFlags.m_rotation) zDO.m_rotation = zdoPkg.ReadQuaternion();
+            if ((flags & ZDOFlags.m_position) == ZDOFlags.m_position) zdo.m_position = zdoPkg.ReadVector3();
+            if ((flags & ZDOFlags.m_owner) == ZDOFlags.m_owner) zdo.m_owner = zdoPkg.ReadLong();
+            if ((flags & ZDOFlags.m_persistent) == ZDOFlags.m_persistent) zdo.m_persistent = zdoPkg.ReadBool();
+            if ((flags & ZDOFlags.m_distant) == ZDOFlags.m_distant) zdo.m_distant = zdoPkg.ReadBool();
+            if ((flags & ZDOFlags.m_timeCreated) == ZDOFlags.m_timeCreated) zdo.m_timeCreated = zdoPkg.ReadLong();
+            if ((flags & ZDOFlags.m_pgwVersion) == ZDOFlags.m_pgwVersion) zdo.m_pgwVersion = zdoPkg.ReadInt();
+            if ((flags & ZDOFlags.m_type) == ZDOFlags.m_type) zdo.m_type = (ZDO.ObjectType)zdoPkg.ReadInt();
+            if ((flags & ZDOFlags.m_prefab) == ZDOFlags.m_prefab) zdo.m_prefab = zdoPkg.ReadInt();
+            if ((flags & ZDOFlags.m_rotation) == ZDOFlags.m_rotation) zdo.m_rotation = zdoPkg.ReadQuaternion();
 
             if ((flags & ZDOFlags.m_floats) == ZDOFlags.m_floats)
             {
-                zDO.InitFloats();
+                zdo.InitFloats();
                 var listCount = zdoPkg.ReadByte();
                 for (byte j = 0; j < listCount; j++)
                 {
                     var key = zdoPkg.ReadInt();
                     var value = zdoPkg.ReadSingle();
-                    zDO.m_floats[key] = value;
-                    if (zDO.m_zdoEvents.TryGetValue(key, out var action))
+                    zdo.m_floats[key] = value;
+                    if (zdo.m_zdoEvents.TryGetValue(key, out var action))
                         updateEvents.Add(action);
                 }
             }
 
             if ((flags & ZDOFlags.m_vec3) == ZDOFlags.m_vec3)
             {
-                zDO.InitVec3();
+                zdo.InitVec3();
                 var listCount = zdoPkg.ReadByte();
                 for (byte j = 0; j < listCount; j++)
                 {
                     var key = zdoPkg.ReadInt();
                     var value = zdoPkg.ReadVector3();
-                    zDO.m_vec3[key] = value;
-                    if (zDO.m_zdoEvents.TryGetValue(key, out var action))
+                    zdo.m_vec3[key] = value;
+                    if (zdo.m_zdoEvents.TryGetValue(key, out var action))
                         updateEvents.Add(action);
                 }
             }
 
             if ((flags & ZDOFlags.m_quats) == ZDOFlags.m_quats)
             {
-                zDO.InitQuats();
+                zdo.InitQuats();
                 var listCount = zdoPkg.ReadByte();
                 for (byte j = 0; j < listCount; j++)
                 {
                     var key = zdoPkg.ReadInt();
                     var value = zdoPkg.ReadQuaternion();
-                    zDO.m_quats[key] = value;
-                    if (zDO.m_zdoEvents.TryGetValue(key, out var action))
+                    zdo.m_quats[key] = value;
+                    if (zdo.m_zdoEvents.TryGetValue(key, out var action))
                         updateEvents.Add(action);
                 }
             }
 
             if ((flags & ZDOFlags.m_ints) == ZDOFlags.m_ints)
             {
-                zDO.InitInts();
+                zdo.InitInts();
                 var listCount = zdoPkg.ReadByte();
                 for (byte j = 0; j < listCount; j++)
                 {
                     var key = zdoPkg.ReadInt();
                     var value = zdoPkg.ReadInt();
-                    zDO.m_ints[key] = value;
-                    if (zDO.m_zdoEvents.TryGetValue(key, out var action))
+                    zdo.m_ints[key] = value;
+                    if (zdo.m_zdoEvents.TryGetValue(key, out var action))
                         updateEvents.Add(action);
 
                 }
@@ -1057,28 +1099,42 @@ namespace ValheimMP.Patches
 
             if ((flags & ZDOFlags.m_strings) == ZDOFlags.m_strings)
             {
-                zDO.InitStrings();
+                zdo.InitStrings();
                 var listCount = zdoPkg.ReadByte();
                 for (byte j = 0; j < listCount; j++)
                 {
                     var key = zdoPkg.ReadInt();
                     var value = zdoPkg.ReadString();
-                    zDO.m_strings[key] = value;
-                    if (zDO.m_zdoEvents.TryGetValue(key, out var action))
+                    zdo.m_strings[key] = value;
+                    if (zdo.m_zdoEvents.TryGetValue(key, out var action))
+                        updateEvents.Add(action);
+                }
+            }
+
+            if ((flags & ZDOFlags.m_byteArrays) == ZDOFlags.m_byteArrays)
+            {
+                zdo.InitByteArrays();
+                var listCount = zdoPkg.ReadByte();
+                for (byte j = 0; j < listCount; j++)
+                {
+                    var key = zdoPkg.ReadInt();
+                    var value = zdoPkg.ReadByteArray();
+                    zdo.m_byteArrays[key] = value;
+                    if (zdo.m_zdoEvents.TryGetValue(key, out var action))
                         updateEvents.Add(action);
                 }
             }
 
             if ((flags & ZDOFlags.m_longs) == ZDOFlags.m_longs)
             {
-                zDO.InitLongs();
+                zdo.InitLongs();
                 var listCount = zdoPkg.ReadByte();
                 for (byte j = 0; j < listCount; j++)
                 {
                     var key = zdoPkg.ReadInt();
                     var value = zdoPkg.ReadLong();
-                    zDO.m_longs[key] = value;
-                    if (zDO.m_zdoEvents.TryGetValue(key, out var action))
+                    zdo.m_longs[key] = value;
+                    if (zdo.m_zdoEvents.TryGetValue(key, out var action))
                         updateEvents.Add(action);
                 }
             }

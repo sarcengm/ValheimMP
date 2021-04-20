@@ -602,6 +602,7 @@ namespace ValheimMP
             zdo.m_zdoType = 0;
             zdo.m_fieldTypes = new Dictionary<int, int>();
             zdo.m_zdoEvents = new Dictionary<int, Action<ZDO>>();
+            zdo.m_listIndex = 0;
 
             var container = new Container();
             container.m_onTakeAllSuccess2 = new Action<Humanoid>(delegate (Humanoid humanoid) { });

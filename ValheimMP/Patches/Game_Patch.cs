@@ -232,8 +232,6 @@ namespace ValheimMP.Patches
         {
             if (!ValheimMP.IsDedicated)
             {
-                
-
                 if ((bool)Player.m_localPlayer)
                 {
                     __instance.m_playerProfile.SavePlayerData(Player.m_localPlayer);
@@ -256,7 +254,6 @@ namespace ValheimMP.Patches
                 }
 
                 //var serverName = ZNet.m_ServerName;
-                __instance.m_playerProfile.m_playerName = serverIdentifier;
                 __instance.m_playerProfile.m_filename = serverIdentifier.Replace(":","_");
                 __instance.m_playerProfile.Save();
 

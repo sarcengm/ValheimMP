@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace ValheimMP.Framework.Extensions
@@ -129,6 +130,26 @@ namespace ValheimMP.Framework.Extensions
             if (dic.TryGetValue(valKey, out currentVal))
             {
                 if (currentVal != val)
+                {
+                    dic[valKey] = val;
+                    return true;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            dic.Add(valKey, val);
+            return true;
+        }
+
+        public static bool UpdateValue(this Dictionary<int, byte[]> dic, int valKey, byte[] val)
+        {
+            byte[] currentVal;
+            if (dic.TryGetValue(valKey, out currentVal))
+            {
+                if (!ByteDictionaryExtension.UnsafeCompare(val, currentVal))
                 {
                     dic[valKey] = val;
                     return true;

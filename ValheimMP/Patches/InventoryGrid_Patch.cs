@@ -25,7 +25,7 @@ namespace ValheimMP.Patches
             pkg.Write(amount);
             pkg.Write(pos);
 
-            ValheimMP.Log($"Invoke InventoryGrid_DropItem ZPKG: fromId:{fromId} from item.m_id:{item.m_id} toId:{toId} to amount:{amount} to pos:{pos}");
+            //ValheimMP.Log($"Invoke InventoryGrid_DropItem ZPKG: fromId:{fromId} from item.m_id:{item.m_id} toId:{toId} to amount:{amount} to pos:{pos}");
 
             ZNet.instance.GetServerRPC().Invoke("InventoryGrid_DropItem", pkg);
 
@@ -87,9 +87,12 @@ namespace ValheimMP.Patches
             }
             if (itemAt != null && (itemAt.m_shared.m_name != item.m_shared.m_name || (item.m_shared.m_maxQuality > 1 && itemAt.m_quality != item.m_quality) || itemAt.m_shared.m_maxStackSize == 1) && item.m_stack == amount)
             {
-                fromInventory.RemoveItem(item);
+                fromInventory.m_inventory.Remove(item);
                 fromInventory.MoveItemToThis(m_inventory, itemAt, itemAt.m_stack, item.m_gridPos.x, item.m_gridPos.y);
-                m_inventory.MoveItemToThis(fromInventory, item, amount, pos.x, pos.y);
+                m_inventory.AddItem(item, amount, pos.x, pos.y);
+                if (item.m_stack > 0)
+                    fromInventory.m_inventory.Add(item);
+                fromInventory.Changed();
                 return;
             }
             m_inventory.MoveItemToThis(fromInventory, item, amount, pos.x, pos.y);

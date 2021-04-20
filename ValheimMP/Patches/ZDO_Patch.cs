@@ -28,6 +28,7 @@ namespace ValheimMP.Patches
             __instance.m_zdoType = 0;
             __instance.m_fieldTypes.Clear();
             __instance.m_zdoEvents.Clear();
+            __instance.ReleaseByteArrays();
         }
 
         [HarmonyPatch(typeof(ZDO), "SetOwner")]
@@ -66,7 +67,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static void IncreseDataRevision(ref ZDO __instance)
         {
-            if (ZNet.instance.IsServer() && __instance.m_type == ZDO.ObjectType.Solid && __instance.m_nview != null)
+            if (ZNet.instance.IsServer() && (__instance.m_type == ZDO.ObjectType.Solid || __instance.m_type == ZDO.ObjectType.Terrain) && __instance.m_nview != null)
             {
                 var peers = ZNet.instance.m_peers;
                 for (int i=0; i< peers.Count; i++)

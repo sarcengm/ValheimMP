@@ -6,6 +6,7 @@ using ValheimMP.Framework.Extensions;
 
 namespace ValheimMP.Framework
 {
+    [Serializable]
     public class PlayerGroupManager
     {
         internal int m_groupCounter;
@@ -135,7 +136,6 @@ namespace ValheimMP.Framework
             try
             {
                 var jsonStr = JsonConvert.SerializeObject(this);
-
                 System.IO.File.WriteAllText(jsonFile, jsonStr);
             }
             catch (Exception ex)
@@ -456,6 +456,7 @@ namespace ValheimMP.Framework
         PeriodicNear = PlayerZDOID,
     }
 
+    [Serializable]
     public class PlayerGroupMember
     {
         [JsonProperty]
@@ -659,6 +660,7 @@ namespace ValheimMP.Framework
         Once = Name | GroupType | Members | CreationDate,
     }
 
+    [Serializable]
     public class PlayerGroup
     {
         internal PlayerGroupManager m_manager;
@@ -672,7 +674,6 @@ namespace ValheimMP.Framework
         public Dictionary<long, PlayerGroupMember> Members { get; private set; } = new();
         [JsonProperty]
         public DateTime CreationDate { get; internal set; }
-
         [JsonIgnore]
         public HashSet<long> PendingInvites { get; private set; } = new();
 

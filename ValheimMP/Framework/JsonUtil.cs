@@ -11,8 +11,9 @@ namespace ValheimMP.Framework
     {
         private static JSONParameters JSONParameters => new()
         {
-            UseExtensions = false,
             IgnoreAttributes = new List<Type>() { typeof(JsonIgnoreAttribute) },
+            UseExtensions = false,
+            ShowReadOnlyProperties = true, 
         };
 
         public static T DeserializeObject<T>(string jsonStr)
@@ -25,10 +26,13 @@ namespace ValheimMP.Framework
             return JSON.ToNiceJSON(obj, JSONParameters);
         }
     }
+
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
     public class JsonIgnoreAttribute : Attribute
     {
     }
 
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
     public class JsonPropertyAttribute : DataMemberAttribute
     {
     }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using ValheimMP.Framework.Extensions;
 using ValheimMP.Patches;
 
 namespace ValheimMP.Framework
@@ -147,7 +148,7 @@ namespace ValheimMP.Framework
 
             foreach (var customData in itemData.m_customData)
             {
-                if (!m_customData.TryGetValue(customData.Key, out var data) || !data.SequenceEqual(customData.Value))
+                if (!m_customData.TryGetValue(customData.Key, out var data) || !ByteDictionaryExtension.UnsafeCompare(data, customData.Value))
                 {
                     m_customData[customData.Key] = customData.Value;
                     pkg.Write(customData.Key);

@@ -4,6 +4,7 @@ using ValheimMP.Framework.Events;
 
 namespace ValheimMP.Framework
 {
+    [Serializable]
     public class Admin
     {
         private long m_id;
@@ -35,6 +36,7 @@ namespace ValheimMP.Framework
         public ZNetPeer Peer { get; internal set; }
     }
 
+    [Serializable]
     public class AdminManager
     {
         [JsonProperty]
@@ -96,7 +98,7 @@ namespace ValheimMP.Framework
 
         internal static AdminManager Load(string jsonFile)
         {
-            AdminManager manager = null;
+            AdminManager manager;
             try
             {
                 var jsonStr = System.IO.File.ReadAllText(jsonFile);

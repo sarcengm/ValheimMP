@@ -25,8 +25,11 @@ namespace ValheimMP.Patches
 
         [HarmonyPatch(typeof(SpawnSystem), "UpdateSpawning")]
         [HarmonyPrefix]
-        private static bool UpdateSpawning(ref SpawnSystem __instance)
+        private static bool UpdateSpawning(SpawnSystem __instance)
         {
+            if (!__instance.m_nview.IsValid() || !__instance.m_nview.IsOwner())
+                return false;
+
             __instance.m_nearPlayers.Clear();
             __instance.GetPlayersInZone(__instance.m_nearPlayers);
             if (__instance.m_nearPlayers.Count != 0)
