@@ -402,6 +402,10 @@ namespace ValheimMP.Patches
                 {
                     ValheimMP.Instance.PlayerGroupManager.RPC_PlayerGroupUpdate(rpc, pkg);
                 });
+                rpc.Register("PlayerGroupPlayerOffline", (ZRpc rpc, int groupId, long playerId) =>
+                {
+                    ValheimMP.Instance.PlayerGroupManager.RPC_PlayerGroupPlayerOffline(rpc, groupId, playerId);
+                });
                 rpc.Register("PlayerGroupRemovePlayer", (ZRpc rpc, int groupId, long playerId) =>
                 {
                     ValheimMP.Instance.PlayerGroupManager.RPC_PlayerGroupRemovePlayer(rpc, groupId, playerId);

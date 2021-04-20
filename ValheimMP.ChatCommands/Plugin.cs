@@ -665,30 +665,67 @@ namespace ValheimMP.ChatCommands
             ZNet.instance.SaveWorld(false);
         }
 
-        [ChatCommand("PartyFrames", "Toggles party frames or sets the position, offset or scale", aliases: new[] { "pf" }, executionLocation: CommandExecutionLocation.Client)]
-        private void ChatCommand_PartyFrames(string setting = "", float x = 0, float y = 0)
+        [ChatCommand("PartyFrames", "Party frames settings, setting types; enable/disable, position, offset, scale, showself, showoffline.", aliases: new[] { "pf" }, executionLocation: CommandExecutionLocation.Client)]
+        private void ChatCommand_PartyFrames(ZNetPeer peer, string setting = "", float x = 0, float y = 0)
         {
-            if (string.IsNullOrEmpty(setting))
+            setting = setting.ToLower();
+
+            if (setting == "toggle")
             {
                 ValheimMP.Instance.PartyFramesEnabled.Value = !ValheimMP.Instance.PartyFramesEnabled.Value;
+            }
+
+            else if (setting == "enable")
+            {
+                ValheimMP.Instance.PartyFramesEnabled.Value = true;
+            }
+
+            else if (setting == "disable")
+            {
+                ValheimMP.Instance.PartyFramesEnabled.Value = false;
             }
 
             else if (setting == "position")
             {
                 ValheimMP.Instance.PartyFramesPosition.Value = new Vector3(x, y);
+                EnemyHudExtension.ClearPartyFrames();
             }
 
             else if (setting == "offset")
             {
-                ValheimMP.Instance.PartyFramesPosition.Value = new Vector3(x, y);
+                ValheimMP.Instance.PartyFramesOffset.Value = new Vector3(x, y);
+                EnemyHudExtension.ClearPartyFrames();
             }
 
             else if (setting == "scale")
             {
                 ValheimMP.Instance.PartyFramesScale.Value = new Vector3(x, y);
+                EnemyHudExtension.ClearPartyFrames();
             }
 
-            EnemyHudExtension.ClearPartyFrames();
+            else if (setting == "showself")
+            {
+                ValheimMP.Instance.PartyFramesShowSelf.Value = !ValheimMP.Instance.PartyFramesShowSelf.Value;
+                EnemyHudExtension.ClearPartyFrames();
+            }
+
+            else if (setting == "showoffline")
+            {
+                ValheimMP.Instance.PartyFramesShowOffline.Value = !ValheimMP.Instance.PartyFramesShowOffline.Value;
+                EnemyHudExtension.ClearPartyFrames();
+            }
+            else
+            {
+                peer.SendServerMessage(
+                    $"PartyFrames: \n" +
+                    $"Enabled = {ValheimMP.Instance.PartyFramesEnabled.Value} \n" +
+                    $"ShowSelf = {ValheimMP.Instance.PartyFramesShowSelf.Value}  \n" +
+                    $"ShowOffline = {ValheimMP.Instance.PartyFramesShowOffline.Value}  \n" +
+                    $"Position = {ValheimMP.Instance.PartyFramesPosition.Value}  \n" +
+                    $"Offset = {ValheimMP.Instance.PartyFramesOffset.Value}  \n" +
+                    $"Scale = {ValheimMP.Instance.PartyFramesScale.Value}"
+                    );
+            }
         }
     }
 }

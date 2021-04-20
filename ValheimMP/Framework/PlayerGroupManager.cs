@@ -76,8 +76,17 @@ namespace ValheimMP.Framework
                         OnGroupMemberOffline?.Invoke(group, member);
                         member.Peer = null;
                         member.Player = null;
+                        sendPlayerOffline(peer.m_uid, group);
                     }
                 }
+            }
+        }
+
+        private void sendPlayerOffline(long m_uid, PlayerGroup group)
+        {
+            for (int i = 0; i < group.MemberList.Count; i++)
+            {
+                group.MemberList[i].Peer?.m_rpc.Invoke("PlayerGroupPlayerOffline", group.Id, m_uid);
             }
         }
 
@@ -433,6 +442,18 @@ namespace ValheimMP.Framework
                 }
             }
         }
+
+        public void RPC_PlayerGroupPlayerOffline(ZRpc rpc, int groupId, long playerId)
+        {
+            if(Groups.TryGetValue(groupId, out var group))
+            {
+                if(group.Members.TryGetValue(playerId, out var member))
+                {
+                    member.PlayerZDOID = ZDOID.None;
+                    member.LastOnline = DateTime.Now;
+                }
+            }
+        }
     }
 
 
@@ -453,7 +474,7 @@ namespace ValheimMP.Framework
         // Flags send once on connect
         Once = Name | LastOnline | MemberSince | Rank,
         // Flags send for periodic updates when someone is out of range
-        PeriodicFar = PlayerHealth | PlayerMaxHealth | PlayerPosition,
+        PeriodicFar = PlayerZDOID | PlayerHealth | PlayerMaxHealth | PlayerPosition,
         // Flags send for periodic updates when someone is nearby,
         // should be none, since the player will have the ZDO available to query!
         PeriodicNear = PlayerZDOID,

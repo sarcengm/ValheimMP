@@ -12,7 +12,20 @@ namespace ValheimMP.Patches
     [HarmonyPatch]
     internal class EnemyHud_Patch
     {
-        private static List<EnemyHud.HudData> m_partyFrames = new();
+        private class PartyHudData
+        {
+            public GameObject m_gui;
+
+            public GameObject m_healthRoot;
+
+            public GuiBar m_healthFast;
+
+            public GuiBar m_healthSlow;
+
+            public Text m_name;
+        }
+
+        private static List<PartyHudData> m_partyFrames = new();
 
         internal static void ClearPartyFrames()
         {
@@ -35,25 +48,41 @@ namespace ValheimMP.Patches
             var party = ValheimMP.Instance.PlayerGroupManager.GetGroupByType(ZNet.instance.GetUID(), Framework.PlayerGroupType.Party);
             if (party != null && ValheimMP.Instance.PartyFramesEnabled.Value)
             {
-                while (m_partyFrames.Count > party.MemberList.Count)
+                var color = ValheimMP.Instance.ChatPartyColor.Value;
+
+                var usedframes = 0;
+                for (int i = 0; i < party.MemberList.Count; i++)
+                {
+                    var member = party.MemberList[i];
+
+                    var isOffline = member.PlayerZDOID == ZDOID.None;
+
+                    if (!ValheimMP.Instance.PartyFramesShowOffline.Value && isOffline)
+                        continue;
+                    if (!ValheimMP.Instance.PartyFramesShowSelf.Value && member.Id == ZNet.instance.GetUID())
+                        continue;
+
+                    
+                    if (usedframes >= m_partyFrames.Count) 
+                    {
+                        m_partyFrames.Add(AddPartyHud(usedframes));
+                    }
+
+                    
+                    var hud = m_partyFrames[usedframes];
+                    var healthPercentage = Mathf.Clamp(member.PlayerHealth / member.PlayerMaxHealth, 0, 1);
+                    hud.m_name.text = member.Name;
+                    hud.m_name.color = color * (isOffline? 0.5f : 1.0f);
+                    hud.m_healthSlow.SetValue(isOffline ? 0f : healthPercentage);
+                    hud.m_healthFast.SetValue(healthPercentage);
+                    hud.m_healthFast.m_barImage.color = color * (isOffline ? 0.3f : 1.0f) * 0.8f;
+                    usedframes++;
+                }
+
+                while (m_partyFrames.Count > usedframes)
                 {
                     UnityEngine.Object.Destroy(m_partyFrames[m_partyFrames.Count - 1].m_gui);
                     m_partyFrames.RemoveAt(m_partyFrames.Count - 1);
-                }
-
-                for (int i = 0; i < party.MemberList.Count; i++)
-                {
-                    if (i >= m_partyFrames.Count) 
-                    {
-                        m_partyFrames.Add(AddPartyHud(i));
-                    }
-
-                    var member = party.MemberList[i];
-                    var hud = m_partyFrames[i];
-                    var healthPercentage = Mathf.Clamp(member.PlayerHealth / member.PlayerMaxHealth, 0, 1);
-                    hud.m_name.text = member.Name;
-                    hud.m_healthSlow.SetValue(healthPercentage);
-                    hud.m_healthFast.SetValue(healthPercentage);
                 }
             }
             else
@@ -66,23 +95,23 @@ namespace ValheimMP.Patches
             }
         }
 
-        private static EnemyHud.HudData AddPartyHud(int index)
+        private static PartyHudData AddPartyHud(int index)
         {
-            var color = ValheimMP.Instance.ChatPartyColor.Value;
-
-            var partyhud = new EnemyHud.HudData();
+            var hud = new PartyHudData();
             // Maybe get some custom gui some day =p
-            partyhud.m_gui = UnityEngine.Object.Instantiate(EnemyHud.instance.m_baseHudPlayer, EnemyHud.instance.m_hudRoot.transform);
-            partyhud.m_gui.SetActive(value: true);
-            partyhud.m_healthRoot = partyhud.m_gui.transform.Find("Health").gameObject;
-            partyhud.m_healthFast = partyhud.m_healthRoot.transform.Find("health_fast").GetComponent<GuiBar>();
-            partyhud.m_healthFast.m_bar.GetComponent<Image>().color = color * 0.8f;
-            partyhud.m_healthSlow = partyhud.m_healthRoot.transform.Find("health_slow").GetComponent<GuiBar>();
-            partyhud.m_name = partyhud.m_gui.transform.Find("Name").GetComponent<Text>();
-            partyhud.m_name.color = color;
-            partyhud.m_gui.transform.position = ValheimMP.Instance.PartyFramesPosition.Value + ValheimMP.Instance.PartyFramesOffset.Value * index;
-            partyhud.m_gui.transform.localScale = ValheimMP.Instance.PartyFramesScale.Value;
-            return partyhud;
+            hud.m_gui = UnityEngine.Object.Instantiate(EnemyHud.instance.m_baseHudPlayer, EnemyHud.instance.m_hudRoot.transform);
+            hud.m_gui.SetActive(value: true);
+            hud.m_healthRoot = hud.m_gui.transform.Find("Health").gameObject;
+            hud.m_healthFast = hud.m_healthRoot.transform.Find("health_fast").GetComponent<GuiBar>();
+            hud.m_healthSlow = hud.m_healthRoot.transform.Find("health_slow").GetComponent<GuiBar>();
+            hud.m_name = hud.m_gui.transform.Find("Name").GetComponent<Text>();
+            var pos = ValheimMP.Instance.PartyFramesPosition.Value;
+            if (pos.x < 0) pos.x = Screen.width + pos.x;
+            if (pos.y < 0) pos.y = Screen.height + pos.y;
+
+            hud.m_gui.transform.position = pos + ValheimMP.Instance.PartyFramesOffset.Value * index;
+            hud.m_gui.transform.localScale = ValheimMP.Instance.PartyFramesScale.Value;
+            return hud;
         }
 
         [HarmonyPatch(typeof(EnemyHud), "ShowHud")]
@@ -95,20 +124,21 @@ namespace ValheimMP.Patches
                 {
                     var color = ValheimMP.Instance.ChatPartyColor.Value;
                     value.m_name.color = color;
-                    value.m_healthFast.m_bar.GetComponent<Image>().color = color * 0.8f;
+                    value.m_healthFast.m_barImage.color = color * 0.8f;
                 }
                 else if (ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(ZNet.instance.GetUID(), player.GetPlayerID(), Framework.PlayerGroupType.Clan))
                 {
                     var color = ValheimMP.Instance.ChatPartyColor.Value;
                     value.m_name.color = color;
-                    value.m_healthFast.m_bar.GetComponent<Image>().color = color * 0.8f;
+                    value.m_healthFast.m_barImage.color = color * 0.8f;
                 }
                 else
                 {
                     value.m_name.color = Color.white;
-                    value.m_healthFast.m_bar.GetComponent<Image>().color = new Color(1, 0.12f, 0.12f);
+                    value.m_healthFast.m_barImage.color = new Color(1, 0.12f, 0.12f);
                 }
             }
         }
+
     }
 }

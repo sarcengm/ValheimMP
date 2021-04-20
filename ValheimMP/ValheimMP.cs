@@ -238,6 +238,8 @@ namespace ValheimMP
         public ConfigEntry<Vector3> PartyFramesOffset { get; internal set; }
         public ConfigEntry<Vector3> PartyFramesScale { get; internal set; }
         public ConfigEntry<bool> PartyFramesEnabled { get; internal set; }
+        public ConfigEntry<bool> PartyFramesShowOffline { get; internal set; }
+        public ConfigEntry<bool> PartyFramesShowSelf { get; internal set; }
 
         private ConfigFile m_localizationFile;
         private Dictionary<string, ConfigEntry<string>> m_localizedStrings = new Dictionary<string, ConfigEntry<string>>();
@@ -361,10 +363,12 @@ namespace ValheimMP
             PerfectBlockWindow = Config.Bind("Server", "PerfectBlockWindow", 0.35f, "Window for perfect blocks, 0.25f in Vanilla, 0.35f by default in VMP (slight compensation)");
             PlayerDamageDelay = Config.Bind("Server", "PlayerDamageDelay", 0.1f, "Delay on damage against players (on top of the already established latency delay) to allow for easier blocking.");
 
-            PartyFramesOffset = Config.Bind("Client", "PartyFramesOffset", new Vector3(100, 200), "Offset of each subsequent party member");
-            PartyFramesPosition = Config.Bind("Client", "PartyFramesPosition", new Vector3(0, 50), "Position of the party frames");
+            PartyFramesOffset = Config.Bind("Client", "PartyFramesOffset", new Vector3(0, -30), "Offset of each subsequent party member");
+            PartyFramesPosition = Config.Bind("Client", "PartyFramesPosition", new Vector3(60, -130), "Position of the party frames");
             PartyFramesScale = Config.Bind("Client", "PartyFramesScales", new Vector3(1, 1, 1), "Scale of the party frames");
             PartyFramesEnabled = Config.Bind("Client", "PartyFramesEnabled", true, "Party frames enabled");
+            PartyFramesShowOffline = Config.Bind("Client", "PartyFramesShowOffline", true, "If offline members are shown in the party frame");
+            PartyFramesShowSelf = Config.Bind("Client", "PartyFramesShowSelf", false, "If you are shown in the party frame yourself");
 
             foreach (Heightmap.Biome val in typeof(Heightmap.Biome).GetEnumValues())
             {
