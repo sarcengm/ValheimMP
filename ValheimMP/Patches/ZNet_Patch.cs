@@ -290,6 +290,20 @@ namespace ValheimMP.Patches
 
                 Minimap.instance.m_hasGenerated = false;
 
+                string serverIdentifier;
+
+                if (ZNet.m_serverSteamID == 0)
+                {
+                    ZNet.m_serverIPAddr.ToString(out serverIdentifier, bWithPort: true);
+                }
+                else
+                {
+                    serverIdentifier = ZNet.m_serverSteamID.ToString();
+                }
+
+                Game.instance.m_playerProfile = new PlayerProfile(serverIdentifier.Replace(":", "_"));
+                Game.instance.m_playerProfile.Load();
+
                 Game.instance.m_firstSpawn = true;
                 Game.instance.GetPlayerProfile().m_playerID = userId;
                 ValheimMP.Log("Connected to Valheim MP Server: " + valheimMPIdentifier + valheimMPVersion);

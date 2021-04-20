@@ -2,6 +2,15 @@
 
 Valheim MP or VMP for short is Valheim mod designed to make all authority server based. With the goal of stopping the most offensive cheats and allowing for better public servers.
 
+## Down sides!
+
+Before considering the features consider the biggest downsides:
+
+- Latency! all actions are performed by the server, although an amount of simulation was already added a lot is fully controlled by the server, so latency to all those actions apply.
+
+- Server performance, the vanilla server basically does nothing, and this one basically does *everything* so it will obviously take a lot more performance out of it. Althought I have already optimized quite a few things, there is still al lot to be tested and optimized.
+
+
 ## Features
 
 - Overal network optimizations, send less! Also, have the serve actually send, not clients, clients will send around 4kb/s max (though slightly dependend on settings), no more clients handling an area they dont have the network capacity for.
@@ -21,7 +30,7 @@ Valheim MP or VMP for short is Valheim mod designed to make all authority server
 
 - Chat commands (Easily created with server side only mods, allowing things such as \/teleport, type \/help in game for an actual list.)
 
-- Full inventory networking; Making it impossible for clients to cheat items, since the server is in full control of them. As a nice side effect, there is no longer a need to lock chests to a single person use, and so multiple users can access the same chest without issues (In vanilla this is impossible without risk of duplication and item loss). And for mods there are several utility extensions to make life easier when networking items.
+- Full inventory networking; Making it impossible for clients to cheat items, since the server is in full control of them. There is also no longer a need to lock chests to a single person use, and so multiple users can access the same chest without issues (In vanilla this is impossible without risk of duplication and item loss). And for mods there are several utility extensions to make life easier when networking items.
 
 - Party system and clan system. 
   - Allowing you to form parties and clans. 
@@ -29,6 +38,11 @@ Valheim MP or VMP for short is Valheim mod designed to make all authority server
   - Send messages to only your party or clan. 
   - Party and Clan members can not damage each other. 
   - Party and Clan are both persitant if you leave and rejoin later.
+  - Reviving of fallen Party and Clan members.
+  - Ward access modes to allow clan or party members.
+  - Simple party frames (showing health of party members)
+
+- Forced PVP; based on distance from the center or based on biome (configurable)
 
 - ValheimMP Extension functions and events for modders.
 
@@ -36,7 +50,7 @@ Valheim MP or VMP for short is Valheim mod designed to make all authority server
 
 - Environment manager currently doesn't work in mp, and there need to be several changes done to make it work on an authoritive server.
 - Fishing? I havent tried it at all, but I assume it's somewhat unuseable with an authoritive server as is.
-- Player map markers? *I will probably* sync these at some point. (Probably with support for clan or party level markers)
+- Player map markers? *I will probably* sync these at some point. (Probably with support for clan and party level markers)
 
 
 ## Known issues 
@@ -60,8 +74,9 @@ For all other mods, as long as they do not actively try to take control of objec
 
 ## Continues tweaks
 
-- Tweak all movement related syncing
-- Tweak all combat related syncing
+- All movement related syncing (I'm still not happy about it, I feel I need to give a little more control to the client)
+- All combat related syncing
+- Server performance
 - Allow for better interfaces to act as library.
 
 
