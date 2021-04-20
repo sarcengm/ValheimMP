@@ -363,9 +363,11 @@ FodyWeavers.xsd
 
 /assembly_valheim
 /*.bat
-/ValheimMPTests
+/ValheimMP.Tests
 /ValheimMP.sln
 /ValheimMP/Properties/launchSettings.json
 /*.exe
 /Empty
 /Libs
+/Package
+/*.ahk

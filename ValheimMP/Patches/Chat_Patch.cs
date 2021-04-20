@@ -24,7 +24,10 @@ namespace ValheimMP.Patches
                 __instance.m_chatBuffer.Clear();
                 __instance.AddString(Localization.instance.Localize("/w [text] - $chat_whisper"));
                 __instance.AddString(Localization.instance.Localize("/s [text] - $chat_shout"));
-                __instance.AddString(Localization.instance.Localize("Modes: " + chatModes.Join()));
+                __instance.AddString(Localization.instance.Localize("/g [text] - $vmp_Global"));
+                __instance.AddString(Localization.instance.Localize("/p [text] - $vmp_Party"));
+                __instance.AddString(Localization.instance.Localize("/c [text] - $vmp_Clan"));
+                __instance.AddString(Localization.instance.Localize("Press <color=green>Page Up</color> and <color=green>Page Down</color> to scroll through the chat."));
                 __instance.AddString(Localization.instance.Localize("/help for a list of commands"));
                 __instance.AddString("");
                 ZRoutedRpc.instance.m_functions.Remove("ChatMessage".GetHashCode());

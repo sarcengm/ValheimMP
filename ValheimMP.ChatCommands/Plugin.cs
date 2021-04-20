@@ -73,13 +73,16 @@ namespace ValheimMP.ChatCommands
             Instance.Logger.LogInfo(message);
         }
 
-        [ChatCommand("Help", "List all available commands, or show more info about a certain command.", aliases: new[] { "H", "?" })]
-        private void Command_Help(ZNetPeer peer, string command = null)
+        [ChatCommand("Help", "List all available commands, or show more info about a certain command.", aliases: new[] { "H", "?" }, executionLocation: CommandExecutionLocation.Both)]
+        private void Command_Help(OnChatMessageArgs chatargs, ZNetPeer peer, string command = null)
         {
             if (string.IsNullOrWhiteSpace(command))
             {
                 var sb = new StringBuilder();
                 IEnumerable<ChatCommandManager.CommandInfo> commands = ValheimMP.Instance.ChatCommandManager.GetCommands();
+
+                if (!ValheimMP.IsDedicated)
+                    commands = commands.Where(k => k.Command.ExecutionLocation == CommandExecutionLocation.Client);
 
                 if (!peer.IsAdmin())
                     commands = commands.Where(k => !k.Command.AdminRequired);
@@ -91,10 +94,15 @@ namespace ValheimMP.ChatCommands
                 }
 
                 peer.SendServerMessage(sb.ToString());
+
+                chatargs.SuppressMessage = ValheimMP.IsDedicated;
             }
             else
             {
                 IEnumerable<ChatCommandManager.CommandInfo> commands = ValheimMP.Instance.ChatCommandManager.GetCommands();
+
+                if (!ValheimMP.IsDedicated)
+                    commands = commands.Where(k => k.Command.ExecutionLocation == CommandExecutionLocation.Client);
 
                 if (!peer.IsAdmin())
                     commands = commands.Where(k => !k.Command.AdminRequired);
@@ -104,15 +112,23 @@ namespace ValheimMP.ChatCommands
                 {
                     var sb = new StringBuilder();
                     sb.AppendLine(ChatCommandManager.GetCommandSyntax(foundCommand));
-                    sb.AppendLine($"\n<i>{foundCommand.Command.Description}</i>\n");
+                    sb.AppendLine($"<i>{foundCommand.Command.Description}</i>");
                     var aliases = foundCommand.Command.GetAliases();
                     if (aliases.Length > 1)
-                        sb.AppendLine($"Aliases: {aliases.Join()}\n");
+                        sb.AppendLine($"Aliases: {aliases.Join()}");
                     peer.SendServerMessage(sb.ToString());
                 }
                 else
                 {
-                    peer.SendServerMessage($"Chat command \"{command}\" not found.");
+                    if (ValheimMP.IsDedicated)
+                    {
+                        peer.SendServerMessage($"Chat command \"{command}\" not found.");
+                    }
+                    else
+                    {
+                        // Client passes the help command to the server if it can't find the command
+                        chatargs.SuppressMessage = false;
+                    }
                 }
             }
         }
@@ -250,8 +266,8 @@ namespace ValheimMP.ChatCommands
             var player = target.GetPlayer();
 
             var item = ObjectDB.instance.GetItemPrefab(itemName);
-            
-            if(item == null)
+
+            if (item == null)
             {
                 peer.SendServerMessage($"No such item found, item names are case sensitive.");
                 return;
@@ -259,7 +275,7 @@ namespace ValheimMP.ChatCommands
 
             // we simply call this to make sure it works, invalid items will throw an exception, perfect handling!
             try { _ = item.GetComponent<ItemDrop>().m_itemData.GetIcon(); }
-            catch(Exception)
+            catch (Exception)
             {
                 peer.SendServerMessage($"The item specified is an invalid inventory item.");
                 return;
@@ -557,7 +573,7 @@ namespace ValheimMP.ChatCommands
             man.CreateGroup(peer, PlayerGroupType.Clan, clanName);
         }
 
-        
+
 
         [ChatCommand("ClanAcceptInvite", "Accept an invite to a clan invitation of the target", aliases: new[] { "CA", "ClanAccept" })]
         private void Command_ClanAcceptInvite(ZNetPeer peer, ZNetPeer target)
@@ -623,7 +639,7 @@ namespace ValheimMP.ChatCommands
         }
 
 
-        [ChatCommand("SetActiveArea", "Better not touch this unless you want to destroy the server.", requireAdmin:true)]
+        [ChatCommand("SetActiveArea", "Better not touch this unless you want to destroy the server.", requireAdmin: true)]
         private void DebugCommand_SetActiveArea(ZNetPeer peer, int area = -1)
         {
             if (area >= 0)
@@ -636,7 +652,7 @@ namespace ValheimMP.ChatCommands
 
         [ChatCommand("Stats", "Server FPS, or rather latest delta time", requireAdmin: true)]
         private void DebugCommand_Stats(ZNetPeer peer)
-        {           
+        {
             peer.SendServerMessage(
                 $"Time.deltaTime: {Time.deltaTime} ({1f / Time.deltaTime} fps)\n" +
                 $"Instances: {ZNetScene.instance?.m_instances.Count}\n" +
@@ -647,6 +663,32 @@ namespace ValheimMP.ChatCommands
         private void DebugCommand_SaveWorld(ZNetPeer peer)
         {
             ZNet.instance.SaveWorld(false);
+        }
+
+        [ChatCommand("PartyFrames", "Toggles party frames or sets the position, offset or scale", aliases: new[] { "pf" }, executionLocation: CommandExecutionLocation.Client)]
+        private void ChatCommand_PartyFrames(string setting = "", float x = 0, float y = 0)
+        {
+            if (string.IsNullOrEmpty(setting))
+            {
+                ValheimMP.Instance.PartyFramesEnabled.Value = !ValheimMP.Instance.PartyFramesEnabled.Value;
+            }
+
+            else if (setting == "position")
+            {
+                ValheimMP.Instance.PartyFramesPosition.Value = new Vector3(x, y);
+            }
+
+            else if (setting == "offset")
+            {
+                ValheimMP.Instance.PartyFramesPosition.Value = new Vector3(x, y);
+            }
+
+            else if (setting == "scale")
+            {
+                ValheimMP.Instance.PartyFramesScale.Value = new Vector3(x, y);
+            }
+
+            EnemyHudExtension.ClearPartyFrames();
         }
     }
 }

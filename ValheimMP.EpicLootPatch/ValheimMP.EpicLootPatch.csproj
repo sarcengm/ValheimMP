@@ -103,4 +103,7 @@
       <HintPath>$(GameDir)\unstripped_corlib\UnityEngine.UIModule.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="&quot;$(SolutionDir)pdb2mdb.exe&quot; &quot;$(TargetDir)$(TargetFileName)&quot;&#xD;&#xA;xcopy &quot;$(TargetDir)$(TargetName).*&quot; &quot;$(SolutionDir)\Package\BepInEx\plugins\ValheimMP\&quot; /q /y /i" />
+  </Target>
 </Project>

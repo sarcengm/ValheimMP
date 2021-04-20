@@ -10,8 +10,6 @@ namespace ValheimMP.Patcher
         // List of assemblies to patch
         public static IEnumerable<string> TargetDLLs { get; } = new[] { "assembly_valheim.dll" };
 
-
-
         // Patches the assemblies
         public static void Patch(AssemblyDefinition assembly)
         {

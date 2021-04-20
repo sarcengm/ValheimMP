@@ -8,9 +8,8 @@ using ValheimMP.Framework;
 
 namespace ValheimMP.Patches
 {
-
     [HarmonyPatch]
-    public class ZDOMan_Patch
+    internal class ZDOMan_Patch
     {
         [HarmonyPatch(typeof(ZDOMan), MethodType.Constructor, new[] { typeof(int) })]
         [HarmonyPostfix]
@@ -526,7 +525,7 @@ namespace ValheimMP.Patches
             }
         }
 
-        public static bool SerializeZDOFor(ZDOMan.ZDOPeer peer, ref ZPackage zdoPkg, ref ZDO zdo, ref ZDO clientZDO)
+        internal static bool SerializeZDOFor(ZDOMan.ZDOPeer peer, ref ZPackage zdoPkg, ref ZDO zdo, ref ZDO clientZDO)
         {
             var valheimMP = ValheimMP.Instance;
 
@@ -1014,7 +1013,7 @@ namespace ValheimMP.Patches
             return false;
         }
 
-        public static void DeserializeZDO(ref ZPackage zdoPkg, ref ZDO zdo, ref List<Action<ZDO>> updateEvents)
+        internal static void DeserializeZDO(ref ZPackage zdoPkg, ref ZDO zdo, ref List<Action<ZDO>> updateEvents)
         {
             zdo.m_uid = zdoPkg.ReadZDOID();
 

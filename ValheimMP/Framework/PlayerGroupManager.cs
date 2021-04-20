@@ -151,6 +151,7 @@ namespace ValheimMP.Framework
             foreach (var group in Groups.Values)
             {
                 group.m_manager = this;
+                group.MemberList = group.Members.Values.ToList();
                 foreach (var member in group.Members.Values)
                 {
                     addToGroupsByPlayer(group, member);
@@ -170,7 +171,7 @@ namespace ValheimMP.Framework
             // Clients only know their own group, so check if characters are in their group rather then the other way around
             // because a GroupByPlayerId will fail on them.
             // Possibly I should just store the group and party id in the zdo? It would probably result in more reliable checking in all cases
-            if(!ValheimMP.IsDedicated && ZNet.instance.GetUID() == playerId2)
+            if (!ValheimMP.IsDedicated && ZNet.instance.GetUID() == playerId2)
             {
                 var swap = playerId1;
                 playerId1 = playerId2;
@@ -331,7 +332,8 @@ namespace ValheimMP.Framework
         {
             if (Groups.TryGetValue(groupId, out var group))
             {
-                group.Members.Remove(playerId);
+                group.RemoveMember(playerId);
+
                 if (group.Members.Count == 0 || playerId == ZNet.instance.GetUID())
                 {
                     Groups.Remove(groupId);
@@ -418,12 +420,13 @@ namespace ValheimMP.Framework
 
                 if (newGroup)
                 {
-                    foreach (var member in group.Members)
+                    for (int j = 0; j < group.MemberList.Count; j++)
                     {
-                        if (!GroupsByPlayerID.TryGetValue(member.Key, out var playerGroups))
+                        var member = group.MemberList[j];
+                        if (!GroupsByPlayerID.TryGetValue(member.Id, out var playerGroups))
                         {
                             playerGroups = new List<PlayerGroup>();
-                            GroupsByPlayerID.Add(member.Key, playerGroups);
+                            GroupsByPlayerID.Add(member.Id, playerGroups);
                         }
                         playerGroups.Add(group);
                     }
@@ -670,6 +673,8 @@ namespace ValheimMP.Framework
         public string Name { get; internal set; }
         [JsonProperty]
         public PlayerGroupType GroupType { get; internal set; }
+        [JsonIgnore]
+        public List<PlayerGroupMember> MemberList { get; set; } = new();
         [JsonProperty]
         public Dictionary<long, PlayerGroupMember> Members { get; private set; } = new();
         [JsonProperty]
@@ -704,7 +709,7 @@ namespace ValheimMP.Framework
         {
             if (Members.TryGetValue(peer.m_uid, out var member))
             {
-                Members.Remove(peer.m_uid);
+                RemoveMember(peer.m_uid);
                 m_manager.playerLeaveGroup(this, member);
             }
         }
@@ -713,7 +718,7 @@ namespace ValheimMP.Framework
         {
             if (Members.TryGetValue(peer.m_uid, out var member))
             {
-                Members.Remove(peer.m_uid);
+                RemoveMember(peer.m_uid);
                 m_manager.playerKick(this, member);
             }
         }
@@ -742,7 +747,8 @@ namespace ValheimMP.Framework
                 MemberSince = DateTime.Now,
                 Rank = Members.Count == 0 ? 0 : int.MaxValue,
             };
-            Members.Add(peer.m_uid, newMember);
+
+            AddMember(peer.m_uid, newMember);
             m_manager.playerJoin(this, newMember);
             return newMember;
         }
@@ -754,9 +760,9 @@ namespace ValheimMP.Framework
         }
         public void SendServerMessage(string text, params string[] args)
         {
-            foreach (var member in Members.Values)
+            for (int i = 0; i < MemberList.Count; i++)
             {
-                member.Peer?.SendServerMessage(text, args);
+                MemberList[i].Peer?.SendServerMessage(text, args);
             }
         }
 
@@ -764,9 +770,9 @@ namespace ValheimMP.Framework
         {
             var messageType = GroupType == PlayerGroupType.Party ? ChatMessageType.Party : (GroupType == PlayerGroupType.Clan ? ChatMessageType.Clan : ChatMessageType.Normal);
 
-            foreach (var member in Members.Values)
+            for (int i = 0; i < MemberList.Count; i++)
             {
-                member.Peer?.SendChatMessage(peer, text, messageType);
+                MemberList[i].Peer?.SendChatMessage(peer, text, messageType);
             }
         }
 
@@ -863,11 +869,25 @@ namespace ValheimMP.Framework
                 if (!Members.TryGetValue(id, out var member))
                 {
                     member = new PlayerGroupMember();
-                    Members.Add(id, member);
+                    AddMember(id, member);
                 }
 
                 member.Deserialize(pkg, flags);
             }
+        }
+
+        internal void RemoveMember(long playerId)
+        {
+            if (Members.Remove(playerId))
+            {
+                MemberList.RemoveAt(MemberList.FindIndex(k => k.Id == playerId));
+            }
+        }
+
+        internal void AddMember(long m_uid, PlayerGroupMember newMember)
+        {
+            Members.Add(m_uid, newMember);
+            MemberList.Add(newMember);
         }
     }
 }

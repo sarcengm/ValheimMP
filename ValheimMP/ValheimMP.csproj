@@ -13,6 +13,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <OutputPath></OutputPath>
   </PropertyGroup>
   <PropertyGroup Label="UserMacros">
     <GameDir>C:\Program Files (x86)\Steam\SteamApps\common\Valheim</GameDir>
@@ -24,6 +25,16 @@
       <EnvironmentVariable>true</EnvironmentVariable>
     </BuildMacro>
   </ItemGroup>
+
+  <PropertyGroup>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>ValheimMP.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\assembly_valheim\assembly_valheim.csproj" />
   </ItemGroup>
@@ -100,4 +111,7 @@
       <HintPath>$(GameDir)\unstripped_corlib\UnityEngine.UIModule.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="&quot;$(SolutionDir)pdb2mdb.exe&quot; &quot;$(TargetDir)$(TargetFileName)&quot;&#xD;&#xA;xcopy &quot;$(TargetDir)$(TargetName).*&quot; &quot;$(SolutionDir)\Package\BepInEx\plugins\ValheimMP\&quot; /q /y /i&#xD;&#xA;xcopy &quot;$(TargetDir)fastJSON.dll&quot; &quot;$(SolutionDir)\Package\BepInEx\plugins\ValheimMP\&quot; /q /y /i&#xD;&#xA;" />
+  </Target>
 </Project>

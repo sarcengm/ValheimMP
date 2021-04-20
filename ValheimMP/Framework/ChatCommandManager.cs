@@ -171,7 +171,9 @@ namespace ValheimMP.Framework
                 if (param.Name == "chatargs" && param.ParameterType == typeof(OnChatMessageArgs))
                     continue;
 
-                var argstr = $"{param.ParameterType.Name}: {param.Name}";
+                string displayName = GetTypeDisplayName(param.ParameterType);
+
+                var argstr = $"{displayName}: {param.Name}";
 
                 if (param.IsOptional)
                 {
@@ -183,6 +185,27 @@ namespace ValheimMP.Framework
 
             var str = CommandToken + command.m_command.m_name + " " + paramstr.Join();
             return str;
+        }
+
+        private static string GetTypeDisplayName(Type type)
+        {
+            var actualType = Nullable.GetUnderlyingType(type) ?? type;
+            string displayName;
+
+            if (actualType == typeof(Single))
+            {
+                displayName = "Float";
+            }
+            else if(actualType == typeof(ZNetPeer))
+            {
+                displayName = "Player";
+            }
+            else
+            {
+                displayName = actualType.Name;
+            }
+
+            return displayName;
         }
 
         public void ExecuteCommand(OnChatMessageArgs args, CommandInfo command, string parameters)

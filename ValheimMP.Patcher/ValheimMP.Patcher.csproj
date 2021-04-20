@@ -52,4 +52,7 @@
       <HintPath>..\..\..\..\Program Files (x86)\Steam\SteamApps\common\Valheim\valheim_Data\Managed\UnityEngine.ScreenCaptureModule.dll</HintPath>
     </Reference>
   </ItemGroup>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="&quot;$(SolutionDir)pdb2mdb.exe&quot; &quot;$(TargetDir)$(TargetFileName)&quot;&#xD;&#xA;xcopy &quot;$(TargetDir)$(TargetName).*&quot; &quot;$(SolutionDir)\Package\BepInEx\patchers\ValheimMP\&quot; /q /y /i" />
+  </Target>
 </Project>
