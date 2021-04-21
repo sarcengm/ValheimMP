@@ -71,7 +71,7 @@ namespace ValheimMP.Patcher
                 ZNetPeerType.Fields.Add(new FieldDefinition("m_lastMoveFlags", FieldAttributes.Private, IntType));
                 ZNetPeerType.Fields.Add(new FieldDefinition("m_lastMoveDir", FieldAttributes.Private, Vector3Type));
                 ZNetPeerType.Fields.Add(new FieldDefinition("m_lastSector", FieldAttributes.Private, Vector2iType));
-                
+
                 var m_loadedSectors = new FieldDefinition("m_loadedSectors", FieldAttributes.Private,
                     assembly.MainModule.ImportReference(typeof(System.Collections.Generic.Dictionary<,>))
                     .MakeGenericInstanceType(Vector2iType,

@@ -36,6 +36,8 @@ namespace ValheimMP.Patches
             return true;
         }
 
+        internal static bool respawnRequest = true;
+
         [HarmonyPatch(typeof(Game), "_RequestRespawn")]
         [HarmonyPrefix]
         private static bool _RequestRespawn(Game __instance)
@@ -43,12 +45,15 @@ namespace ValheimMP.Patches
             if (ValheimMP.IsDedicated)
                 return false;
 
+            if (respawnRequest)
+                return false;
+
             if (Player.m_localPlayer != null)
                 ZNetScene.instance.Destroy(Player.m_localPlayer.gameObject);
             Player.m_localPlayer = null;
             ZNet.instance.SetCharacterID(ZDOID.None);
-            
 
+            respawnRequest = true;
             ZRoutedRpc.instance.InvokeRoutedRPC(ZNet.instance.GetServerPeer().m_uid, "RequestRespawn");
             MusicMan.instance.TriggerMusic("respawn");
             return false;
@@ -85,7 +90,7 @@ namespace ValheimMP.Patches
             {
                 peer.m_respawnWait -= dt;
 
-                if (peer.m_requestRespawn)
+                if (peer.m_requestRespawn && (!peer.m_player || peer.m_player.IsDead()))
                 {
                     if (peer.m_respawnWait > 0.0)
                     {
@@ -113,6 +118,7 @@ namespace ValheimMP.Patches
 
                         SpawnPlayer(ref __instance, peer, point);
                         peer.m_requestRespawn = false;
+                        peer.m_respawnWait = 60f; // if we don't have one within 60sec we can try again, otherwise stop complaining!
 
                         peer.m_rpc.Invoke("RefPos", peer.m_player.transform.position, false);
 

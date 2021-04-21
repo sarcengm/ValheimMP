@@ -11,7 +11,7 @@ namespace ValheimMP.Patches
         private static bool Awake(Ladder __instance)
         {
             var m_nview = __instance.GetComponentInParent<ZNetView>();
-            if (m_nview && ZNet.instance != null && ZNet.instance.IsServer())
+            if (m_nview && ZNet.instance && ZNet.instance.IsServer())
             {
                 if (!m_nview.m_functions.ContainsKey("ClimbLadder".GetStableHashCode()))
                 {

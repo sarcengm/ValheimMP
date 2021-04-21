@@ -11,7 +11,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Awake(ItemStand __instance)
         {
-            if (__instance.m_nview != null && ZNet.instance.IsServer())
+            if (__instance.m_nview && ZNet.instance.IsServer())
             {
                 __instance.m_nview.Register("DelayedPowerActivation", (long sender) =>
                 {

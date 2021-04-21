@@ -12,11 +12,11 @@ namespace ValheimMP.Patches
         {
             if (ValheimMP.IsDedicated)
             {
-                if (__instance.m_nview == null || !__instance.m_nview.IsValid() || __instance.m_hitAreas == null)
+                if (!__instance.m_nview || !__instance.m_nview.IsValid() || __instance.m_hitAreas == null)
                 {
                     return false;
                 }
-                if (hit.m_hitCollider == null)
+                if (!hit.m_hitCollider)
                 {
                     ValheimMP.Log("Minerock hit has no collider");
                     return false;

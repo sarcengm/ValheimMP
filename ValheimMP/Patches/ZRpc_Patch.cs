@@ -25,7 +25,7 @@ namespace ValheimMP.Patches
                 __instance.m_pingTime = Time.realtimeSinceStartup;
                 __instance.m_pingTimer = 0f;
                 __instance.m_pkg.Clear();
-                __instance.m_pkg.Write(0);
+                __instance.m_pkg.Write(1);
                 __instance.SendPackage(__instance.m_pkg);
             }
             __instance.m_timeSinceLastPing += dt;
@@ -38,12 +38,10 @@ namespace ValheimMP.Patches
             return false;
         }
 
-        [HarmonyPatch(typeof(ZRpc), "ReceivePing")]
-        [HarmonyPrefix]
         private static bool ReceivePing(ZRpc __instance, ZPackage package)
         {
             __instance.m_pkg.Clear();
-            __instance.m_pkg.Write(1);
+            __instance.m_pkg.Write(2);
             __instance.SendPackage(__instance.m_pkg);
             return false;
         }
@@ -67,7 +65,11 @@ namespace ValheimMP.Patches
             {
                 __instance.ReceivePing(package);
             }
-            else if(num == 1)
+            else if (num == 1)
+            {
+                ReceivePing(__instance, package);
+            }
+            else if(num == 2)
             {
                 ReceivePong(__instance, package);
             }

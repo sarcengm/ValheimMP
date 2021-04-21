@@ -12,7 +12,11 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool Awake(ref SpawnSystem __instance)
         {
-            __instance.GetComponent<ZNetView>().m_type = (ZDO.ObjectType)(-1);
+            var nview = __instance.GetComponent<ZNetView>();
+            if (nview)
+            {
+                nview.m_type = (ZDO.ObjectType)(-1);
+            }
 
             if (!ZNet.instance.IsServer())
             {
@@ -27,7 +31,7 @@ namespace ValheimMP.Patches
         [HarmonyPrefix]
         private static bool UpdateSpawning(SpawnSystem __instance)
         {
-            if (!__instance.m_nview.IsValid() || !__instance.m_nview.IsOwner())
+            if (!__instance.m_nview || !__instance.m_nview.IsValid() || !__instance.m_nview.IsOwner())
                 return false;
 
             __instance.m_nearPlayers.Clear();

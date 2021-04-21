@@ -12,7 +12,7 @@ namespace ValheimMP.Patches
         {
             ValheimMP.Instance.InventoryManager.Register(__instance.m_inventory, __instance.m_nview);
             
-            if (__instance.m_nview != null)
+            if (__instance.m_nview)
             {
                 if (__instance.m_nview.m_zdo != null)
                 {

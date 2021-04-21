@@ -21,7 +21,10 @@ namespace ValheimMP.Framework.Extensions
 
         public static ZNetView GetNetView(this Trader trader)
         {
-            return trader.GetComponentInParent<ZNetView>();
+            var nview = trader.GetComponentInParent<ZNetView>();
+            if (nview)
+                return nview;
+            return null;
         }
 
         public static void SellItem(this Trader trader, int itemId, int itemCount)

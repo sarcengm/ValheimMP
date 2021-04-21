@@ -13,7 +13,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Awake(PrivateArea __instance)
         {
-            if (ValheimMP.IsDedicated)
+            if (ValheimMP.IsDedicated && __instance.m_nview)
             {
                 __instance.m_nview.Register("CycleAllowMode", (long sender) =>
                 {

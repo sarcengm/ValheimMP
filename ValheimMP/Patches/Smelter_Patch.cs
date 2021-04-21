@@ -11,7 +11,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Awake(Smelter __instance)
         {
-            if (__instance.m_nview != null)
+            if (__instance.m_nview)
             {
                 __instance.m_nview.Unregister("AddOre");
                 __instance.m_nview.Unregister("AddFuel");

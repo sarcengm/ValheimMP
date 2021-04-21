@@ -9,7 +9,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Awake(ref TimedDestruction __instance)
         {
-            if (ZNet.instance != null && !ZNet.instance.IsServer())
+            if (ZNet.instance && !ZNet.instance.IsServer())
             {
                 //DebugMod.LogComponent(__instance, "TimedDestruction on non-server.");
             }

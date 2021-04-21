@@ -18,7 +18,7 @@ namespace ValheimMP.Patches
         [HarmonyPostfix]
         private static void Awake(Humanoid __instance)
         {
-            if (ZNet.instance != null && ZNet.instance.IsServer())
+            if (ZNet.instance && ZNet.instance.IsServer())
             {
                 __instance.m_nview.Register("EquipItem", (long sender, int itemId, bool triggerEquipEffects) =>
                 {

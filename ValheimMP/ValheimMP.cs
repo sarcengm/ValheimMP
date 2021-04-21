@@ -25,7 +25,7 @@ namespace ValheimMP
         #region Constants
         public const string Author = "Sarcen";
         public const string PluginName = "ValheimMP";
-        public const string Version = "0.1.0";
+        public const string Version = "0.1.1";
         public const string BepInGUID = "BepIn." + Author + "." + PluginName;
         public const string HarmonyGUID = "Harmony." + Author + "." + PluginName;
         public const string ProtocolIdentifier = "VMP";

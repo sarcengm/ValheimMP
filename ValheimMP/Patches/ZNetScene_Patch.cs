@@ -224,10 +224,9 @@ namespace ValheimMP.Patches
 
                 if (!obj.PendingObjectsLoaded)
                 {
-                    // this is more than heavy enough to only do this during a frame, so fill the list and do the rest next frame!
                     ZDOMan.instance.FindObjects(new Vector2i(obj.x, obj.y), obj.PendingObjects);
                     obj.PendingObjectsLoaded = true;
-                    //ValheimMP.Log($"LoadSectors (FindObjects): {sw.GetElapsedMilliseconds()}", sw.GetElapsedMilliseconds() > 10f ? BepInEx.Logging.LogLevel.Warning : BepInEx.Logging.LogLevel.Info);
+                    //ValheimMP.Log($"LoadSectors (FindObjects): {obj.x}, {obj.y} obj.PendingObjects {obj.PendingObjects.Count} ms {sw.GetElapsedMilliseconds()}", sw.GetElapsedMilliseconds() > 10f ? BepInEx.Logging.LogLevel.Warning : BepInEx.Logging.LogLevel.Info);
                     return;
                 }
 
@@ -249,7 +248,7 @@ namespace ValheimMP.Patches
                         m_createdThisFrame++;
                         if (m_createdThisFrame >= m_maxCreatedPerFrame || sw.GetElapsedMilliseconds() > 5f)
                         {
-                            //ValheimMP.Log($"LoadSectors (Create Limit): {m_createdThisFrame} {sw.GetElapsedMilliseconds()}", sw.GetElapsedMilliseconds() > 10f ? BepInEx.Logging.LogLevel.Warning : BepInEx.Logging.LogLevel.Info);
+                            //ValheimMP.Log($"LoadSectors (Create Limit): {obj.x}, {obj.y} m_createdThisFrame {m_createdThisFrame} ms {sw.GetElapsedMilliseconds()}", sw.GetElapsedMilliseconds() > 10f ? BepInEx.Logging.LogLevel.Warning : BepInEx.Logging.LogLevel.Info);
                             return;
                         }
                     }
@@ -263,7 +262,7 @@ namespace ValheimMP.Patches
 
                 if (list.Count == 0)
                 {
-                    //ValheimMP.Log($"Loaded sector {obj.x}, {obj.y}");
+                    //ValheimMP.Log($"Loaded sector {obj.x}, {obj.y} m_createdThisFrame {m_createdThisFrame} ms {sw.GetElapsedMilliseconds()}");
                     m_pendingLoadSectors.RemoveAt(0);
                     m_fullyLoadedSectors.Add(new Vector2i(obj.x, obj.y));
                 }

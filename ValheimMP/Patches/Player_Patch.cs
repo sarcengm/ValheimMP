@@ -434,7 +434,7 @@ namespace ValheimMP.Patches
 
             player.m_nview.InvokeRPC(ZNet.instance.GetServerPeer().m_uid, "PlayerReady");
             player.m_firstSpawn = false;
-
+            Game_Patch.respawnRequest = false;
             var game = Game.instance;
             if (game.m_firstSpawn)
             {
