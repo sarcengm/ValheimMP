@@ -33,9 +33,9 @@ namespace ValheimMP.Framework
         public event OnGroupMemberOfflineHandler OnGroupMemberOffline;
 
         public delegate void OnPlayerLeaveGroupHandler(PlayerGroup group, PlayerGroupMember member);
-        public delegate void OnPlayerKickGroupHandler(PlayerGroup group, PlayerGroupMember member);
+        public delegate void OnPlayerKickGroupHandler(PlayerGroup group, PlayerGroupMember member, ZNetPeer instigator);
         public delegate void OnPlayerJoinGroupHandler(PlayerGroup group, PlayerGroupMember member);
-        public delegate void OnPlayerInviteGroupHandler(PlayerGroup group, ZNetPeer peer);
+        public delegate void OnPlayerInviteGroupHandler(PlayerGroup group, ZNetPeer peer, ZNetPeer instigator);
         public delegate void OnPlayerAcceptInviteGroupHandler(PlayerGroup group, PlayerGroupMember member);
         public delegate void OnGroupMemberOnlineHandler(PlayerGroup group, PlayerGroupMember member);
         public delegate void OnGroupMemberOfflineHandler(PlayerGroup group, PlayerGroupMember member);
@@ -269,9 +269,9 @@ namespace ValheimMP.Framework
             return newGroup;
         }
 
-        internal void playerInvite(PlayerGroup playerGroup, ZNetPeer target)
+        internal void playerInvite(PlayerGroup playerGroup, ZNetPeer target, ZNetPeer instigator)
         {
-            OnPlayerInviteGroup?.Invoke(playerGroup, target);
+            OnPlayerInviteGroup?.Invoke(playerGroup, target, instigator);
         }
 
         internal void playerJoin(PlayerGroup playerGroup, PlayerGroupMember member)
@@ -280,11 +280,11 @@ namespace ValheimMP.Framework
             OnPlayerJoinGroup?.Invoke(playerGroup, member);
         }
 
-        internal void playerKick(PlayerGroup playerGroup, PlayerGroupMember member)
+        internal void playerKick(PlayerGroup playerGroup, PlayerGroupMember member, ZNetPeer instigator)
         {
             playerRemovedFromGroup(playerGroup, member);
 
-            OnPlayerKickGroup?.Invoke(playerGroup, member);
+            OnPlayerKickGroup?.Invoke(playerGroup, member, instigator);
             if (playerGroup.Members.Count == 0)
             {
                 Groups.Remove(playerGroup.Id);
@@ -735,12 +735,12 @@ namespace ValheimMP.Framework
             }
         }
 
-        public void KickGroup(ZNetPeer peer)
+        public void KickGroup(ZNetPeer peer, ZNetPeer instigator)
         {
             if (Members.TryGetValue(peer.m_uid, out var member))
             {
                 RemoveMember(peer.m_uid);
-                m_manager.playerKick(this, member);
+                m_manager.playerKick(this, member, instigator);
             }
         }
 
@@ -774,10 +774,10 @@ namespace ValheimMP.Framework
             return newMember;
         }
 
-        public void Invite(ZNetPeer target)
+        public void Invite(ZNetPeer target, ZNetPeer instigator)
         {
             PendingInvites.Add(target.m_uid);
-            m_manager.playerInvite(this, target);
+            m_manager.playerInvite(this, target, instigator);
         }
         public void SendServerMessage(string text, params string[] args)
         {

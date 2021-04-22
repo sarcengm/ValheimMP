@@ -10,15 +10,13 @@ namespace ValheimMP.Patches
     [HarmonyPatch]
     internal class OfferingBowl_Patch
     {
-        // Awake on LocationProxy instead of OfferingBowl because Linux servers fatally crash if I try to patch Awake or Start
-        [HarmonyPatch(typeof(LocationProxy), "Awake")]
+        [HarmonyPatch(typeof(LocationProxy), "SpawnLocation")]
         [HarmonyPostfix]
-        private static void Awake(LocationProxy __instance)
+        private static void LocationProxy_SpawnLocation(LocationProxy __instance)
         {
             var offeringBowl = __instance.GetComponentInChildren<OfferingBowl>();
-            if (offeringBowl && __instance.m_nview && ZNet.instance.IsServer())
+            if (offeringBowl && __instance.m_nview && ValheimMP.IsDedicated)
             {
-                // What does this even do? !
                 __instance.m_nview.Register("Interact", (long sender) =>
                 {
                     RPC_Interact(offeringBowl, sender);

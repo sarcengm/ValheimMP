@@ -58,6 +58,9 @@ namespace ValheimMP.Patches
                 if (member.Id == ZNet.instance.GetUID())
                     continue;
 
+                if (member.PlayerZDOID == ZDOID.None)
+                    continue;
+
                 if (!m_partyPinsById.TryGetValue(member.Id, out var pin))
                 {
                     pin = AddPartyPin(__instance);

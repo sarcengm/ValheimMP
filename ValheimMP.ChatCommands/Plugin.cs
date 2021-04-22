@@ -18,7 +18,7 @@ namespace ValheimMP.ChatCommands
     {
         public const string Author = "Sarcen";
         public const string Name = "ValheimMP.ChatCommands";
-        public const string Version = "1.0.0";
+        public const string Version = "1.0.1";
         public const string BepInGUID = "BepIn." + Author + "." + Name;
 
         public static ChatCommands Instance { get; private set; }
@@ -37,10 +37,11 @@ namespace ValheimMP.ChatCommands
             man.OnPlayerLeaveGroup += PlayerGroupManager_OnPlayerLeaveGroup;
 
             var vmp = ValheimMP.Instance;
-            vmp.LocalizeWord("vmp_player_left_group", "{0} left your {1}");
-            vmp.LocalizeWord("vmp_player_kicked_group", "{0} was kicked from your {1}");
-            vmp.LocalizeWord("vmp_player_joined_group", "{0} joined your {1}");
-            vmp.LocalizeWord("vmp_player_invited_group", "{0} was invited to your {1}");
+            vmp.LocalizeWord("vmp_player_left_group", "<color=green>{0}</color> left your <color=green>{1}</color>");
+            vmp.LocalizeWord("vmp_player_kicked_group", "<color=green>{0}</color> was kicked from your <color=green>{1}</color>");
+            vmp.LocalizeWord("vmp_player_joined_group", "<color=green>{0}</color> joined your <color=green>{1}</color>");
+            vmp.LocalizeWord("vmp_player_invited_group", "<color=green>{0}</color> was invited to your <color=green>{1}</color>");
+            vmp.LocalizeWord("vmp_player_invite_group", "You were invited to join <color=green>{0}</color>'s {2} <color=green>{1}</color>");
         }
 
         private void PlayerGroupManager_OnPlayerLeaveGroup(PlayerGroup group, PlayerGroupMember member)
@@ -48,9 +49,9 @@ namespace ValheimMP.ChatCommands
             group.SendServerMessage("$vmp_player_left_group", member.Name, $"$vmp_{group.GroupType}");
         }
 
-        private void PlayerGroupManager_OnPlayerKickGroup(PlayerGroup group, PlayerGroupMember member)
+        private void PlayerGroupManager_OnPlayerKickGroup(PlayerGroup group, PlayerGroupMember member, ZNetPeer instigator)
         {
-            group.SendServerMessage("$vmp_player_kicked_group", member.Name, $"$vmp_{group.GroupType}");
+            group.SendServerMessage("$vmp_player_kicked_group", member.Name, $"$vmp_{group.GroupType}", instigator?.m_playerName);
         }
 
         private void PlayerGroupManager_OnPlayerJoinGroup(PlayerGroup group, PlayerGroupMember member)
@@ -58,14 +59,15 @@ namespace ValheimMP.ChatCommands
             group.SendServerMessage("$vmp_player_joined_group", member.Name, $"$vmp_{group.GroupType}");
         }
 
-        private void PlayerGroupManager_OnPlayerInviteGroup(PlayerGroup group, ZNetPeer peer)
+        private void PlayerGroupManager_OnPlayerInviteGroup(PlayerGroup group, ZNetPeer peer, ZNetPeer instigator)
         {
             group.SendServerMessage("$vmp_player_invited_group", peer.m_playerName, $"$vmp_{group.GroupType}");
+            peer.SendServerMessage("$vmp_player_invite_group", instigator?.m_playerName, group.Name, $"$vmp_{group.GroupType}");
         }
 
         private void PlayerGroupManager_OnPlayerAcceptInvite(PlayerGroup group, PlayerGroupMember member)
         {
-            //member.Peer.SendServerMessage("vmp_player_accept_invite_group", $"vmp_{group.GroupType}");
+            //member.Peer.SendServerMessage("$vmp_player_accept_invite_group", $"vmp_{group.GroupType}");
         }
 
         public static void Log(string message)
@@ -219,6 +221,24 @@ namespace ValheimMP.ChatCommands
             if (peer != target)
             {
                 target.SendServerMessage($"<color=white><color=green><b>{peer.m_playerName}</b></color> set your Godmode to <color=green><b>{player.m_godMode}</b></color>.</color>");
+            }
+        }
+
+        [ChatCommand("Fly", "Toggle fly", requireAdmin: true, aliases: new[] { "Debugfly" })]
+        private void Command_Fly(ZNetPeer peer, ZNetPeer target = null)
+        {
+            if (target == null)
+                target = peer;
+
+            var player = target.GetPlayer();
+
+            player.m_debugFly = !player.m_debugFly;
+            player.m_nview.m_zdo.Set("DebugFly", player.m_debugFly);
+            peer.SendServerMessage($"<color=white>Fly mode for <color=green><b>{player.GetPlayerName()}</b></color> to <color=green><b>{player.m_debugFly}</b></color>.</color>");
+
+            if (peer != target)
+            {
+                target.SendServerMessage($"<color=white><color=green><b>{peer.m_playerName}</b></color> set your Fly mode to <color=green><b>{player.m_debugFly}</b></color>.</color>");
             }
         }
 
@@ -484,7 +504,7 @@ namespace ValheimMP.ChatCommands
             var man = ValheimMP.Instance.PlayerGroupManager;
             var party = man.GetGroupByType(peer.m_uid, PlayerGroupType.Party);
             if (party == null) party = man.CreateGroup(peer, PlayerGroupType.Party);
-            party.Invite(target);
+            party.Invite(target, peer);
         }
 
         [ChatCommand("PartyAcceptInvite", "Accept an invite to a party invitation of the target", aliases: new[] { "Accept", "PA", "PartyAccept" })]
@@ -536,7 +556,7 @@ namespace ValheimMP.ChatCommands
                 return;
             }
 
-            party.KickGroup(target);
+            party.KickGroup(target, peer);
         }
 
         [ChatCommand("PartyChat", "Send a message to your party", aliases: new[] { "P", "Party" })]
@@ -560,7 +580,7 @@ namespace ValheimMP.ChatCommands
             var clan = man.GetGroupByType(peer.m_uid, PlayerGroupType.Clan);
             if (clan == null)
                 return;
-            clan.Invite(target);
+            clan.Invite(target, peer);
         }
 
         [ChatCommand("ClanCreate", "Create a clan")]
@@ -624,7 +644,7 @@ namespace ValheimMP.ChatCommands
                 return;
             }
 
-            clan.KickGroup(target);
+            clan.KickGroup(target, peer);
         }
 
         [ChatCommand("ClanChat", "Send a message to your clan", aliases: new[] { "C", "Clan" })]
@@ -666,7 +686,7 @@ namespace ValheimMP.ChatCommands
         }
 
         [ChatCommand("PartyFrames", "Party frames settings, setting types; enable/disable, position, offset, scale, showself, showoffline.", aliases: new[] { "pf" }, executionLocation: CommandExecutionLocation.Client)]
-        private void ChatCommand_PartyFrames(ZNetPeer peer, string setting = "", float x = 0, float y = 0)
+        private void Command_PartyFrames(ZNetPeer peer, string setting = "", float x = 0, float y = 0)
         {
             setting = setting.ToLower();
 

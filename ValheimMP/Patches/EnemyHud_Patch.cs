@@ -128,7 +128,7 @@ namespace ValheimMP.Patches
                 }
                 else if (ValheimMP.Instance.PlayerGroupManager.ArePlayersInTheSameGroup(ZNet.instance.GetUID(), player.GetPlayerID(), Framework.PlayerGroupType.Clan))
                 {
-                    var color = ValheimMP.Instance.ChatPartyColor.Value;
+                    var color = ValheimMP.Instance.ChatClanColor.Value;
                     value.m_name.color = color;
                     value.m_healthFast.m_barImage.color = color * 0.8f;
                 }

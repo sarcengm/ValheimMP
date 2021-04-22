@@ -193,6 +193,10 @@ namespace ValheimMP.Patches
                 {
                     ZDOEvent_NoPlacementCostChanged(__instance);
                 });
+                zdo.RegisterZDOEvent("DebugFly", (ZDO zdo) =>
+                {
+                    ZDOEvent_DebugFlyChanged(__instance);
+                });
                 zdo.RegisterZDOEvent("ModelIndex", (ZDO zdo) =>
                 {
                     ZDOEvent_PlayerModelChanged(__instance);
@@ -299,6 +303,11 @@ namespace ValheimMP.Patches
         private static void ZDOEvent_NoPlacementCostChanged(Player player)
         {
             player.m_noPlacementCost = player.m_nview.m_zdo.GetBool("noPlacementCost");
+        }
+
+        private static void ZDOEvent_DebugFlyChanged(Player player)
+        {
+            player.m_debugFly = player.m_nview.m_zdo.GetBool("DebugFly");
         }
 
         private static void ZDOEvent_PVPChanged(Player player)
@@ -647,7 +656,7 @@ namespace ValheimMP.Patches
                  __instance.m_currentAttack.m_attackType != Attack.AttackType.None) ||
                 __instance.IsHoldingAttack() ||
                 __instance.m_blocking ||
-                __instance.m_lastMoveFlags == 1)
+                __instance.m_lastMoveFlags > 0)
             {
                 __result = true;
                 return false;
@@ -1027,6 +1036,10 @@ namespace ValheimMP.Patches
         {
             var peer = ZNet.instance.GetPeer(rpc);
             var player = peer.m_player;
+
+            if (!player || player.IsDead())
+                return;
+
             Vector3 movedir = pkg.ReadVector3();
             Vector3 clientPosition = pkg.ReadVector3();
             Vector3 lookdir = pkg.ReadVector3();
@@ -1034,14 +1047,15 @@ namespace ValheimMP.Patches
             var run = false;
             var walk = false;
             var movedirSpeed = movedir.sqrMagnitude;
-            if (movedirSpeed > 1.1)
+            
+            if (movedirSpeed >= 8.9f)
             {
                 run = true;
             }
-            else if (movedirSpeed > 0.5)
+            else if (movedirSpeed >= 3.9f)
             {
             }
-            else if (movedirSpeed > 0.1)
+            else if (movedirSpeed >= 0.9f)
             {
                 walk = true;
             }
@@ -1074,9 +1088,10 @@ namespace ValheimMP.Patches
                     m_lastSyncTime = Time.time;
 
                     var pkg = new ZPackage();
-                    var moveSpeed = 1.0f;
-                    if (__instance.m_run || __instance.m_running) moveSpeed *= 2f;
-                    if (__instance.m_walk) moveSpeed *= 0.5f;
+                    var moveSpeed = 2f;
+                    if (__instance.m_run || __instance.m_running) moveSpeed = 3f;
+                    else if (__instance.m_walk) moveSpeed = 1f;
+
                     pkg.Write(movedir * moveSpeed);
                     pkg.Write(__instance.transform.position);
                     pkg.Write(__instance.m_lookDir);
@@ -1088,7 +1103,7 @@ namespace ValheimMP.Patches
             }
             else
             {
-                if (__instance.m_clientPosition != Vector3.zero)
+                if (__instance.m_clientPosition != Vector3.zero && !__instance.m_debugFly)
                 {
                     var sqrDist = (__instance.m_clientPosition - __instance.transform.position).sqrMagnitude;
                     if ((sqrDist > 0.25f) || (sqrDist > 0.1f && __instance.m_lastMoveDir == Vector3.zero))
@@ -1099,6 +1114,8 @@ namespace ValheimMP.Patches
                         __instance.m_moveDir = __instance.m_clientPosition - __instance.transform.position;
                         __instance.m_moveDir.Normalize();
                         __instance.m_lastMoveFlags = 1;
+                        __instance.m_run = true;
+                        __instance.m_walk = false;
                     }
                     else
                     {
@@ -1110,26 +1127,46 @@ namespace ValheimMP.Patches
             }
         }
 
-        //[HarmonyPatch(typeof(Character), "UpdateWalking")]
-        //[HarmonyPostfix]
-        //static void UpdateWalking(ref Character __instance, float dt)
-        //{
-        //    if (ZNet.instance.IsServer() && __instance is Player player)
-        //    {
-        //        if (player.m_clientPosition != Vector3.zero)
-        //        {
-        //            var diffDir = player.m_clientPosition - player.transform.position;
-        //            var diffDist = diffDir.sqrMagnitude;
-        //            diffDir.Normalize();
-        //            diffDir.y *= 0.2f;
-        //            if (diffDist > 0.05f && (player.m_moveDir == Vector3.zero || Vector3.Dot(diffDir, player.m_moveDir) > 0.5f))
-        //            {
-        //                __instance.m_body.AddForce(diffDir.normalized * __instance.m_walkSpeed, ForceMode.Acceleration);
-        //            }
-        //        }
-        //    }
-        //}
+        static int m_characterCollisionMask = LayerMask.GetMask("Default", "static_solid", "Default_small", "piece", "hitbox", "character_noenv", "vehicle");
 
+        [HarmonyPatch(typeof(Character), "UpdateWalking")]
+        [HarmonyPostfix]
+        static void UpdateWalking(Character __instance, float dt)
+        {
+            if (ValheimMP.IsDedicated && !__instance.IsDead() && __instance is Player player && player.m_clientPosition != Vector3.zero)
+            {
+                var speed = player.m_running ? player.m_runSpeed : player.m_speed;
+                speed *= speed;
+                var vel = player.m_body.velocity;
+                speed -= vel.x * vel.x + vel.z * vel.z;
+                var dist = (player.m_clientPosition - player.transform.position).sqrMagnitude;
+                if (dist > 0.01 && speed > 0.01)
+                {
+                    var alpha = (speed * Time.deltaTime) / dist;
+                    var dest = Vector3.Lerp(player.transform.position, player.m_clientPosition, alpha);
+                    // Compensate, but dont compensate people through walls.. =p
+                    if (!Physics.Linecast(dest, player.transform.position, m_characterCollisionMask, QueryTriggerInteraction.Ignore))
+                    {
+                        player.transform.position = dest;
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Character), "UpdateDebugFly")]
+        [HarmonyPrefix]
+        private static bool UpdateDebugFly(Character __instance)
+        {
+            if(ValheimMP.IsDedicated && __instance is Player player && player.m_clientPosition != Vector3.zero)
+            {
+                player.transform.position = player.m_clientPosition;
+                player.m_body.useGravity = false;
+                player.m_body.velocity = Vector3.zero;
+                player.UpdateEyeRotation();
+                return false;
+            }
+            return true;
+        }
 
         private enum EAttackMode : int
         {
@@ -2182,7 +2219,4 @@ namespace ValheimMP.Patches
             }
         }
     }
-
-
 }
-

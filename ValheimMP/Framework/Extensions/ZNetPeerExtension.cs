@@ -61,7 +61,7 @@
             pkg.Write(args != null ? args.Length : 0);
             for (int i = 0; i < args.Length; i++)
             {
-                pkg.Write(args[i]);
+                pkg.Write(args[i] == null ? "" : args[i]);
             }
             // server messages can not be send from the client, if a client sends one they will send it to themselves.
             ZRoutedRpc.instance.InvokeRoutedRPC(peer.m_uid, "ChatMessage", pkg);

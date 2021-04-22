@@ -151,42 +151,6 @@ namespace ValheimMP.Patcher
                 ContainerType.Fields.Add(m_onTakeAllSuccess2);
             }
 
-            // Ladder
-            {
-                var LadderType = valheim.GetType("Ladder");
-
-                {
-                    LadderType.Methods.Add(CreateEmptyMethod("Awake", VoidType));
-                }
-            }
-
-            // Chair
-            {
-                var ChairType = valheim.GetType("Chair");
-
-                {
-                    ChairType.Methods.Add(CreateEmptyMethod("Awake", VoidType));
-                }
-            }
-
-            // Teleport
-            {
-                var TeleportType = valheim.GetType("Teleport");
-
-                {
-                    TeleportType.Methods.Add(CreateEmptyMethod("Start", VoidType));
-                }
-            }
-
-            // OfferingBowl
-            {
-                var OfferingBowlType = valheim.GetType("OfferingBowl");
-
-                {
-                    OfferingBowlType.Methods.Add(CreateEmptyMethod("Start", VoidType));
-                }
-            }
-
             // ZSyncAnimation
             {
                 var ZSyncAnimation = valheim.GetType("ZSyncAnimation");
@@ -201,7 +165,6 @@ namespace ValheimMP.Patcher
                 var InventoryType = valheim.GetType("Inventory");
                 InventoryType.Fields.Add(new FieldDefinition("m_nview", FieldAttributes.Private, ZNetViewType));
                 InventoryType.Fields.Add(new FieldDefinition("m_inventoryIndex", FieldAttributes.Private, IntType));
-
             }
 
             // ItemDrop/ItemData

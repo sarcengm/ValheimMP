@@ -18,6 +18,8 @@ namespace ValheimMP.Patches
                 {
                     // Don't ever replicate this garbage
                     __instance.m_nview.m_zdo.SetFieldType("items", ZDOFieldType.Ignored);
+                    // Default items are added through a non standard way and dont trigger this, causing the itemcount to be out of sync.
+                    __instance.m_inventory.Changed();
                 }
 
                 __instance.m_nview.Register("CloseChest", (long sender) => {

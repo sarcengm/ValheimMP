@@ -6,23 +6,18 @@ namespace ValheimMP.Patches
     [HarmonyPatch]
     internal class Teleport_Patch
     {
-        [HarmonyPatch(typeof(Teleport), "Start")]
-        [HarmonyPrefix]
-        private static bool Start(Teleport __instance)
+        [HarmonyPatch(typeof(LocationProxy), "SpawnLocation")]
+        [HarmonyPostfix]
+        private static void LocationProxy_SpawnLocation(LocationProxy __instance)
         {
-            var m_nview = __instance.GetComponentInParent<ZNetView>();
-            if (m_nview != null && ZNet.instance != null && ZNet.instance.IsServer())
+            var teleport = __instance.GetComponentInChildren<Teleport>(true);
+            if (teleport && __instance.m_nview && ValheimMP.IsDedicated)
             {
-                // Two teleports are contained in this location, the entrance and the exit.
-                if (!m_nview.m_functions.ContainsKey("Teleport".GetStableHashCode()))
+                __instance.m_nview.Register("Teleport", (long sender) =>
                 {
-                    m_nview.Register("Teleport", (long sender) =>
-                    {
-                        RPC_Teleport(__instance, sender);
-                    });
-                }
+                    RPC_Teleport(teleport, sender);
+                });
             }
-            return false;
         }
 
         [HarmonyPatch(typeof(Teleport), "Interact")]
@@ -34,7 +29,7 @@ namespace ValheimMP.Patches
             {
                 return false;
             }
-            if (__instance.m_targetPoint == null)
+            if (!__instance.m_targetPoint || !character)
             {
                 return false;
             }
@@ -47,7 +42,7 @@ namespace ValheimMP.Patches
                 m_nview.InvokeRPC(ZNet.instance.GetServerPeer().m_uid, "Teleport");
             }
 
-            if (__instance.m_enterText.Length > 0)
+            if (__instance.m_enterText.Length > 0 && character.transform.position.y < 3000)
             {
                 MessageHud.instance.ShowBiomeFoundMsg(__instance.m_enterText, playStinger: false);
             }

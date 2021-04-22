@@ -6,24 +6,23 @@ namespace ValheimMP.Patches
     [HarmonyPatch]
     internal class Ladder_Patch
     {
-        [HarmonyPatch(typeof(Ladder), "Awake")]
-        [HarmonyPrefix]
-        private static bool Awake(Ladder __instance)
+        [HarmonyPatch(typeof(ZNetView), "Awake")]
+        [HarmonyPostfix]
+        private static void Awake(ZNetView __instance)
         {
-            var m_nview = __instance.GetComponentInParent<ZNetView>();
-            if (m_nview && ZNet.instance && ZNet.instance.IsServer())
-            {
-                if (!m_nview.m_functions.ContainsKey("ClimbLadder".GetStableHashCode()))
-                {
-                    m_nview.Register("ClimbLadder", (long sender, string name) =>
-                    {
-                        RPC_ClimbLadder(m_nview, sender, name);
-                    });
-                }
+            if (__instance.m_zdo == null)
+                return;
 
-                __instance.m_useDistance *= 1.5f;
+            var ladder = __instance.GetComponentInChildren<Ladder>();
+            if (ladder && ValheimMP.IsDedicated)
+            {
+                __instance.Register("ClimbLadder", (long sender, string name) =>
+                {
+                    RPC_ClimbLadder(__instance, sender, name);
+                });
+
+                ladder.m_useDistance *= 1.2f;
             }
-            return false;
         }
 
         private static void RPC_ClimbLadder(ZNetView netView, long sender, string name)

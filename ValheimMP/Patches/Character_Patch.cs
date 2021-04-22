@@ -8,17 +8,6 @@ namespace ValheimMP.Patches
     [HarmonyPatch]
     internal class Character_Patch
     {
-
-        //[HarmonyPatch(typeof(Character), "UpdateWalking")]
-        //[HarmonyPrefix]
-        //static void UpdateWalking(ref Character __instance, float dt)
-        //{
-        //    if (ZNet.instance.IsServer() && __instance.IsPlayer())
-        //    {
-        //        ValheimMP.Log("Post UpdateWalking Sleeping?: " + __instance.m_body.IsSleeping() + " velocity: " + __instance.m_body.velocity + " position: " + __instance.transform.position + " m_moveDir: " + __instance + ":" + __instance.m_moveDir);
-        //    }
-        //}
-
         [HarmonyPatch(typeof(Character), "Damage")]
         [HarmonyPrefix]
         private static bool Damage(Character __instance, HitData hit)

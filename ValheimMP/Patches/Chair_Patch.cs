@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using System.Linq;
 using UnityEngine;
 using ValheimMP.Framework.Extensions;
 
@@ -7,24 +8,23 @@ namespace ValheimMP.Patches
     [HarmonyPatch]
     internal class Chair_Patch
     {
-        [HarmonyPatch(typeof(Chair), "Awake")]
-        [HarmonyPrefix]
-        private static bool Awake(Chair __instance)
+        [HarmonyPatch(typeof(ZNetView), "Awake")]
+        [HarmonyPostfix]
+        private static void Awake(ZNetView __instance)
         {
-            var m_nview = __instance.GetComponentInParent<ZNetView>();
-            if (m_nview && ZNet.instance && ZNet.instance.IsServer())
-            {
-                if (!m_nview.m_functions.ContainsKey("SitChair".GetStableHashCode()))
-                {
-                    m_nview.Register("SitChair", (long sender, string name) =>
-                    {
-                        RPC_SitChair(m_nview, sender, name);
-                    });
-                }
+            if (__instance.m_zdo == null)
+                return;
 
-                __instance.m_useDistance *= 1.2f;
+            var chair = __instance.GetComponentInChildren<Chair>();
+            if (chair && ValheimMP.IsDedicated)
+            {
+                __instance.Register("SitChair", (long sender, string name) =>
+                {
+                    RPC_SitChair(__instance, sender, name);
+                });
+
+                chair.m_useDistance *= 1.2f;
             }
-            return false;
         }
 
         private static void RPC_SitChair(ZNetView netView, long sender, string name)
