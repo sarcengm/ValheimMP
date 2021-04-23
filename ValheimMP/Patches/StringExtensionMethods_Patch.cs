@@ -9,10 +9,10 @@ namespace ValheimMP.Patches
     [HarmonyPatch]
     internal class StringExtensionMethods_Patch
     {
-        private static Dictionary<int, string> stablehashNames = new Dictionary<int, string>();
-        private static Dictionary<int, string> stablehashNamesAnim = new Dictionary<int, string>();
-        private static Dictionary<string, int> stablehashLookup = new Dictionary<string, int>();
-        private static Dictionary<string, int> stablehashLookupAnim = new Dictionary<string, int>();
+        internal static Dictionary<int, string> stablehashNames = new Dictionary<int, string>();
+        internal static Dictionary<int, string> stablehashNamesAnim = new Dictionary<int, string>();
+        internal static Dictionary<string, int> stablehashLookup = new Dictionary<string, int>();
+        internal static Dictionary<string, int> stablehashLookupAnim = new Dictionary<string, int>();
 
         [HarmonyPatch(typeof(StringExtensionMethods), "GetStableHashCode")]
         [HarmonyPrefix]

@@ -37,6 +37,7 @@ namespace ValheimMP.Patches
                 });
 
                 m_chatMaxChatHistory = ValheimMP.Instance.ChatMaxHistory.Value;
+                __instance.m_hideDelay = ValheimMP.Instance.ChatHideDelay.Value;
             }
             else
             {
@@ -94,10 +95,6 @@ namespace ValheimMP.Patches
             if (chatModes.Contains(chatModeTarget))
             {
                 chatMode = chatModeTarget;
-            }
-            else
-            {
-                chatMode = "";
             }
 
             ChatMessageType type = ChatMessageType.Normal;
@@ -181,9 +178,6 @@ namespace ValheimMP.Patches
                     __instance.m_input.caretPosition = __instance.m_input.text.Length;
                     __instance.m_input.selectionFocusPosition = __instance.m_input.text.Length;
                     __instance.m_input.selectionAnchorPosition = __instance.m_input.text.Length;
-
-                    __instance.m_input.text = __instance.m_input.text;
-                    __instance.m_input.ActivateInputField();
                 }
             }
 
@@ -295,6 +289,10 @@ namespace ValheimMP.Patches
             {
                 __instance.m_chatBuffer.RemoveAt(0);
             }
+            if (ValheimMP.Instance.ChatShowOnMessage.Value)
+            {
+                __instance.m_hideTimer = 0f;
+            }
             __instance.UpdateChat();
             return false;
         }
@@ -364,6 +362,38 @@ namespace ValheimMP.Patches
         {
             if (__instance.m_wasFocused)
             {
+                if (Input.GetKeyDown(KeyCode.Tab))
+                {
+                    var finalText = __instance.m_input.text;
+                    var typedMode = finalText.Length >= 3 ? finalText.Substring(0, 3) : "";
+                    var currentMode = -1;
+                    for (int i = 0; i < chatModes.Count; i++)
+                    {
+                        if (string.Compare(chatModes[i], typedMode, true) == 0)
+                        {
+                            currentMode = i;
+                            break;
+                        }
+                    }
+
+                    if(currentMode >= 0)
+                    {
+                        finalText = finalText.Substring(3);
+                    }
+
+                    currentMode++;
+
+                    if (currentMode > chatModes.Count)
+                        currentMode = -1;
+
+                    chatMode = (currentMode >= 0 ? chatModes[currentMode] : "");
+
+                    __instance.m_input.text = chatMode + finalText;
+                    __instance.m_input.caretPosition = __instance.m_input.text.Length;
+                    __instance.m_input.selectionFocusPosition = __instance.m_input.text.Length;
+                    __instance.m_input.selectionAnchorPosition = __instance.m_input.text.Length;
+                }
+
                 if (Input.GetKeyUp(KeyCode.Return) || Input.GetKeyDown(KeyCode.Return))
                 {
                     __instance.m_input.caretWidth = 2;

@@ -26,6 +26,9 @@
     <ProjectReference Include="..\ValheimMP.ChatCommands\ValheimMP.ChatCommands.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <Reference Include="ExtendedItemDataFramework">
+      <HintPath>..\..\ValheimMods\ExtendedItemDataFramework\bin\Debug\ExtendedItemDataFramework.dll</HintPath>
+    </Reference>
     <Reference Include="fastJSON">
       <HintPath>..\..\ValheimMods\Libs\fastJSON.dll</HintPath>
     </Reference>
@@ -35,9 +38,6 @@
     </Reference>
     <Reference Include="BepInEx">
       <HintPath>$(GameDir)\BepInEx\core\BepInEx.dll</HintPath>
-    </Reference>
-    <Reference Include="ExtendedItemDataFramework">
-      <HintPath>$(GameDir)\BepInEx\plugins\ExtendedItemDataFramework.dll</HintPath>
     </Reference>
     <Reference Include="assembly_googleanalytics">
       <HintPath>$(GameDir)\valheim_Data\Managed\publicized_assemblies\assembly_googleanalytics_publicized.dll</HintPath>

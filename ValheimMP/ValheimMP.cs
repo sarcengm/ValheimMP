@@ -223,6 +223,8 @@ namespace ValheimMP
         public Dictionary<Heightmap.Biome, ConfigEntry<bool>> ForcedPVPBiomes { get; private set; }
         public ConfigEntry<int> ServerObjectsCreatedPerFrame { get; private set; }
         public ConfigEntry<int> ChatMaxHistory { get; private set; }
+        public ConfigEntry<float> ChatHideDelay { get; internal set; }
+        public ConfigEntry<bool> ChatShowOnMessage { get; internal set; }
         public ConfigEntry<Color> ChatPartyColor { get; private set; }
         public ConfigEntry<Color> ChatClanColor { get; private set; }
         public ConfigEntry<Color> ChatWhisperColor { get; private set; }
@@ -240,6 +242,7 @@ namespace ValheimMP
         public ConfigEntry<bool> PartyFramesEnabled { get; internal set; }
         public ConfigEntry<bool> PartyFramesShowOffline { get; internal set; }
         public ConfigEntry<bool> PartyFramesShowSelf { get; internal set; }
+        
 
         private ConfigFile m_localizationFile;
         private Dictionary<string, ConfigEntry<string>> m_localizedStrings = new Dictionary<string, ConfigEntry<string>>();
@@ -349,6 +352,8 @@ namespace ValheimMP
             ForcedPVPBiomes = new Dictionary<Heightmap.Biome, ConfigEntry<bool>>();
 
             ChatMaxHistory = Config.Bind("Client", "ChatMaxHistory", 100, "Amount of lines you can scroll back in the history of chat (with page up\\down)");
+            ChatHideDelay = Config.Bind("Client", "ChatHideDelay", 10f, "Time it takes (in seconds) before the chat hides itself.");
+            ChatShowOnMessage = Config.Bind("Client", "ShowOnMessage", true, "If the chat needs to show when a new message is added.");
             ChatPartyColor = Config.Bind<Color>("Client", "ChatPartyColor", new Color32(170, 170, 255, 255), "Sets the chat color for party messages.");
             ChatClanColor = Config.Bind<Color>("Client", "ChatClanColor", new Color32(64, 255, 64, 255), "Sets the chat color for clan messages.");
             ChatWhisperColor = Config.Bind("Client", "ChatWhisperColor", new Color(1f, 1f, 1f, 0.75f), "Sets the chat color for whisper messages.");
@@ -656,6 +661,19 @@ namespace ValheimMP
         internal void WriteDebugData()
         {
 #if DEBUG
+            var sb = new System.Text.StringBuilder();
+            foreach(var item in StringExtensionMethods_Patch.stablehashNames)
+            {
+                sb.AppendLine($"{item.Key}: {item.Value}");
+            }
+            sb.AppendLine("\n\n ----- ANIM HASHES ----- \n");
+            foreach (var item in StringExtensionMethods_Patch.stablehashNamesAnim)
+            {
+                sb.AppendLine($"{item.Key}: {item.Value}");
+            }
+
+            File.WriteAllText(Path.Combine(Path.GetDirectoryName(Config.ConfigFilePath), BepInGUID + ".Debug.StableHash.txt"), sb.ToString());
+
             if (!DebugOutputZDO.Value) return;
 
             var prefabList = new Dictionary<int, List<KeyValuePair<string, int>>>();

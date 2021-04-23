@@ -192,6 +192,12 @@ namespace ValheimMP.Patcher
                 ZRpcType.Fields.Add(new FieldDefinition("m_pingTime", FieldAttributes.Private | FieldAttributes.NotSerialized, FloatType));
                 ZRpcType.Fields.Add(new FieldDefinition("m_peer", FieldAttributes.Private | FieldAttributes.NotSerialized, ZNetPeerType));
             }
+
+            // WaterVolume
+            {
+                var WaterVolumeType = valheim.GetType("WaterVolume");
+                WaterVolumeType.Fields.Add(new FieldDefinition("m_updateFloatersTime", FieldAttributes.Private | FieldAttributes.NotSerialized, FloatType));
+            }
         }
 
 
